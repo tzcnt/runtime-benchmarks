@@ -80,4 +80,6 @@ endif()
 
 link_libraries(${MALLOC_LIB})
 
-add_executable(fib fib/main.cpp)
+add_executable(fib fib.cpp)
+
+add_executable(skynet skynet.cpp)

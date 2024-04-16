@@ -66,9 +66,9 @@ int main(int argc, char* argv[]) {
   }
   size_t n = static_cast<size_t>(atoi(argv[1]));
 
-  tmc::cpu_executor().set_thread_count(std::thread::hardware_concurrency()/2);
+  tmc::cpu_executor().set_thread_count(std::thread::hardware_concurrency()/2).init();
 
-  tmc::async_main([](size_t N) -> tmc::task<int> {
+  return tmc::async_main([](size_t N) -> tmc::task<int> {
     auto startTime = std::chrono::high_resolution_clock::now();
     auto result = co_await fib_hot(N);
     std::printf("%" PRIu64 "\n", result);
