@@ -32,6 +32,10 @@ Frameworks to come:
 - (C++) Intel TBB
 - (C++) [libfork](https://github.com/ConorWilliams/libfork)
 - (C++) [Staccato](https://github.com/rkuchumov/staccato)
+- (C++) [Taskflow](https://github.com/taskflow/taskflow)
 - (C#) .Net thread pool
 - (Rust) [tokio](https://github.com/tokio-rs/tokio)
 - (Golang) goroutines
+
+Benchmarks to come:
+- Lots of good inspiration [here](https://github.com/ConorWilliams/libfork/tree/main/bench/source)
