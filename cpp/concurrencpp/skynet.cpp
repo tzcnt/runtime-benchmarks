@@ -36,6 +36,7 @@
 
 using namespace concurrencpp;
 static size_t thread_count = std::thread::hardware_concurrency()/2;
+static const size_t iter_count = 1;
 
 template <size_t DepthMax>
 result<size_t> skynet_one(executor_tag, std::shared_ptr<thread_pool_executor> executor, size_t BaseNum, size_t Depth) {
@@ -68,8 +69,6 @@ template <size_t DepthMax> result<void> skynet(executor_tag, std::shared_ptr<thr
 }
 
 template <size_t Depth = 6> result<void> loop_skynet(executor_tag, std::shared_ptr<thread_pool_executor> executor) {
-
-  const size_t iter_count = 1;
   for (size_t j = 0; j < 5; ++j) {
     auto startTime = std::chrono::high_resolution_clock::now();
     for (size_t i = 0; i < iter_count; ++i) {
@@ -81,7 +80,7 @@ template <size_t Depth = 6> result<void> loop_skynet(executor_tag, std::shared_p
       endTime - startTime
     );
     std::printf(
-      "%" PRIu64 " skynet iterations in %" PRIu64 " us\n",
+      "%" PRIu64 " iterations in %" PRIu64 " us\n",
       iter_count, totalTimeUs.count()
     );
   }

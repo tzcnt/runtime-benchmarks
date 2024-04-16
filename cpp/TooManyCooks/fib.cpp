@@ -38,6 +38,8 @@
 #include <cstdio>
 
 using namespace tmc;
+static size_t thread_count = std::thread::hardware_concurrency()/2;
+static const size_t iter_count = 1;
 
 // Executes all tasks serially
 static task<size_t> fib_serial(size_t n) {
@@ -88,18 +90,25 @@ int main(int argc, char* argv[]) {
   }
   size_t n = static_cast<size_t>(atoi(argv[1]));
 
-  tmc::cpu_executor().set_thread_count(std::thread::hardware_concurrency()/2).init();
+  tmc::cpu_executor().set_thread_count(thread_count).init();
+  std::printf("Using %" PRIu64 " threads.\n", thread_count);
 
   return tmc::async_main([](size_t N) -> tmc::task<int> {
     auto startTime = std::chrono::high_resolution_clock::now();
-    auto result = co_await fib_hot(N);
-    std::printf("%" PRIu64 "\n", result);
+
+    for (size_t i = 0; i < iter_count; ++i) {
+      auto result = co_await fib_hot(N);
+      std::printf("%" PRIu64 "\n", result);
+    }
 
     auto endTime = std::chrono::high_resolution_clock::now();
     auto totalTimeUs = std::chrono::duration_cast<std::chrono::microseconds>(
       endTime - startTime
     );
-    std::printf("%" PRIu64 " us\n", totalTimeUs.count());
+    std::printf(
+    "%" PRIu64 " iterations in %" PRIu64 " us\n",
+      iter_count, totalTimeUs.count()
+    );
     co_return 0;
   }(n));
 }

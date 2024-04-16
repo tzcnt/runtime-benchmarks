@@ -15,6 +15,7 @@
 
 using namespace concurrencpp;
 static size_t thread_count = std::thread::hardware_concurrency()/2;
+static const size_t iter_count = 1;
 
 result<size_t> fibonacci(executor_tag, std::shared_ptr<thread_pool_executor> tpe, const size_t curr) {
   if (curr < 2) {
@@ -41,13 +42,18 @@ int main(int argc, char* argv[]) {
 
   auto startTime = std::chrono::high_resolution_clock::now();
 
-  auto result = fibonacci({}, runtime.thread_pool_executor(), n).get();
-  std::printf("%" PRIu64 "\n", result);
+  for (size_t i = 0; i < iter_count; ++i) {
+    auto result = fibonacci({}, runtime.thread_pool_executor(), n).get();
+    std::printf("%" PRIu64 "\n", result);
+  }
 
   auto endTime = std::chrono::high_resolution_clock::now();
   auto totalTimeUs = std::chrono::duration_cast<std::chrono::microseconds>(
     endTime - startTime
   );
-  std::printf("%" PRIu64 " us\n", totalTimeUs.count());
+  std::printf(
+  "%" PRIu64 " iterations in %" PRIu64 " us\n",
+    iter_count, totalTimeUs.count()
+  );
   return 0;
 }
