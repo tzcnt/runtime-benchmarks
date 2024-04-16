@@ -27,20 +27,18 @@
 // ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 // OTHER DEALINGS IN THE SOFTWARE.
 
-#define TMC_IMPL
-
-#include "tmc/ex_cpu.hpp"
-#include "tmc/sync.hpp"
-#include "tmc/task.hpp"
-#include "tmc/spawn_task_many.hpp"
-#include "tmc/utils.hpp"
+#include "concurrencpp/concurrencpp.h"
+#include <concurrencpp/runtime/runtime.h>
 
 #include <chrono>
 #include <cinttypes>
 #include <cstdio>
 
+using namespace concurrencpp;
+static size_t thread_count = std::thread::hardware_concurrency()/2;
+
 template <size_t DepthMax>
-tmc::task<size_t> skynet_one(size_t BaseNum, size_t Depth) {
+result<size_t> skynet_one(executor_tag, std::shared_ptr<thread_pool_executor> executor, size_t BaseNum, size_t Depth) {
   if (Depth == DepthMax) {
     co_return BaseNum;
   }
@@ -49,60 +47,33 @@ tmc::task<size_t> skynet_one(size_t BaseNum, size_t Depth) {
     depthOffset *= 10;
   }
 
-  /// Simplest way to spawn subtasks
-  // std::array<tmc::task<size_t>, 10> children;
-  // for (size_t idx = 0; idx < 10; ++idx) {
-  //   children[idx] = skynet_one<DepthMax>(BaseNum + depthOffset * idx,
-  //   Depth + 1);
-  // }
-  // std::array<size_t, 10> results = co_await
-  // tmc::spawn_many<10>(children.data());
+  std::array<result<size_t>, 10> children;
+    for (size_t idx = 0; idx < 10; ++idx) {
+    children[idx] = skynet_one<DepthMax>({}, executor,BaseNum + depthOffset * idx, Depth + 1);
+  }
 
-  /// Concise and slightly faster way to run subtasks
-  std::array<size_t, 10> results =
-    co_await tmc::spawn_many<10>(tmc::iter_adapter(
-      0ULL,
-      [=](size_t idx) -> tmc::task<size_t> {
-        return skynet_one<DepthMax>(BaseNum + depthOffset * idx, Depth + 1);
-      }
-    ));
+  auto results = co_await when_all(executor, children.begin(), children.end());
 
   size_t count = 0;
-  for (size_t idx = 0; idx < 10; ++idx) {
-    count += results[idx];
+  for (auto& res : results) {
+    count += co_await res;
   }
   co_return count;
 }
-template <size_t DepthMax> tmc::task<void> skynet() {
-  size_t count = co_await skynet_one<DepthMax>(0, 0);
+template <size_t DepthMax> result<void> skynet(executor_tag, std::shared_ptr<thread_pool_executor> executor) {
+  size_t count = co_await skynet_one<DepthMax>({}, executor, 0, 0);
   if (count != 499999500000) {
     std::printf("%" PRIu64 "\n", count);
   }
 }
 
-template <size_t Depth = 6> void run_skynet() {
-  tmc::ex_cpu executor;
-  executor.init();
-  auto startTime = std::chrono::high_resolution_clock::now();
-  auto future = tmc::post_waitable(executor, skynet<Depth>(), 0);
-  future.wait();
-  auto endTime = std::chrono::high_resolution_clock::now();
+template <size_t Depth = 6> result<void> loop_skynet(executor_tag, std::shared_ptr<thread_pool_executor> executor) {
 
-  auto execDur =
-    std::chrono::duration_cast<std::chrono::nanoseconds>(endTime - startTime);
-  std::printf(
-    "executed skynet in %" PRIu64 " ns: %" PRIu64 " thread-ns\n",
-    execDur.count(),
-    executor.thread_count() * static_cast<size_t>(execDur.count())
-  );
-}
-
-template <size_t Depth = 6> tmc::task<void> loop_skynet() {
   const size_t iter_count = 1;
   for (size_t j = 0; j < 5; ++j) {
     auto startTime = std::chrono::high_resolution_clock::now();
     for (size_t i = 0; i < iter_count; ++i) {
-      co_await skynet<Depth>();
+      co_await skynet<Depth>({}, executor);
     }
     auto endTime = std::chrono::high_resolution_clock::now();
     auto execDur = endTime - startTime;
@@ -117,9 +88,9 @@ template <size_t Depth = 6> tmc::task<void> loop_skynet() {
 }
 
 int main() {
-  tmc::cpu_executor().set_thread_count(std::thread::hardware_concurrency()/2).init();
-  return tmc::async_main([]() -> tmc::task<int> {
-    co_await loop_skynet<6>();
-    co_return 0;
-  }());
+  std::printf("Using %" PRIu64 " threads.\n", thread_count);
+  concurrencpp::runtime_options opt;
+  opt.max_cpu_threads = thread_count;
+  concurrencpp::runtime runtime(opt);
+  loop_skynet<6>({}, runtime.thread_pool_executor()).get();
 }
