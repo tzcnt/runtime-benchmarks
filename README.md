@@ -14,7 +14,7 @@ Current Benchmark Results:
 
 | Runtime | [TooManyCooks](https://github.com/tzcnt/TooManyCooks) | [libfork](https://github.com/ConorWilliams/libfork) | [concurrencpp](https://github.com/David-Haim/concurrencpp) |
 | --- | --- | --- | --- |
-| Mean Ratio to Best | 1.16x | 1.29x | 134.33x |
+| Mean Ratio to Best<br>(lower is better) | 1.16x | 1.29x | 134.33x |
 | fib(35) | 25219 us | 33416 us | 2828353 us |
 | fib(40) | 160893 us | 204698 us | 29931094 us |
 | fib(45) | 1712947 us | 2177882 us | 326018179 us |
