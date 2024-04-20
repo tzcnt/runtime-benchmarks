@@ -10,7 +10,7 @@ import yaml
 import sys
 
 runtimes = {
-    "cpp": ["TooManyCooks", "libfork", "concurrencpp"]
+    "cpp": ["libfork", "TooManyCooks", "concurrencpp"]
 }
 
 runtime_links = {
