@@ -79,11 +79,12 @@ tmc::task<size_t> skynet_one(size_t BaseNum, size_t Depth) {
 template <size_t DepthMax> tmc::task<void> skynet() {
   size_t count = co_await skynet_one<DepthMax>(0, 0);
   if (count != 499999500000) {
-    std::printf("%" PRIu64 "\n", count);
+    std::printf("ERROR: wrong result - %" PRIu64 "\n", count);
   }
 }
 
 template <size_t Depth = 6> tmc::task<void> loop_skynet() {
+  std::printf("runs:\n");
   for (size_t j = 0; j < 5; ++j) {
     auto startTime = std::chrono::high_resolution_clock::now();
     for (size_t i = 0; i < iter_count; ++i) {
@@ -94,16 +95,14 @@ template <size_t Depth = 6> tmc::task<void> loop_skynet() {
     auto totalTimeUs = std::chrono::duration_cast<std::chrono::microseconds>(
       endTime - startTime
     );
-    std::printf(
-      "%" PRIu64 " iterations in %" PRIu64 " us\n",
-      iter_count, totalTimeUs.count()
-    );
+    std::printf("  - iteration_count: %" PRIu64 "\n",iter_count);
+    std::printf("    duration: %" PRIu64 " us\n", totalTimeUs.count());
   }
 }
 
 int main() {
+  std::printf("threads: %" PRIu64 "\n", thread_count);
   tmc::cpu_executor().set_thread_count(thread_count).init();
-  std::printf("Using %" PRIu64 " threads.\n", thread_count);
   return tmc::async_main([]() -> tmc::task<int> {
     co_await loop_skynet<6>();
     co_return 0;

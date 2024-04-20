@@ -64,11 +64,12 @@ result<size_t> skynet_one(executor_tag, std::shared_ptr<thread_pool_executor> ex
 template <size_t DepthMax> result<void> skynet(executor_tag, std::shared_ptr<thread_pool_executor> executor) {
   size_t count = co_await skynet_one<DepthMax>({}, executor, 0, 0);
   if (count != 499999500000) {
-    std::printf("%" PRIu64 "\n", count);
+    std::printf("ERROR: wrong result - %" PRIu64 "\n", count);
   }
 }
 
 template <size_t Depth = 6> result<void> loop_skynet(executor_tag, std::shared_ptr<thread_pool_executor> executor) {
+  std::printf("runs:\n");
   for (size_t j = 0; j < 5; ++j) {
     auto startTime = std::chrono::high_resolution_clock::now();
     for (size_t i = 0; i < iter_count; ++i) {
@@ -79,15 +80,13 @@ template <size_t Depth = 6> result<void> loop_skynet(executor_tag, std::shared_p
     auto totalTimeUs = std::chrono::duration_cast<std::chrono::microseconds>(
       endTime - startTime
     );
-    std::printf(
-      "%" PRIu64 " iterations in %" PRIu64 " us\n",
-      iter_count, totalTimeUs.count()
-    );
+    std::printf("  - iteration_count: %" PRIu64 "\n",iter_count);
+    std::printf("    duration: %" PRIu64 " us\n", totalTimeUs.count());
   }
 }
 
 int main() {
-  std::printf("Using %" PRIu64 " threads.\n", thread_count);
+  std::printf("threads: %" PRIu64 "\n", thread_count);
   concurrencpp::runtime_options opt;
   opt.max_cpu_threads = thread_count;
   concurrencpp::runtime runtime(opt);

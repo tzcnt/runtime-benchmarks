@@ -35,25 +35,24 @@ int main(int argc, char* argv[]) {
   }
   size_t n = static_cast<size_t>(atoi(argv[1]));
 
-  std::printf("Using %" PRIu64 " threads.\n", thread_count);
+  std::printf("threads: %" PRIu64 "\n", thread_count);
   concurrencpp::runtime_options opt;
   opt.max_cpu_threads = thread_count;
   concurrencpp::runtime runtime(opt);
-
+  std::printf("results:\n");
   auto startTime = std::chrono::high_resolution_clock::now();
 
   for (size_t i = 0; i < iter_count; ++i) {
     auto result = fibonacci({}, runtime.thread_pool_executor(), n).get();
-    std::printf("%" PRIu64 "\n", result);
+    std::printf("  - %" PRIu64 "\n", result);
   }
 
   auto endTime = std::chrono::high_resolution_clock::now();
   auto totalTimeUs = std::chrono::duration_cast<std::chrono::microseconds>(
     endTime - startTime
   );
-  std::printf(
-  "%" PRIu64 " iterations in %" PRIu64 " us\n",
-    iter_count, totalTimeUs.count()
-  );
+  std::printf("runs:\n");
+  std::printf("  - iteration_count: %" PRIu64 "\n",iter_count);
+  std::printf("    duration: %" PRIu64 " us\n", totalTimeUs.count());
   return 0;
 }
