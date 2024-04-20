@@ -10,17 +10,18 @@ import yaml
 import sys
 
 runtimes = {
-    "cpp": ["TooManyCooks", "concurrencpp"]
+    "cpp": ["TooManyCooks", "libfork", "concurrencpp"]
 }
 
 runtime_links = {
     "TooManyCooks": "https://github.com/tzcnt/TooManyCooks",
+    "libfork": "https://github.com/ConorWilliams/libfork",
     "concurrencpp": "https://github.com/David-Haim/concurrencpp"
 }
 
 benchmarks={
     "fib": {
-        "params": ["30", "35", "40"]
+        "params": ["35", "40", "45"]
     },
     "skynet": {
 
@@ -28,9 +29,9 @@ benchmarks={
 }
 
 collect_results = {
-    "fib": [{"params": "30", "runs": ["first"]},
-            {"params": "35", "runs": ["first"]},
-            {"params": "40", "runs": ["first"]}
+    "fib": [{"params": "35", "runs": ["first"]},
+            {"params": "40", "runs": ["first"]},
+            {"params": "45", "runs": ["first"]}
             ],
     "skynet": [{"params": "", "runs": ["first", "last"]}]
 }
@@ -126,9 +127,9 @@ for runtime, runtime_results in collated_results.items():
     mean = sum / count
     sorted.append({"runtime": runtime, "mean": mean})
 
-sorted.sort(key=lambda x: x["runtime"])
+sorted.sort(key=lambda x: x["mean"])
 # print(sorted)
-output_array = [["Runtime", "Mean Ratio to Best"] + bench_names]
+output_array = [["Runtime", "Mean Ratio to Best<br>(lower is better)"] + bench_names]
 for runtime in sorted:
     runtime_name = runtime["runtime"]
     runtime_mean = runtime["mean"]

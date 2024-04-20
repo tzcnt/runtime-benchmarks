@@ -1,8 +1,9 @@
 # runtime_benchmarks
 Benchmarks to compare the performance of async runtimes / fork-join frameworks.
 
-Currently only contains 2 frameworks:
+Currently only contains 3 frameworks:
 - [TooManyCooks](https://github.com/tzcnt/TooManyCooks)
+- [libfork](https://github.com/ConorWilliams/libfork)
 - [concurrencpp](https://github.com/David-Haim/concurrencpp)
 
 And 2 benchmarks:
@@ -11,14 +12,14 @@ And 2 benchmarks:
 
 Current Benchmark Results:
 
-| Runtime | [TooManyCooks](https://github.com/tzcnt/TooManyCooks) | [concurrencpp](https://github.com/David-Haim/concurrencpp) |
-| --- | --- | --- |
-| Mean Ratio to Best | 1.00x | 101.39x |
-| fib(30) | 4932 us | 259243 us |
-| fib(35) | 24985 us | 2723675 us |
-| fib(40) | 161580 us | 29933826 us |
-| skynet (first run) | 3577 us | 132812 us |
-| skynet (last run) | 1085 us | 133437 us |
+| Runtime | [TooManyCooks](https://github.com/tzcnt/TooManyCooks) | [libfork](https://github.com/ConorWilliams/libfork) | [concurrencpp](https://github.com/David-Haim/concurrencpp) |
+| --- | --- | --- | --- |
+| Mean Ratio to Best | 1.16x | 1.29x | 134.33x |
+| fib(35) | 25219 us | 33416 us | 2828353 us |
+| fib(40) | 160893 us | 204698 us | 29931094 us |
+| fib(45) | 1712947 us | 2177882 us | 326018179 us |
+| skynet (first run) | 4299 us | 2372 us | 142357 us |
+| skynet (last run) | 1199 us | 1909 us | 147620 us |
 
 Benchmark configuration:
 - Processor: EPYC 7742 64-core processor
@@ -30,7 +31,6 @@ Benchmark configuration:
 
 Frameworks to come:
 - (C++) Intel TBB
-- (C++) [libfork](https://github.com/ConorWilliams/libfork)
 - (C++) [Staccato](https://github.com/rkuchumov/staccato)
 - (C++) [Taskflow](https://github.com/taskflow/taskflow)
 - (C#) .Net thread pool
