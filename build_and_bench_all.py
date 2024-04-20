@@ -9,22 +9,35 @@ import subprocess
 import yaml
 import sys
 
+runtimes = {
+    "cpp": ["TooManyCooks", "concurrencpp"]
+}
+
+runtime_links = {
+    "TooManyCooks": "https://github.com/tzcnt/TooManyCooks",
+    "concurrencpp": "https://github.com/David-Haim/concurrencpp"
+}
+
 benchmarks={
     "fib": {
-        "params": ["30", "35", "40", "45"]
+        "params": ["30", "35", "40"]
     },
     "skynet": {
 
     }
 }
-runtimes = {
-    "cpp": ["TooManyCooks", "concurrencpp"]
+
+collect_results = {
+    "fib": [{"params": "30", "runs": ["first"]},
+            {"params": "35", "runs": ["first"]},
+            {"params": "40", "runs": ["first"]}
+            ],
+    "skynet": [{"params": "", "runs": ["first", "last"]}]
 }
 
-results = {}
 
 root_dir = os.path.abspath(os.path.dirname(__file__))
-
+results = {}
 for language, runtime_names in runtimes.items():
     for runtime in runtime_names:
         # Build the benchmark
@@ -35,7 +48,7 @@ for language, runtime_names in runtimes.items():
         for bench_name, bench_args in benchmarks.items():
             bench_exe = os.path.join(runtime_root_dir, "build", bench_name)
             for params in bench_args.setdefault("params",[""]):
-                print(f"Running {bench_exe}")
+                print(f"Running {bench_exe} {params}")
                 output_array = subprocess.run(args=f"{bench_exe} {params}", shell=True, capture_output=True, text=True)
                 try:
                     print(output_array.stdout)
@@ -63,16 +76,8 @@ def get_dur_in_ns(dur_string):
             print(f"Unknown unit: {unit}")
             exit(1)
 
-collect_results = {
-    "fib": [{"params": "30", "runs": ["first"]},
-            {"params": "35", "runs": ["first"]},
-            {"params": "40", "runs": ["first"]},
-            {"params": "45", "runs": ["first"]}
-            ],
-    "skynet": [{"params": "", "runs": ["first", "last"]}]
-}
-
 collated_results = {}
+bench_names = []
 for runtime, runtime_results in results.items():
     for bench_name, collect in collect_results.items():
         for collect_item in collect:
@@ -93,6 +98,8 @@ for runtime, runtime_results in results.items():
                 if len(runs) > 1:
                     friendly_name += f" ({run} run)"
                 collated_results.setdefault(runtime, {})[friendly_name] = {"raw": dur_string, "ns": dur_in_ns}
+                if not friendly_name in bench_names:
+                    bench_names.append(friendly_name)
 
 lowest_results = {}
 for runtime, runtime_results in collated_results.items():
@@ -119,12 +126,6 @@ for runtime, runtime_results in collated_results.items():
     mean = sum / count
     sorted.append({"runtime": runtime, "mean": mean})
 
-bench_names = ["fib(30)", "fib(35)", "fib(40)", "fib(45)", "skynet (first run)", "skynet (last run)"]
-runtime_links = {
-    "TooManyCooks": "https://github.com/tzcnt/TooManyCooks",
-    "concurrencpp": "https://github.com/David-Haim/concurrencpp"
-}
-
 sorted.sort(key=lambda x: x["runtime"])
 # print(sorted)
 output_array = [["Runtime", "Mean Ratio to Best"] + bench_names]
@@ -142,7 +143,7 @@ for runtime in sorted:
 
 # print(output_array)
 
-print("Updating README.md embedded table...")
+print("Updating README.md embedded table...", end=" ")
 
 len_y = len(output_array[0])
 len_x = len(output_array)
@@ -170,3 +171,5 @@ fulltext = fulltext.replace("<<bench_results>>\n", output)
 
 with open("README.md", "w") as readme:
   readme.write(fulltext)
+
+print("done.")
