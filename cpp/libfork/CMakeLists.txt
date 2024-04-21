@@ -17,13 +17,16 @@ add_definitions(
 
 include(../1CMake/CPM.cmake)
 
+# Libfork requires Boost for optimal performance. It will try to find Boost on its own.
+# If you don't have Boost installed, it will still run, but performance will be degraded.
+
 # My fork only fixes finding dependencies on my machine - no code changes to libfork.
 # If you want, you can use the original libfork:
 # https://github.com/ConorWilliams/libfork.git@v3.7.2
 CPMAddPackage(
     NAME libfork
     GIT_REPOSITORY https://github.com/tzcnt/libfork.git
-    GIT_TAG 60ff97f80448e9d621c52d153028e9578eef5a23
+    GIT_TAG 3655643a2b612817c16fc9abf99e6c8377cfb3bc
     DOWNLOAD_ONLY)
 include_directories(
     ${libfork_SOURCE_DIR}/include
