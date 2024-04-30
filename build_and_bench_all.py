@@ -33,7 +33,7 @@ collect_results = {
             {"params": "40", "runs": ["first"]},
             {"params": "45", "runs": ["first"]}
             ],
-    "skynet": [{"params": "", "runs": ["first", "last"]}]
+    "skynet": [{"params": "", "runs": ["first"]}]
 }
 
 

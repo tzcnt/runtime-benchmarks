@@ -42,6 +42,8 @@ int main(int argc, char* argv[]) {
   std::printf("threads: %" PRIu64 "\n", thread_count);
   lf::lazy_pool pool(thread_count);
   
+  auto result = lf::sync_wait(pool, fib, 30); // warmup
+  
   std::printf("results:\n");
   auto startTime = std::chrono::high_resolution_clock::now();
 

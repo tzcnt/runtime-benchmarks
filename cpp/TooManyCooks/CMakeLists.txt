@@ -12,6 +12,7 @@ add_definitions(
     # Performance tuning options
     "-march=native"
     "-DTMC_PRIORITY_COUNT=1" # unsigned integer between 1 and 63
+    "-DTMC_CUSTOM_CORO_ALLOC"
     # "-DTMC_TRIVIAL_TASK" # enabled in this repo for Release builds via CMakePresets.json
 
     # Other
@@ -28,7 +29,7 @@ include(../1CMake/CPM.cmake)
 CPMAddPackage(
     NAME TooManyCooks
     GIT_REPOSITORY https://github.com/tzcnt/TooManyCooks.git
-    GIT_TAG v0.0.1
+    GIT_TAG v0.0.2
     DOWNLOAD_ONLY)
 include_directories(
     ${TooManyCooks_SOURCE_DIR}/include

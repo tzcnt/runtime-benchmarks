@@ -70,11 +70,11 @@ template <size_t DepthMax> result<void> skynet(executor_tag, std::shared_ptr<thr
 
 template <size_t Depth = 6> result<void> loop_skynet(executor_tag, std::shared_ptr<thread_pool_executor> executor) {
   std::printf("runs:\n");
-  for (size_t j = 0; j < 5; ++j) {
+  for (size_t j = 0; j < iter_count; ++j) {
     auto startTime = std::chrono::high_resolution_clock::now();
-    for (size_t i = 0; i < iter_count; ++i) {
-      co_await skynet<Depth>({}, executor);
-    }
+
+    co_await skynet<Depth>({}, executor);
+    
     auto endTime = std::chrono::high_resolution_clock::now();
     auto execDur = endTime - startTime;
     auto totalTimeUs = std::chrono::duration_cast<std::chrono::microseconds>(
@@ -90,5 +90,6 @@ int main() {
   concurrencpp::runtime_options opt;
   opt.max_cpu_threads = thread_count;
   concurrencpp::runtime runtime(opt);
+  skynet<6>({}, runtime.thread_pool_executor()).get(); // warmup
   loop_skynet<6>({}, runtime.thread_pool_executor()).get();
 }

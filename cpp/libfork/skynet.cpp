@@ -69,11 +69,11 @@ template <size_t DepthMax> inline constexpr auto skynet = [](auto skynet) -> lf:
 
 template <size_t Depth = 6> inline constexpr auto loop_skynet = [](auto loop_skynet) -> lf::task<void> {
   std::printf("runs:\n");
-  for (size_t j = 0; j < 5; ++j) {
+  for (size_t j = 0; j < iter_count; ++j) {
     auto startTime = std::chrono::high_resolution_clock::now();
-    for (size_t i = 0; i < iter_count; ++i) {
-  co_await lf::just[skynet<Depth>]();
-    }
+
+    co_await lf::just[skynet<Depth>]();
+    
     auto endTime = std::chrono::high_resolution_clock::now();
     auto execDur = endTime - startTime;
     auto totalTimeUs = std::chrono::duration_cast<std::chrono::microseconds>(
@@ -87,5 +87,6 @@ template <size_t Depth = 6> inline constexpr auto loop_skynet = [](auto loop_sky
 int main() {
   std::printf("threads: %" PRIu64 "\n", thread_count);
   lf::lazy_pool pool(thread_count);
+  lf::sync_wait(pool, skynet<6>); // warmup
   lf::sync_wait(pool, loop_skynet<6>);
 }

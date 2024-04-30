@@ -79,7 +79,7 @@ static task<size_t> fib_hot(size_t n) {
 
   auto x_hot = spawn(fib_hot(n - 1)).run_early();
   auto y = co_await fib_hot(n - 2);
-  auto x = co_await x_hot;
+  auto x = co_await std::move(x_hot);
   co_return x + y;
 }
 
@@ -95,11 +95,13 @@ int main(int argc, char* argv[]) {
   std::printf("results:\n");
 
   return tmc::async_main([](size_t N) -> tmc::task<int> {
+    auto result = co_await fib_hot(30); // warmup
+
     auto startTime = std::chrono::high_resolution_clock::now();
 
     for (size_t i = 0; i < iter_count; ++i) {
       auto result = co_await fib_hot(N);
-    std::printf("  - %" PRIu64 "\n", result);
+      std::printf("  - %" PRIu64 "\n", result);
     }
 
     auto endTime = std::chrono::high_resolution_clock::now();

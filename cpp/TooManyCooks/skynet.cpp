@@ -85,11 +85,11 @@ template <size_t DepthMax> tmc::task<void> skynet() {
 
 template <size_t Depth = 6> tmc::task<void> loop_skynet() {
   std::printf("runs:\n");
-  for (size_t j = 0; j < 5; ++j) {
+  for (size_t j = 0; j < iter_count; ++j) {
     auto startTime = std::chrono::high_resolution_clock::now();
-    for (size_t i = 0; i < iter_count; ++i) {
-      co_await skynet<Depth>();
-    }
+
+    co_await skynet<Depth>();
+    
     auto endTime = std::chrono::high_resolution_clock::now();
     auto execDur = endTime - startTime;
     auto totalTimeUs = std::chrono::duration_cast<std::chrono::microseconds>(
@@ -104,6 +104,7 @@ int main() {
   std::printf("threads: %" PRIu64 "\n", thread_count);
   tmc::cpu_executor().set_thread_count(thread_count).init();
   return tmc::async_main([]() -> tmc::task<int> {
+    co_await skynet<6>(); // warmup
     co_await loop_skynet<6>();
     co_return 0;
   }());

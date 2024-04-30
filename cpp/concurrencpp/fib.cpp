@@ -39,6 +39,9 @@ int main(int argc, char* argv[]) {
   concurrencpp::runtime_options opt;
   opt.max_cpu_threads = thread_count;
   concurrencpp::runtime runtime(opt);
+
+  auto result = fibonacci({}, runtime.thread_pool_executor(), 30).get(); // warmup
+
   std::printf("results:\n");
   auto startTime = std::chrono::high_resolution_clock::now();
 
