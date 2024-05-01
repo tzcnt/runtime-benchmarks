@@ -18,7 +18,9 @@ add_definitions(
 include(../1CMake/CPM.cmake)
 
 # Libfork requires Boost for optimal performance. It will try to find Boost on its own.
-# If you don't have Boost installed, it will still run, but performance will be degraded.
+# If you don't have Boost installed, it will still run (you can comment out the next line),
+# but performance may be degraded substantially.
+find_package(Boost 1.83.0 REQUIRED COMPONENTS atomic)
 
 # My fork only fixes finding dependencies on my machine - no code changes to libfork.
 # If you want, you can use the original libfork:
