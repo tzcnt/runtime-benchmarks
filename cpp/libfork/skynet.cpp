@@ -62,7 +62,7 @@ inline constexpr auto skynet_one = [](auto skynet_one, size_t BaseNum, size_t De
 
 template <size_t DepthMax> inline constexpr auto skynet = [](auto skynet) -> lf::task<void> {
   size_t count = co_await lf::just[skynet_one<DepthMax>](0, 0);
-  if (count != 499999500000) {
+  if (count != 4999999950000000) {
     std::printf("ERROR: wrong result - %" PRIu64 "\n", count);
   }
 };
@@ -87,6 +87,6 @@ template <size_t Depth = 6> inline constexpr auto loop_skynet = [](auto loop_sky
 int main() {
   std::printf("threads: %" PRIu64 "\n", thread_count);
   lf::lazy_pool pool(thread_count);
-  lf::sync_wait(pool, skynet<6>); // warmup
-  lf::sync_wait(pool, loop_skynet<6>);
+  lf::sync_wait(pool, skynet<8>); // warmup
+  lf::sync_wait(pool, loop_skynet<8>);
 }

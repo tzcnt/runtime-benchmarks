@@ -67,3 +67,5 @@ link_libraries(${MALLOC_LIB} libfork::libfork hwloc)
 add_executable(fib fib.cpp)
 
 add_executable(skynet skynet.cpp)
+
+add_executable(nqueens nqueens.cpp)

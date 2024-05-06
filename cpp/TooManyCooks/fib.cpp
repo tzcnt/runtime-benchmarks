@@ -30,12 +30,12 @@
 
 #include "tmc/ex_cpu.hpp"
 #include "tmc/spawn_task.hpp"
-#include "tmc/spawn_task_many.hpp"
-#include "tmc/utils.hpp"
+#include "tmc/spawn_many.hpp"
 
 #include <chrono>
 #include <cinttypes>
 #include <cstdio>
+#include <ranges>
 
 using namespace tmc;
 static size_t thread_count = std::thread::hardware_concurrency()/2;
@@ -67,7 +67,9 @@ static task<size_t> fib_bulk_iter(size_t n) {
   if (n < 2)
     co_return n;
 
-  auto results = co_await spawn_many<2>(iter_adapter(n - 2, fib_bulk_iter));
+  auto results = co_await spawn_many<2>((
+    std::ranges::views::iota(n-2) | std::ranges::views::transform(fib_bulk_iter)
+  ).begin());
   co_return results[0] + results[1];
 
 }

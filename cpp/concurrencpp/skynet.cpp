@@ -63,7 +63,7 @@ result<size_t> skynet_one(executor_tag, std::shared_ptr<thread_pool_executor> ex
 }
 template <size_t DepthMax> result<void> skynet(executor_tag, std::shared_ptr<thread_pool_executor> executor) {
   size_t count = co_await skynet_one<DepthMax>({}, executor, 0, 0);
-  if (count != 499999500000) {
+  if (count != 4999999950000000) {
     std::printf("ERROR: wrong result - %" PRIu64 "\n", count);
   }
 }
@@ -90,6 +90,6 @@ int main() {
   concurrencpp::runtime_options opt;
   opt.max_cpu_threads = thread_count;
   concurrencpp::runtime runtime(opt);
-  skynet<6>({}, runtime.thread_pool_executor()).get(); // warmup
-  loop_skynet<6>({}, runtime.thread_pool_executor()).get();
+  skynet<8>({}, runtime.thread_pool_executor()).get(); // warmup
+  loop_skynet<8>({}, runtime.thread_pool_executor()).get();
 }

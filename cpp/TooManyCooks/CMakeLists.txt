@@ -29,7 +29,7 @@ include(../1CMake/CPM.cmake)
 CPMAddPackage(
     NAME TooManyCooks
     GIT_REPOSITORY https://github.com/tzcnt/TooManyCooks.git
-    GIT_TAG v0.0.2
+    GIT_TAG 390b8d099f09ad7ce23960c524e0cde9f08a82a4
     DOWNLOAD_ONLY)
 include_directories(
     ${TooManyCooks_SOURCE_DIR}/include
@@ -84,3 +84,5 @@ link_libraries(${MALLOC_LIB})
 add_executable(fib fib.cpp)
 
 add_executable(skynet skynet.cpp)
+
+add_executable(nqueens nqueens.cpp)

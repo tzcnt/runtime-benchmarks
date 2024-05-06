@@ -6,19 +6,21 @@ Currently only contains 3 frameworks:
 - [libfork](https://github.com/ConorWilliams/libfork)
 - [concurrencpp](https://github.com/David-Haim/concurrencpp)
 
-And 2 benchmarks:
-- skynet (as originally described [here](https://github.com/atemerev/skynet))
-- recursive/parallel fibonacci
+And 3 benchmarks:
+- recursive fibonacci (forks x2)
+- skynet ([original link](https://github.com/atemerev/skynet)) but increased to 100M tasks (forks x10)
+- nqueens (forks up to x14)
 
 Current Benchmark Results:
 
 | Runtime | [libfork](https://github.com/ConorWilliams/libfork) | [TooManyCooks](https://github.com/tzcnt/TooManyCooks) | [concurrencpp](https://github.com/David-Haim/concurrencpp) |
 | --- | --- | --- | --- |
-| Mean Ratio to Best<br>(lower is better) | 1.02x | 1.12x | 180.60x |
-| fib(35) | 18330 us | 21121 us | 2757336 us |
-| fib(40) | 138842 us | 158795 us | 29789942 us |
-| fib(45) | 1416718 us | 1668348 us | 322242160 us |
-| skynet | 1131 us | 1049 us | 136344 us |
+| Mean Ratio to Best<br>(lower is better) | 1.04x | 1.12x | 175.04x |
+| fib(35) | 18129 us | 21002 us | 2750198 us |
+| fib(40) | 138297 us | 153381 us | 29794412 us |
+| fib(45) | 1421983 us | 1669237 us | 324426580 us |
+| skynet | 46392 us | 53475 us | 11807340 us |
+| nqueens | 403638 us | 335844 us | 8526409 us |
 
 Benchmark configuration:
 - Processor: EPYC 7742 64-core processor

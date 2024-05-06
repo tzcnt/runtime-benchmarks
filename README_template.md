@@ -6,9 +6,10 @@ Currently only contains 3 frameworks:
 - [libfork](https://github.com/ConorWilliams/libfork)
 - [concurrencpp](https://github.com/David-Haim/concurrencpp)
 
-And 2 benchmarks:
-- skynet (as originally described [here](https://github.com/atemerev/skynet))
-- recursive/parallel fibonacci
+And 3 benchmarks:
+- recursive fibonacci (forks x2)
+- skynet ([original link](https://github.com/atemerev/skynet)) but increased to 100M tasks (forks x10)
+- nqueens (forks up to x14)
 
 Current Benchmark Results:
 

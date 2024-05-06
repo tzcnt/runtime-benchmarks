@@ -30,14 +30,13 @@
 #define TMC_IMPL
 
 #include "tmc/ex_cpu.hpp"
-#include "tmc/sync.hpp"
 #include "tmc/task.hpp"
-#include "tmc/spawn_task_many.hpp"
-#include "tmc/utils.hpp"
+#include "tmc/spawn_many.hpp"
 
 #include <chrono>
 #include <cinttypes>
 #include <cstdio>
+#include <ranges>
 
 static size_t thread_count = std::thread::hardware_concurrency()/2;
 static const size_t iter_count = 1;
@@ -62,13 +61,13 @@ tmc::task<size_t> skynet_one(size_t BaseNum, size_t Depth) {
   // tmc::spawn_many<10>(children.data());
 
   /// Concise and slightly faster way to run subtasks
-  std::array<size_t, 10> results =
-    co_await tmc::spawn_many<10>(tmc::iter_adapter(
-      0ULL,
-      [=](size_t idx) -> tmc::task<size_t> {
-        return skynet_one<DepthMax>(BaseNum + depthOffset * idx, Depth + 1);
-      }
-    ));
+  std::array<size_t, 10> results = co_await tmc::spawn_many<10>(
+    (std::ranges::views::iota(0UL) |
+     std::ranges::views::transform([=](size_t idx) {
+       return skynet_one<DepthMax>(BaseNum + depthOffset * idx, Depth + 1);
+     })
+    ).begin()
+  );
 
   size_t count = 0;
   for (size_t idx = 0; idx < 10; ++idx) {
@@ -78,7 +77,7 @@ tmc::task<size_t> skynet_one(size_t BaseNum, size_t Depth) {
 }
 template <size_t DepthMax> tmc::task<void> skynet() {
   size_t count = co_await skynet_one<DepthMax>(0, 0);
-  if (count != 499999500000) {
+  if (count != 4999999950000000) {
     std::printf("ERROR: wrong result - %" PRIu64 "\n", count);
   }
 }
@@ -104,8 +103,8 @@ int main() {
   std::printf("threads: %" PRIu64 "\n", thread_count);
   tmc::cpu_executor().set_thread_count(thread_count).init();
   return tmc::async_main([]() -> tmc::task<int> {
-    co_await skynet<6>(); // warmup
-    co_await loop_skynet<6>();
+    co_await skynet<8>(); // warmup
+    co_await loop_skynet<8>();
     co_return 0;
   }());
 }

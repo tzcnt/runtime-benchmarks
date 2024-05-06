@@ -25,7 +25,10 @@ benchmarks={
     },
     "skynet": {
 
-    }
+    },
+    "nqueens": {
+
+    },
 }
 
 collect_results = {
@@ -33,7 +36,8 @@ collect_results = {
             {"params": "40", "runs": ["first"]},
             {"params": "45", "runs": ["first"]}
             ],
-    "skynet": [{"params": "", "runs": ["first"]}]
+    "skynet": [{"params": "", "runs": ["first"]}],
+    "nqueens": [{"params": "", "runs": ["first"]}]
 }
 
 
@@ -144,33 +148,37 @@ for runtime in sorted:
 
 # print(output_array)
 
-print("Updating README.md embedded table...", end=" ")
+print("Generating RESULTS.md and RESULTS.csv ...", end=" ")
 
 len_y = len(output_array[0])
 len_x = len(output_array)
 
-output = ""
+outMD = ""
+outCSV = ""
 
 # Create header row
 for x in range(len_x):
-    output +=f"| {output_array[x][0]} "
-output += "|\n"
+    outMD +=f"| {output_array[x][0]} "
+    outCSV +=f"{output_array[x][0]},"
+outMD += "|\n"
+outCSV = outCSV.rstrip(",") + "\n"
 # Create markdown table header row
 for x in range(len_x):
-    output += "| --- "
-output += "|\n"
+    outMD += "| --- "
+outMD += "|\n"
 # Create data rows
 for y in range(1,len_y):
     for x in range(len_x):
-        output += f"| {output_array[x][y]} "
-    output += "|\n"
+        outMD += f"| {output_array[x][y]} "
+        outCSV += f"{output_array[x][y]},"
+    outMD += "|\n"
+    outCSV = outCSV.rstrip(",") + "\n"
 
-with open("README_template.md", "r") as readme_template:
-  fulltext = readme_template.read()
+with open("RESULTS.md", "w") as resultsMD:
+    resultsMD.write(outMD)
 
-fulltext = fulltext.replace("<<bench_results>>\n", output)
+with open("RESULTS.csv", "w") as resultsCSV:
+    resultsCSV.write(outCSV)
 
-with open("README.md", "w") as readme:
-  readme.write(fulltext)
 
 print("done.")
