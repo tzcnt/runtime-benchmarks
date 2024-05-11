@@ -29,7 +29,7 @@ include(../1CMake/CPM.cmake)
 CPMAddPackage(
     NAME TooManyCooks
     GIT_REPOSITORY https://github.com/tzcnt/TooManyCooks.git
-    GIT_TAG 390b8d099f09ad7ce23960c524e0cde9f08a82a4
+    GIT_TAG 0600feb86fd57f5f62662078408d1de16d2ac72a
     DOWNLOAD_ONLY)
 include_directories(
     ${TooManyCooks_SOURCE_DIR}/include
