@@ -1,0 +1,4 @@
+[submodule "cpp/TooManyCooks/submodule"]
+	path = cpp/TooManyCooks/submodule
+	url = https://github.com/tzcnt/TooManyCooks.git
+	branch = main

@@ -26,14 +26,27 @@ add_definitions(
 
 include(../1CMake/CPM.cmake)
 
-CPMAddPackage(
-    NAME TooManyCooks
-    GIT_REPOSITORY https://github.com/tzcnt/TooManyCooks.git
-    GIT_TAG 0600feb86fd57f5f62662078408d1de16d2ac72a
-    DOWNLOAD_ONLY)
-include_directories(
-    ${TooManyCooks_SOURCE_DIR}/include
-)
+# By default, download the TMC repos as CPM packages.
+# If this option is enabled, CMake will expect them to be in git submodules.
+# You must run `submodule update --init --recursive` before turning this on.
+# This option exists to simplify my development across repositories.
+option(TMC_AS_SUBMODULE "Download TMC repos as Git submodules" OFF)
+
+if (TMC_AS_SUBMODULE)
+    include_directories(
+        ${runtime_benchmarks_TooManyCooks_SOURCE_DIR}/submodule/include
+    )
+else()
+    CPMAddPackage(
+        NAME TooManyCooks
+        GIT_REPOSITORY https://github.com/tzcnt/TooManyCooks.git
+        GIT_TAG c4069272d1095c7f068500aaafdf8baa43df3b6b
+        DOWNLOAD_ONLY)
+    include_directories(
+        ${TooManyCooks_SOURCE_DIR}/include
+    )
+endif()
+
 
 # HWLOC support
 option(TMC_USE_HWLOC "libhwloc" ON)
