@@ -42,15 +42,6 @@ tmc::task<int> nqueens(int xMax, std::array<char, N> buf) {
     co_return 1;
   }
 
-  for (int x = 0; x < xMax; x++) {
-    char p = buf[x];
-    for (int j = x + 1; j < xMax; j++) {
-      if (char q = buf[j]; q == p || q == p - (j - x) || q == p + (j - x)) {
-        co_return 0;
-      }
-    }
-  }
-
   int taskCount = 0;
   auto tasks = std::ranges::views::iota(0UL, N) |
                 std::ranges::views::filter([xMax, &buf](int y) {
