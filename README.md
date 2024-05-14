@@ -15,12 +15,10 @@ Current Benchmark Results:
 
 | Runtime | [libfork](https://github.com/ConorWilliams/libfork) | [TooManyCooks](https://github.com/tzcnt/TooManyCooks) | [concurrencpp](https://github.com/David-Haim/concurrencpp) |
 | --- | --- | --- | --- |
-| Mean Ratio to Best<br>(lower is better) | 1.00x | 1.15x | 185.92x |
-| fib(35) | 20347 us | 22377 us | 2744762 us |
-| fib(40) | 138198 us | 157835 us | 29840393 us |
-| fib(45) | 1413898 us | 1670629 us | 324076052 us |
-| skynet | 46517 us | 52923 us | 11844876 us |
-| nqueens | 84220 us | 98847 us | 7996503 us |
+| Mean Ratio to Best<br>(lower is better) | 1.00x | 1.15x | 190.99x |
+| fib(40) | 138141 us | 164062 us | 29761567 us |
+| skynet | 45584 us | 50445 us | 11943488 us |
+| nqueens | 83572 us | 95431 us | 7981495 us |
 
 Benchmark configuration:
 - Processor: EPYC 7742 64-core processor

@@ -21,7 +21,7 @@ runtime_links = {
 
 benchmarks={
     "fib": {
-        "params": ["35", "40", "45"]
+        "params": ["40"]
     },
     "skynet": {
 
@@ -32,10 +32,7 @@ benchmarks={
 }
 
 collect_results = {
-    "fib": [{"params": "35", "runs": ["first"]},
-            {"params": "40", "runs": ["first"]},
-            {"params": "45", "runs": ["first"]}
-            ],
+    "fib": [{"params": "40", "runs": ["first"]}],
     "skynet": [{"params": "", "runs": ["first"]}],
     "nqueens": [{"params": "", "runs": ["first"]}]
 }
