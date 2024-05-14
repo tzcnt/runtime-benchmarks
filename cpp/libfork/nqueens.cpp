@@ -14,6 +14,7 @@
 #include <cstdio>
 #include <cinttypes>
 #include <array>
+#include <ranges>
 
 static size_t thread_count = std::thread::hardware_concurrency()/2;
 static const size_t iter_count = 1;
@@ -24,6 +25,12 @@ inline constexpr std::array<int, 28> answers = {
     0,   1,     0,      0,      2,       10,        4,          40,         92,          352,
     724, 2'680, 14'200, 73'712, 365'596, 2'279'184, 14'772'512, 95'815'104, 666'090'624,
 };
+
+void check_answer(int result) {
+  if (result != answers[nqueens_work]) {
+    std::printf("error: expected %d, got %d\n", answers[nqueens_work], result);
+  }
+}
 
 inline auto queens_ok(int n, char *a) -> bool {
   for (int i = 0; i < n; i++) {
@@ -37,34 +44,46 @@ inline auto queens_ok(int n, char *a) -> bool {
   return true;
 }
 
-constexpr auto nqueens = []<std::size_t N>(auto nqueens, int j, std::array<char, N> const &a)
-                             LF_STATIC_CALL -> lf::task<int> {
-  if (N == j) {
+constexpr auto nqueens = []<std::size_t N>(
+  auto nqueens, int xMax, std::array<char, N> buf) LF_STATIC_CALL -> lf::task<int> {
+  if (N == xMax) {
     co_return 1;
   }
 
-  std::array<std::array<char, N>, N> buf;
+  for (int x = 0; x < xMax; x++) {
+    char p = buf[x];
+    for (int j = x + 1; j < xMax; j++) {
+      if (char q = buf[j]; q == p || q == p - (j - x) || q == p + (j - x)) {
+        co_return 0;
+      }
+    }
+  }
+
+  auto tasks = std::ranges::views::iota(0UL, N) |
+                std::ranges::views::filter([xMax, &buf](int y) {
+                  buf[xMax] = y;
+                  char q = y;
+                  for (int x = 0; x < xMax; x++) {
+                    char p = buf[x];
+                    if (q == p || q == p - (xMax - x) || q == p + (xMax - x)) {
+                      return false;
+                    }
+                  }
+                  return true;
+                });
+                
+  int taskCount = 0;
   std::array<int, N> parts;
-
-  for (int i = 0; i < N; i++) {
-    for (int k = 0; k < j; k++) {
-      buf[i][k] = a[k];
-    }
-
-    buf[i][j] = i;
-
-    if (queens_ok(j + 1, buf[i].data())) {
-      co_await lf::fork[&parts[i], nqueens](j + 1, buf[i]);
-    } else {
-      parts[i] = 0;
-    }
+  for (auto t: tasks) {
+    co_await lf::fork[&parts[taskCount], nqueens](xMax + 1, buf);
+    ++taskCount;
   }
 
   co_await lf::join;
 
   int ret = 0;
-  for (auto p : parts) {
-    ret += p;
+  for (size_t i = 0; i < taskCount; ++i) {
+    ret += parts[i];
   }
 
   co_return ret;
@@ -77,6 +96,7 @@ int main(int argc, char* argv[]) {
   {
     std::array<char, nqueens_work> buf{};
     auto result = lf::sync_wait(pool, nqueens, 0, buf); // warmup
+    check_answer(result);
   }
   
   std::printf("results:\n");
@@ -86,6 +106,7 @@ int main(int argc, char* argv[]) {
 
     std::array<char, nqueens_work> buf{};
     auto result = lf::sync_wait(pool, nqueens, 0, buf);
+    check_answer(result);
     std::printf("  - %d\n", result);
   }
 

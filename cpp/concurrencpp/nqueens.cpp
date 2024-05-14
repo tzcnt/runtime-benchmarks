@@ -29,6 +29,12 @@ inline constexpr std::array<int, 28> answers = {
     724, 2'680, 14'200, 73'712, 365'596, 2'279'184, 14'772'512, 95'815'104, 666'090'624,
 };
 
+void check_answer(int result) {
+  if (result != answers[nqueens_work]) {
+    std::printf("error: expected %d, got %d\n", answers[nqueens_work], result);
+  }
+}
+
 inline auto queens_ok(int n, char *a) -> bool {
   for (int i = 0; i < n; i++) {
     char p = a[i];
@@ -43,29 +49,36 @@ inline auto queens_ok(int n, char *a) -> bool {
 
 template<size_t N>
 result<int>
-nqueens(executor_tag, std::shared_ptr<thread_pool_executor> executor, int j, std::array<char, N> const &a) {
-  if (N == j) {
+nqueens(executor_tag, std::shared_ptr<thread_pool_executor> executor, int xMax, std::array<char, N> buf) {
+  if (N == xMax) {
     co_return 1;
   }
 
-  std::array<std::array<char, N>, N> buf;
-
-  for (int i = 0; i < N; i++) {
-    for (int k = 0; k < j; k++) {
-      buf[i][k] = a[k];
+  for (int x = 0; x < xMax; x++) {
+    char p = buf[x];
+    for (int j = x + 1; j < xMax; j++) {
+      if (char q = buf[j]; q == p || q == p - (j - x) || q == p + (j - x)) {
+        co_return 0;
+      }
     }
-    buf[i][j] = i;
   }
 
-  int taskCount = 0;
   auto tasks = std::ranges::views::iota(0UL, N) |
-               std::ranges::views::filter([j, &buf](int i) {
-                 return queens_ok(j + 1, buf[i].data());
-               }) |
-               std::ranges::views::transform([j, executor, &buf, &taskCount](int i) {
-                 ++taskCount;
-                 return nqueens({}, executor, j + 1, buf[i]);
-               });
+                std::ranges::views::filter([xMax, &buf](int y) {
+                  buf[xMax] = y;
+                  char q = y;
+                  for (int x = 0; x < xMax; x++) {
+                    char p = buf[x];
+                    if (q == p || q == p - (xMax - x) || q == p + (xMax - x)) {
+                      return false;
+                    }
+                  }
+                  return true;
+                }) |
+                std::ranges::views::transform([xMax, executor, &buf](int y) {
+                  return nqueens({}, executor, xMax + 1, buf);
+                });
+
 
   // Calling when_all(tasks.begin(), tasks.end()) directly seems to trigger some kind of UB
   // Materializing a vector first fixes it
@@ -91,6 +104,7 @@ int main(int argc, char* argv[]) {
   {
     std::array<char, nqueens_work> buf{};
     auto result = nqueens({}, runtime.thread_pool_executor(), 0, buf).get(); // warmup
+    check_answer(result);
   }
   
   std::printf("results:\n");
@@ -98,7 +112,8 @@ int main(int argc, char* argv[]) {
 
   for (size_t i = 0; i < iter_count; ++i) {
     std::array<char, nqueens_work> buf{};
-    auto result = nqueens({}, runtime.thread_pool_executor(), 0, buf).get(); // warmup
+    auto result = nqueens({}, runtime.thread_pool_executor(), 0, buf).get();
+    check_answer(result);
     std::printf("  - %d\n", result);
   }
 

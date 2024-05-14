@@ -30,41 +30,44 @@ inline constexpr std::array<int, 28> answers = {
     724, 2'680, 14'200, 73'712, 365'596, 2'279'184, 14'772'512, 95'815'104, 666'090'624,
 };
 
-inline auto queens_ok(int n, char const *a) -> bool {
-  for (int i = 0; i < n; i++) {
-    char p = a[i];
-    for (int j = i + 1; j < n; j++) {
-      if (char q = a[j]; q == p || q == p - (j - i) || q == p + (j - i)) {
-        return false;
-      }
-    }
+void check_answer(int result) {
+  if (result != answers[nqueens_work]) {
+    std::printf("error: expected %d, got %d\n", answers[nqueens_work], result);
   }
-  return true;
 }
 
 template <size_t N>
-tmc::task<int> nqueens(int j, std::array<char, N> const& a) {
-  if (N == j) {
+tmc::task<int> nqueens(int xMax, std::array<char, N> buf) {
+  if (N == xMax) {
     co_return 1;
   }
 
-  std::array<std::array<char, N>, N> buf;
-  for (int i = 0; i < N; i++) {
-    for (int k = 0; k < j; k++) {
-      buf[i][k] = a[k];
+  for (int x = 0; x < xMax; x++) {
+    char p = buf[x];
+    for (int j = x + 1; j < xMax; j++) {
+      if (char q = buf[j]; q == p || q == p - (j - x) || q == p + (j - x)) {
+        co_return 0;
+      }
     }
-    buf[i][j] = i;
   }
 
   int taskCount = 0;
   auto tasks = std::ranges::views::iota(0UL, N) |
-               std::ranges::views::filter([j, &buf](int i) {
-                 return queens_ok(j + 1, buf[i].data());
-               }) |
-               std::ranges::views::transform([j, &buf, &taskCount](int i) {
-                 ++taskCount;
-                 return nqueens(j + 1, buf[i]);
-               });
+                std::ranges::views::filter([xMax, &buf](int y) {
+                  buf[xMax] = y;
+                  char q = y;
+                  for (int x = 0; x < xMax; x++) {
+                    char p = buf[x];
+                    if (q == p || q == p - (xMax - x) || q == p + (xMax - x)) {
+                      return false;
+                    }
+                  }
+                  return true;
+                }) |
+                std::ranges::views::transform([xMax, &buf, &taskCount](int y) {
+                  ++taskCount;
+                  return nqueens(xMax + 1, buf);
+                });
 
   // Spawn up to N tasks (but possibly less, if queens_ok fails)
   auto parts = co_await tmc::spawn_many<N>(tasks.begin(), tasks.end());
@@ -77,7 +80,6 @@ tmc::task<int> nqueens(int j, std::array<char, N> const& a) {
   co_return ret;
 };
 
-
 int main(int argc, char* argv[]) {
   std::printf("threads: %" PRIu64 "\n", thread_count);
   tmc::cpu_executor().set_thread_count(thread_count).init();
@@ -86,6 +88,7 @@ int main(int argc, char* argv[]) {
     {
       std::array<char, nqueens_work> buf{};
       auto result = co_await nqueens(0, buf); // warmup
+      check_answer(result);
     }
 
     auto startTime = std::chrono::high_resolution_clock::now();
@@ -93,6 +96,7 @@ int main(int argc, char* argv[]) {
     for (size_t i = 0; i < iter_count; ++i) {
       std::array<char, nqueens_work> buf{};
       auto result = co_await nqueens(0, buf);
+      check_answer(result);
       std::printf("  - %d\n", result);
     }
 
