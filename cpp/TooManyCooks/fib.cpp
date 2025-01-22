@@ -28,62 +28,42 @@
 
 #define TMC_IMPL
 
-#include "tmc/ex_cpu.hpp"
-#include "tmc/spawn_task.hpp"
-#include "tmc/spawn_many.hpp"
+#include "tmc/all_headers.hpp"
 
 #include <chrono>
 #include <cinttypes>
 #include <cstdio>
-#include <ranges>
 
 using namespace tmc;
-static size_t thread_count = std::thread::hardware_concurrency()/2;
+static size_t thread_count = std::thread::hardware_concurrency() / 2;
 static const size_t iter_count = 1;
 
-// Executes all tasks serially
-static task<size_t> fib_serial(size_t n) {
-  if (n < 2)
-    co_return n;
-  auto x = co_await fib_serial(n - 2);
-  auto y = co_await fib_serial(n - 1);
-  co_return x + y;
-}
-
-// Fork both tasks in parallel by submitting them in bulk to the executor.
-static task<size_t> fib_bulk_array(size_t n) {
+// This is the approach used by most libraries. Spawn a hot task that runs in
+// parallel with the current task, then continue the other leg serially.
+// It has better performance than the tuple variant (by using separate
+// synchronization variables) but uses more memory for the same reason.
+static task<size_t> fib(size_t n) {
   if (n < 2)
     co_return n;
 
-  std::array<task<size_t>, 2> tasks;
-  tasks[0] = fib_bulk_array(n - 2);
-  tasks[1] = fib_bulk_array(n - 1);
-  auto results = co_await spawn_many<2>(tasks.data());
-  co_return results[0] + results[1];
-}
-
-// Fork both tasks in parallel by submitting them in bulk to the executor.
-static task<size_t> fib_bulk_iter(size_t n) {
-  if (n < 2)
-    co_return n;
-
-  auto results = co_await spawn_many<2>((
-    std::ranges::views::iota(n-2) | std::ranges::views::transform(fib_bulk_iter)
-  ).begin());
-  co_return results[0] + results[1];
-
-}
-
-// Spawn a hot task that runs in parallel with the current task, then continues the other leg serially.
-static task<size_t> fib_hot(size_t n) {
-  if (n < 2)
-    co_return n;
-
-  auto x_hot = spawn(fib_hot(n - 1)).run_early();
-  auto y = co_await fib_hot(n - 2);
+  auto x_hot = spawn(fib(n - 1)).run_early();
+  auto y = co_await fib(n - 2);
   auto x = co_await std::move(x_hot);
   co_return x + y;
 }
+
+// // TooManyCooks offers a cleaner approach that uses less memory.
+// // However it does run slightly slower (due to the shared synchronization
+// // variable) for this specific example.
+// // Fork the tasks in parallel and retrieve the results in a tuple.
+// static task<size_t> fib(size_t n) {
+//   if (n < 2)
+//     co_return n;
+//   size_t a, b;
+
+//   auto [x, y] = co_await spawn_tuple(fib(n - 1), fib(n - 2));
+//   co_return x + y;
+// }
 
 int main(int argc, char* argv[]) {
   if (argc != 2) {
@@ -97,12 +77,12 @@ int main(int argc, char* argv[]) {
   std::printf("results:\n");
 
   return tmc::async_main([](size_t N) -> tmc::task<int> {
-    auto result = co_await fib_hot(30); // warmup
+    auto result = co_await fib(30); // warmup
 
     auto startTime = std::chrono::high_resolution_clock::now();
 
     for (size_t i = 0; i < iter_count; ++i) {
-      auto result = co_await fib_hot(N);
+      auto result = co_await fib(N);
       std::printf("  - %" PRIu64 "\n", result);
     }
 
@@ -111,7 +91,7 @@ int main(int argc, char* argv[]) {
       endTime - startTime
     );
     std::printf("runs:\n");
-    std::printf("  - iteration_count: %" PRIu64 "\n",iter_count);
+    std::printf("  - iteration_count: %" PRIu64 "\n", iter_count);
     std::printf("    duration: %" PRIu64 " us\n", totalTimeUs.count());
     co_return 0;
   }(n));

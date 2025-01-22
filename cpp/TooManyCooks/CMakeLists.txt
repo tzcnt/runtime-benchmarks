@@ -9,10 +9,12 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS "1")
 set(CMAKE_CXX_STANDARD 20)
 
 add_definitions(
+
     # Performance tuning options
     "-march=native"
     "-DTMC_PRIORITY_COUNT=1" # unsigned integer between 1 and 63
     "-DTMC_CUSTOM_CORO_ALLOC"
+
     # "-DTMC_TRIVIAL_TASK" # enabled in this repo for Release builds via CMakePresets.json
 
     # Other
@@ -32,7 +34,7 @@ include(../1CMake/CPM.cmake)
 # This option exists to simplify my development across repositories.
 option(TMC_AS_SUBMODULE "Download TMC repos as Git submodules" OFF)
 
-if (TMC_AS_SUBMODULE)
+if(TMC_AS_SUBMODULE)
     include_directories(
         ${runtime_benchmarks_TooManyCooks_SOURCE_DIR}/submodule/include
     )
@@ -40,13 +42,12 @@ else()
     CPMAddPackage(
         NAME TooManyCooks
         GIT_REPOSITORY https://github.com/tzcnt/TooManyCooks.git
-        GIT_TAG ffedc9d57fc716714e941ca2c86bdc6be16b9886
+        GIT_TAG 696e888a957663f83e0058c21cef8244c3969035
         DOWNLOAD_ONLY)
     include_directories(
         ${TooManyCooks_SOURCE_DIR}/include
     )
 endif()
-
 
 # HWLOC support
 option(TMC_USE_HWLOC "libhwloc" ON)
