@@ -100,3 +100,5 @@ add_executable(fib fib.cpp)
 add_executable(skynet skynet.cpp)
 
 add_executable(nqueens nqueens.cpp)
+
+add_executable(matmul matmul.cpp)
