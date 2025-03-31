@@ -35,16 +35,17 @@ void matmul(int* a, int* b, std::atomic<int>* c, int n, int N) {
     // Recursive case: Divide the matrices into 4 submatrices and multiply them
     int k = n / 2;
 
-    tbb::parallel_invoke(
-      [&]() { matmul(a, b, c, k, N); },
-      [&]() { matmul(a + k, b + k * N, c, k, N); },
-      [&]() { matmul(a, b + k, c + k, k, N); },
-      [&]() { matmul(a + k, b + k * N + k, c + k, k, N); },
-      [&]() { matmul(a + k * N, b, c + k * N, k, N); },
-      [&]() { matmul(a + k * N + k, b + k * N, c + k * N, k, N); },
-      [&]() { matmul(a + k * N, b + k, c + k * N + k, k, N); },
-      [&]() { matmul(a + k * N + k, b + k * N + k, c + k * N + k, k, N); }
+    tbb::task_group tg;
+    tg.run([&]() { matmul(a, b, c, k, N); });
+    tg.run([&]() { matmul(a + k, b + k * N, c, k, N); });
+    tg.run([&]() { matmul(a, b + k, c + k, k, N); });
+    tg.run([&]() { matmul(a + k, b + k * N + k, c + k, k, N); });
+    tg.run([&]() { matmul(a + k * N, b, c + k * N, k, N); });
+    tg.run([&]() { matmul(a + k * N + k, b + k * N, c + k * N, k, N); });
+    tg.run([&]() { matmul(a + k * N, b + k, c + k * N + k, k, N); });
+    tg.run([&]() { matmul(a + k * N + k, b + k * N + k, c + k * N + k, k, N); }
     );
+    tg.wait();
   }
 }
 

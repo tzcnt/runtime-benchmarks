@@ -62,12 +62,12 @@ template <size_t N> void nqueens(int xMax, std::array<char, N> buf, int& out) {
       return
         [xMax, buf, idx, &results]() { nqueens(xMax + 1, buf, results[idx]); };
     });
-  std::vector<std::function<void()>> taskVec(tasks.begin(), tasks.end());
 
-  // Spawn up to N tasks (but possibly less, if queens_ok fails)
-  tbb::parallel_for_each(taskVec.begin(), taskVec.end(), [](auto& task) {
-    task();
-  });
+  tbb::task_group tg;
+  for (auto&& t : tasks) {
+    tg.run(t);
+  }
+  tg.wait();
 
   int ret = 0;
   for (size_t i = 0; i < taskCount; ++i) {
