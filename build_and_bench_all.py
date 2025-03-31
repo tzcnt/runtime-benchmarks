@@ -10,21 +10,25 @@ import yaml
 import sys
 
 runtimes = {
-    "cpp": ["TooManyCooks", "libfork", "concurrencpp"]
+    "cpp": ["TooManyCooks", "libfork", "tbb", "coros", "concurrencpp"]
 }
 
 runtime_links = {
     "TooManyCooks": "https://github.com/tzcnt/TooManyCooks",
     "libfork": "https://github.com/ConorWilliams/libfork",
-    "concurrencpp": "https://github.com/David-Haim/concurrencpp"
+    "tbb": "https://www.intel.com/content/www/us/en/developer/tools/oneapi/onetbb.html",
+    "coros": "https://github.com/mtmucha/coros",
+    "concurrencpp": "https://github.com/David-Haim/concurrencpp",
 }
 
+benchmarks_order = ["skynet", "nqueens", "fib"]
+
 benchmarks={
-    "fib": {
-        "params": ["40"]
-    },
     "skynet": {
 
+    },
+    "fib": {
+        "params": ["40"]
     },
     "nqueens": {
 
@@ -47,7 +51,8 @@ for language, runtime_names in runtimes.items():
         print(f"Building {runtime}")
         build_script = os.path.join(runtime_root_dir, "build_all.sh")
         subprocess.run(args=build_script, shell=True, cwd=runtime_root_dir)
-        for bench_name, bench_args in benchmarks.items():
+        for bench_name in benchmarks_order:
+            bench_args = benchmarks[bench_name]
             bench_exe = os.path.join(runtime_root_dir, "build", bench_name)
             for params in bench_args.setdefault("params",[""]):
                 print(f"Running {bench_exe} {params}")
@@ -81,7 +86,8 @@ def get_dur_in_ns(dur_string):
 collated_results = {}
 bench_names = []
 for runtime, runtime_results in results.items():
-    for bench_name, collect in collect_results.items():
+    for bench_name in benchmarks_order:
+        collect = collect_results[bench_name]
         for collect_item in collect:
             runs = collect_item["runs"]
             for run in runs:
