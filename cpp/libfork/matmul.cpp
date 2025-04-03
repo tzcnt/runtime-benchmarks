@@ -99,15 +99,17 @@ void run_one(lf::lazy_pool& executor, int N) {
 }
 
 int main(int argc, char* argv[]) {
+  if (argc != 2) {
+    printf("Usage: matmul <matrix size (power of 2)>\n");
+    exit(0);
+  }
+  int n = atoi(argv[1]);
   std::printf("threads: %d\n", thread_count);
   lf::lazy_pool executor(thread_count);
 
-  run_matmul(executor, 1024); // warmup
+  run_matmul(executor, n); // warmup
 
   std::printf("runs:\n");
 
-  for (int i = 5; i < 13; ++i) {
-    int N = 1 << i;
-    run_one(executor, N);
-  }
+  run_one(executor, n);
 }

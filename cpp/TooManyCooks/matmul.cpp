@@ -92,15 +92,17 @@ void run_one(int N) {
 }
 
 int main(int argc, char* argv[]) {
+  if (argc != 2) {
+    printf("Usage: matmul <matrix size (power of 2)>\n");
+    exit(0);
+  }
+  int n = atoi(argv[1]);
   std::printf("threads: %zu\n", thread_count);
   tmc::cpu_executor().set_thread_count(thread_count).init();
 
-  run_matmul(1024); // warmup
+  run_matmul(n); // warmup
 
   std::printf("runs:\n");
 
-  for (int i = 5; i < 13; ++i) {
-    int N = 1 << i;
-    run_one(N);
-  }
+  run_one(n);
 }
