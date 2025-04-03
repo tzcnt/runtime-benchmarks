@@ -35,7 +35,7 @@ benchmarks={
 
     },
     "matmul": {
-        "params": ["4096"]
+        "params": ["2048"]
     },
 }
 
@@ -43,7 +43,7 @@ collect_results = {
     "fib": [{"params": "40"}],
     "skynet": [{"params": ""}],
     "nqueens": [{"params": ""}],
-    "matmul": [{"params": "4096"}]
+    "matmul": [{"params": "2048"}]
 }
 
 root_dir = os.path.abspath(os.path.dirname(__file__))
