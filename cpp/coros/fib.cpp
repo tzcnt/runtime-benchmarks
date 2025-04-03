@@ -41,12 +41,12 @@ static coros::Task<size_t> fib(size_t n) {
   if (n < 2)
     co_return n;
 
-  coros::Task<size_t> a = fib(n - 1);
-  coros::Task<size_t> b = fib(n - 2);
+  coros::Task<size_t> x = fib(n - 1);
+  coros::Task<size_t> y = fib(n - 2);
 
-  co_await coros::wait_tasks(a, b);
+  co_await coros::wait_tasks(x, y);
 
-  co_return *a + *b;
+  co_return *x + *y;
 }
 
 int main(int argc, char* argv[]) {

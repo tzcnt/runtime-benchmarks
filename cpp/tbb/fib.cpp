@@ -39,13 +39,13 @@ size_t fibonacci(size_t n) {
   if (n < 2)
     return n;
 
-  size_t a, b;
+  size_t x, y;
 
   tbb::parallel_invoke(
-    [&] { a = fibonacci(n - 1); }, [&] { b = fibonacci(n - 2); }
+    [&] { x = fibonacci(n - 1); }, [&] { y = fibonacci(n - 2); }
   );
 
-  return a + b;
+  return x + y;
 }
 
 int main(int argc, char* argv[]) {

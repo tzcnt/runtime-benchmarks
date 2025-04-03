@@ -59,7 +59,6 @@ static task<size_t> fib(size_t n) {
 // static task<size_t> fib(size_t n) {
 //   if (n < 2)
 //     co_return n;
-//   size_t a, b;
 
 //   auto [x, y] = co_await spawn_tuple(fib(n - 1), fib(n - 2));
 //   co_return x + y;

@@ -4,28 +4,41 @@
 
 // Original Copyright Notice:
 // Copyright 2020 David Haim
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-// The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. 
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions: The above copyright
+// notice and this permission notice shall be included in all copies or
+// substantial portions of the Software. THE SOFTWARE IS PROVIDED "AS IS",
+// WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+// TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+// FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+// TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+// THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include "concurrencpp/concurrencpp.h"
+#include <cinttypes>
 #include <concurrencpp/runtime/runtime.h>
 #include <cstdio>
-#include <cinttypes>
 
 using namespace concurrencpp;
-static size_t thread_count = std::thread::hardware_concurrency()/2;
+static size_t thread_count = std::thread::hardware_concurrency() / 2;
 static const size_t iter_count = 1;
 
-result<size_t> fibonacci(executor_tag, std::shared_ptr<thread_pool_executor> tpe, const size_t curr) {
+result<size_t> fibonacci(
+  executor_tag, std::shared_ptr<thread_pool_executor> tpe, const size_t curr
+) {
   if (curr < 2) {
-      co_return curr;
+    co_return curr;
   }
 
-  auto fib_1 = fibonacci({}, tpe, curr - 1);
-  auto fib_2 = fibonacci({}, tpe, curr - 2);
+  auto x = fibonacci({}, tpe, curr - 1);
+  auto y = fibonacci({}, tpe, curr - 2);
 
-  co_return co_await fib_1 + co_await fib_2;
+  co_return co_await x + co_await y;
 }
 
 int main(int argc, char* argv[]) {
@@ -40,7 +53,8 @@ int main(int argc, char* argv[]) {
   opt.max_cpu_threads = thread_count;
   concurrencpp::runtime runtime(opt);
 
-  auto result = fibonacci({}, runtime.thread_pool_executor(), 30).get(); // warmup
+  auto result =
+    fibonacci({}, runtime.thread_pool_executor(), 30).get(); // warmup
 
   std::printf("results:\n");
   auto startTime = std::chrono::high_resolution_clock::now();
@@ -51,11 +65,10 @@ int main(int argc, char* argv[]) {
   }
 
   auto endTime = std::chrono::high_resolution_clock::now();
-  auto totalTimeUs = std::chrono::duration_cast<std::chrono::microseconds>(
-    endTime - startTime
-  );
+  auto totalTimeUs =
+    std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime);
   std::printf("runs:\n");
-  std::printf("  - iteration_count: %" PRIu64 "\n",iter_count);
+  std::printf("  - iteration_count: %" PRIu64 "\n", iter_count);
   std::printf("    duration: %" PRIu64 " us\n", totalTimeUs.count());
   return 0;
 }
