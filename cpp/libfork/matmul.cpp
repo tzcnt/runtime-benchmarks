@@ -7,7 +7,7 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include <tbb/tbb.h>
+#include <libfork.hpp>
 
 #include <chrono>
 #include <cstdio>
@@ -16,7 +16,8 @@
 
 static int thread_count = std::thread::hardware_concurrency() / 2;
 
-void matmul(int* a, int* b, int* c, int n, int N) {
+inline constexpr auto matmul =
+  [](auto matmul, int* a, int* b, int* c, int n, int N) -> lf::task<void> {
   if (n <= 32) {
     // Base case: Use simple triple-loop multiplication for small matrices
     for (int i = 0; i < n; i++) {
@@ -27,28 +28,29 @@ void matmul(int* a, int* b, int* c, int n, int N) {
       }
     }
   } else {
-    // Recursive case: Divide the matrices into 4 submatrices and multiply them
+    // Recursive case: Divide the matrices into 4 submatrices and multiply
+    // them
     int k = n / 2;
 
     // Split the execution into 2 sections to ensure output locations are not
     // written in parallel
-    tbb::task_group tg;
-    tg.run([&]() { matmul(a, b, c, k, N); });
-    tg.run([&]() { matmul(a, b + k, c + k, k, N); });
-    tg.run([&]() { matmul(a + k * N, b, c + k * N, k, N); });
-    tg.run([&]() { matmul(a + k * N, b + k, c + k * N + k, k, N); });
+    co_await lf::fork[matmul](a, b, c, k, N);
+    co_await lf::fork[matmul](a, b + k, c + k, k, N);
+    co_await lf::fork[matmul](a + k * N, b, c + k * N, k, N);
+    co_await lf::fork[matmul](a + k * N, b + k, c + k * N + k, k, N);
+    co_await lf::join;
 
-    tg.wait();
-    tg.run([&]() { matmul(a + k, b + k * N, c, k, N); });
-    tg.run([&]() { matmul(a + k, b + k * N + k, c + k, k, N); });
-    tg.run([&]() { matmul(a + k * N + k, b + k * N, c + k * N, k, N); });
-    tg.run([&]() { matmul(a + k * N + k, b + k * N + k, c + k * N + k, k, N); }
+    co_await lf::fork[matmul](a + k, b + k * N, c, k, N);
+    co_await lf::fork[matmul](a + k, b + k * N + k, c + k, k, N);
+    co_await lf::fork[matmul](a + k * N + k, b + k * N, c + k * N, k, N);
+    co_await lf::fork[matmul](
+      a + k * N + k, b + k * N + k, c + k * N + k, k, N
     );
-    tg.wait();
+    co_await lf::join;
   }
-}
+};
 
-std::vector<int> run_matmul(tbb::task_arena& executor, int N) {
+std::vector<int> run_matmul(lf::lazy_pool& executor, int N) {
   std::vector<int> A(N * N, 1);
   std::vector<int> B(N * N, 1);
   std::vector<int> C(N * N, 0);
@@ -64,8 +66,7 @@ std::vector<int> run_matmul(tbb::task_arena& executor, int N) {
       c[i * N + j] = 0;
     }
   }
-
-  executor.execute([&] { matmul(a, b, c, N, N); });
+  lf::sync_wait(executor, matmul, a, b, c, N, N);
   return C;
 }
 
@@ -86,7 +87,7 @@ void validate_result(std::vector<int>& C, int N) {
   }
 }
 
-void run_one(tbb::task_arena& executor, int N) {
+void run_one(lf::lazy_pool& executor, int N) {
   auto startTime = std::chrono::high_resolution_clock::now();
   std::vector<int> result = run_matmul(executor, N);
   auto endTime = std::chrono::high_resolution_clock::now();
@@ -99,7 +100,7 @@ void run_one(tbb::task_arena& executor, int N) {
 
 int main(int argc, char* argv[]) {
   std::printf("threads: %d\n", thread_count);
-  tbb::task_arena executor(thread_count);
+  lf::lazy_pool executor(thread_count);
 
   run_matmul(executor, 1024); // warmup
 

@@ -11,26 +11,21 @@
 
 #include "tmc/all_headers.hpp"
 
-#include <array>
 #include <chrono>
-#include <cinttypes>
 #include <cstdio>
-#include <memory>
+#include <exception>
+#include <vector>
 
 using namespace tmc;
 static size_t thread_count = std::thread::hardware_concurrency() / 2;
-static const size_t iter_count = 1;
-static constexpr int N = 1024;
 
-tmc::task<void> matmul(int* a, int* b, std::atomic<int>* c, int n, int N) {
+tmc::task<void> matmul(int* a, int* b, int* c, int n, int N) {
   if (n <= 32) {
     // Base case: Use simple triple-loop multiplication for small matrices
     for (int i = 0; i < n; i++) {
-      for (int j = 0; j < n; j++) {
-        for (int k = 0; k < n; k++) {
-          c[i * N + j].fetch_add(
-            a[i * N + k] * b[k * N + j], std::memory_order::relaxed
-          );
+      for (int k = 0; k < n; k++) {
+        for (int j = 0; j < n; j++) {
+          c[i * N + j] += a[i * N + k] * b[k * N + j];
         }
       }
     }
@@ -38,70 +33,74 @@ tmc::task<void> matmul(int* a, int* b, std::atomic<int>* c, int n, int N) {
     // Recursive case: Divide the matrices into 4 submatrices and multiply them
     int k = n / 2;
 
+    // Split the execution into 2 sections to ensure output locations are not
+    // written in parallel
     co_await tmc::spawn_tuple(
-      matmul(a, b, c, k, N), matmul(a + k, b + k * N, c, k, N),
-      matmul(a, b + k, c + k, k, N), matmul(a + k, b + k * N + k, c + k, k, N),
+      matmul(a, b, c, k, N), matmul(a, b + k, c + k, k, N),
       matmul(a + k * N, b, c + k * N, k, N),
+      matmul(a + k * N, b + k, c + k * N + k, k, N)
+    );
+
+    co_await tmc::spawn_tuple(
+      matmul(a + k, b + k * N, c, k, N),
+      matmul(a + k, b + k * N + k, c + k, k, N),
       matmul(a + k * N + k, b + k * N, c + k * N, k, N),
-      matmul(a + k * N, b + k, c + k * N + k, k, N),
       matmul(a + k * N + k, b + k * N + k, c + k * N + k, k, N)
     );
   }
 }
 
-std::unique_ptr<std::array<std::atomic<int>, N * N>> run_matmul() {
-  auto A = std::make_unique<std::array<int, N * N>>();
-  auto B = std::make_unique<std::array<int, N * N>>();
-  auto C = std::make_unique<std::array<std::atomic<int>, N * N>>();
+std::vector<int> run_matmul(int N) {
+  std::vector<int> A(N * N, 1);
+  std::vector<int> B(N * N, 1);
+  std::vector<int> C(N * N, 0);
 
-  int* a = A->data();
-  int* b = B->data();
-  std::atomic<int>* c = C->data();
+  int* a = A.data();
+  int* b = B.data();
+  int* c = C.data();
 
-  for (int i = 0; i < N; i++) {
-    for (int j = 0; j < N; j++) {
-      a[i * N + j] = 1;
-      b[i * N + j] = 1;
-      c[i * N + j] = 0;
-    }
-  }
-
-  tmc::post_waitable(tmc::cpu_executor(), matmul(a, b, c, N, N), 0).get();
+  tmc::post_waitable(tmc::cpu_executor(), matmul(a, b, c, N, N)).get();
   return C;
 }
 
-void validate_result(std::unique_ptr<std::array<std::atomic<int>, N * N>> C) {
+void validate_result(std::vector<int>& C, int N) {
   std::atomic_thread_fence(std::memory_order_seq_cst);
-  std::atomic<int>* c = C->data();
-  bool done = false;
-  for (int i = 0; i < N && !done; i++) {
-    for (int j = 0; j < N && !done; j++) {
-      auto res = c[i * N + j].load(std::memory_order_relaxed);
+  int* c = C.data();
+  for (int i = 0; i < N; i++) {
+    for (int j = 0; j < N; j++) {
+      auto res = c[i * N + j];
       if (res != N) {
-        std::printf("Wrong result at (%d,%d) : %d. Expected %d", i, j, res, N);
-        done = true;
+        std::printf(
+          "Wrong result at (%d,%d) : %d. expected %d\n", i, j, res, N
+        );
+        std::fflush(stdout);
+        std::terminate();
       }
     }
   }
 }
 
-int main(int argc, char* argv[]) {
-  std::printf("threads: %" PRIu64 "\n", thread_count);
-  tmc::cpu_executor().set_thread_count(thread_count).init();
-
-  auto result = run_matmul();
-  validate_result(std::move(result));
-
+void run_one(int N) {
   auto startTime = std::chrono::high_resolution_clock::now();
-
-  for (size_t i = 0; i < iter_count; ++i) {
-    auto result = run_matmul();
-  }
-
+  std::vector<int> result = run_matmul(N);
   auto endTime = std::chrono::high_resolution_clock::now();
+  validate_result(result, N);
   auto totalTimeUs =
     std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime);
+  std::printf("  - matrix_size: %d\n", N);
+  std::printf("    duration: %zu us\n", totalTimeUs.count());
+}
+
+int main(int argc, char* argv[]) {
+  std::printf("threads: %zu\n", thread_count);
+  tmc::cpu_executor().set_thread_count(thread_count).init();
+
+  run_matmul(1024); // warmup
+
   std::printf("runs:\n");
-  std::printf("  - iteration_count: %" PRIu64 "\n", iter_count);
-  std::printf("    duration: %" PRIu64 " us\n", totalTimeUs.count());
+
+  for (int i = 5; i < 13; ++i) {
+    int N = 1 << i;
+    run_one(N);
+  }
 }

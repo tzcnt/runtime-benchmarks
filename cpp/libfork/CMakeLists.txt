@@ -9,8 +9,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS "1")
 set(CMAKE_CXX_STANDARD 20)
 
 add_definitions(
+
     # Performance tuning options
     "-march=native"
+
     # Instructs libfork to use hwloc.
     "-DLF_USE_HWLOC"
 )
@@ -61,3 +63,5 @@ add_executable(fib fib.cpp)
 add_executable(skynet skynet.cpp)
 
 add_executable(nqueens nqueens.cpp)
+
+add_executable(matmul matmul.cpp)
