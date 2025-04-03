@@ -10,7 +10,7 @@ import yaml
 import sys
 
 runtimes = {
-    "cpp": ["TooManyCooks", "libfork", "tbb", "coros", "concurrencpp"]
+    "cpp": ["TooManyCooks", "libfork", "tbb", "coros", "taskflow", "concurrencpp"]
 }
 
 runtime_links = {
@@ -18,10 +18,11 @@ runtime_links = {
     "libfork": "https://github.com/ConorWilliams/libfork",
     "tbb": "https://www.intel.com/content/www/us/en/developer/tools/oneapi/onetbb.html",
     "coros": "https://github.com/mtmucha/coros",
+    "taskflow": "https://github.com/taskflow/taskflow",
     "concurrencpp": "https://github.com/David-Haim/concurrencpp",
 }
 
-benchmarks_order = ["skynet", "nqueens", "fib"]
+benchmarks_order = ["skynet", "nqueens", "fib", "matmul"]
 
 benchmarks={
     "skynet": {
@@ -33,14 +34,17 @@ benchmarks={
     "nqueens": {
 
     },
+    "matmul": {
+        "params": ["4096"]
+    },
 }
 
 collect_results = {
-    "fib": [{"params": "40", "runs": ["first"]}],
-    "skynet": [{"params": "", "runs": ["first"]}],
-    "nqueens": [{"params": "", "runs": ["first"]}]
+    "fib": [{"params": "40"}],
+    "skynet": [{"params": ""}],
+    "nqueens": [{"params": ""}],
+    "matmul": [{"params": "4096"}]
 }
-
 
 root_dir = os.path.abspath(os.path.dirname(__file__))
 results = {}
@@ -89,25 +93,16 @@ for runtime, runtime_results in results.items():
     for bench_name in benchmarks_order:
         collect = collect_results[bench_name]
         for collect_item in collect:
-            runs = collect_item["runs"]
-            for run in runs:
-                if run == "first":
-                    runval = 0
-                elif run == "last":
-                    runval = len(runtime_results[bench_name][params]["runs"]) - 1
-                else:
-                    runval = run
-                params = collect_item["params"]
-                dur_string = runtime_results[bench_name][params]["runs"][runval]["duration"]
-                dur_in_ns = get_dur_in_ns(dur_string)
-                friendly_name = bench_name
-                if params:
-                    friendly_name += f"({params})"
-                if len(runs) > 1:
-                    friendly_name += f" ({run} run)"
-                collated_results.setdefault(runtime, {})[friendly_name] = {"raw": dur_string, "ns": dur_in_ns}
-                if not friendly_name in bench_names:
-                    bench_names.append(friendly_name)
+            which_run = 0
+            params = collect_item["params"]
+            dur_string = runtime_results[bench_name][params]["runs"][which_run]["duration"]
+            dur_in_ns = get_dur_in_ns(dur_string)
+            friendly_name = bench_name
+            if params:
+                friendly_name += f"({params})"
+            collated_results.setdefault(runtime, {})[friendly_name] = {"raw": dur_string, "ns": dur_in_ns}
+            if not friendly_name in bench_names:
+                bench_names.append(friendly_name)
 
 lowest_results = {}
 for runtime, runtime_results in collated_results.items():
