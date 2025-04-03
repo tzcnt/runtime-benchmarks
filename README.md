@@ -8,19 +8,21 @@ Currently only contains C++ frameworks:
 - [coros](https://github.com/mtmucha/coros)
 - [concurrencpp](https://github.com/David-Haim/concurrencpp)
 
-And 3 benchmarks:
+And 4 benchmarks:
 - recursive fibonacci (forks x2)
 - skynet ([original link](https://github.com/atemerev/skynet)) but increased to 100M tasks (forks x10)
 - nqueens (forks up to x14)
+- matmul (forks x4)
 
 Current Benchmark Results:
 
-| Runtime | [libfork](https://github.com/ConorWilliams/libfork) | [TooManyCooks](https://github.com/tzcnt/TooManyCooks) | [OneAPI TBB](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onetbb.html) | [coros](https://github.com/mtmucha/coros) | [concurrencpp](https://github.com/David-Haim/concurrencpp) |
-| --- | --- | --- | --- | --- | --- |
-| Mean Ratio to Best<br>(lower is better) | 1.00x | 1.28x | 3.22x | 10.27x | 229.39x |
-| skynet | 38373 us | 47492 us | 140220 us | 644348 us | 11877421 us |
-| nqueens | 82844 us | 95309 us | 158274 us | 841336 us | 8189625 us |
-| fib(40) | 106851 us | 154768 us | 437778 us | 412569 us | 29894700 us |
+| Runtime | [TooManyCooks](https://github.com/tzcnt/TooManyCooks) | [libfork](https://github.com/ConorWilliams/libfork) | [tbb](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onetbb.html) | [coros](https://github.com/mtmucha/coros) | [concurrencpp](https://github.com/David-Haim/concurrencpp) | [taskflow](https://github.com/taskflow/taskflow) |
+| --- | --- | --- | --- | --- | --- | --- |
+| Mean Ratio to Best<br>(lower is better) | 1.22x | 2.15x | 2.77x | 8.04x | 171.91x | 281.91x |
+| skynet | 49619 us | 38518 us | 140487 us | 639277 us | 11889739 us | 20008863 us |
+| nqueens | 95342 us | 82941 us | 160199 us | 859354 us | 8206345 us | 7229609 us |
+| fib(40) | 156765 us | 107774 us | 433678 us | 433178 us | 30012566 us | 55921776 us |
+| matmul(2048) | 45018 us | 252345 us | 66608 us | 53247 us | 69233 us | 96501 us |
 
 Benchmark configuration:
 - Processor: EPYC 7742 64-core processor
@@ -31,8 +33,6 @@ Benchmark configuration:
 - Linked against libtcmalloc_minimal.so.4
 
 Frameworks to come:
-- (C++) [Staccato](https://github.com/rkuchumov/staccato)
-- (C++) [Taskflow](https://github.com/taskflow/taskflow)
 - (C#) .Net thread pool
 - (Rust) [tokio](https://github.com/tokio-rs/tokio)
 - (Golang) goroutines
