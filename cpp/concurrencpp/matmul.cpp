@@ -7,6 +7,7 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
+#include "matmul.hpp"
 #include "concurrencpp/concurrencpp.h"
 #include <concurrencpp/results/constants.h>
 #include <concurrencpp/runtime/runtime.h>
@@ -28,13 +29,7 @@ result<void> matmul(
 ) {
   if (n <= 32) {
     // Base case: Use simple triple-loop multiplication for small matrices
-    for (int i = 0; i < n; i++) {
-      for (int k = 0; k < n; k++) {
-        for (int j = 0; j < n; j++) {
-          c[i * N + j] += a[i * N + k] * b[k * N + j];
-        }
-      }
-    }
+    matmul_small(a, b, c, n, N);
   } else {
     // Recursive case: Divide the matrices into 4 submatrices and multiply them
     int k = n / 2;

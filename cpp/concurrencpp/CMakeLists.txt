@@ -23,6 +23,7 @@ CPMAddPackage(
     DOWNLOAD_ONLY)
 include_directories(
     ${concurrencpp_SOURCE_DIR}/include
+    "../2common"
 )
 
 # Since each new coroutine requires an allocation,

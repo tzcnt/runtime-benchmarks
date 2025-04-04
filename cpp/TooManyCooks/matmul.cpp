@@ -9,6 +9,7 @@
 
 #define TMC_IMPL
 
+#include "matmul.hpp"
 #include "tmc/all_headers.hpp"
 
 #include <chrono>
@@ -22,13 +23,7 @@ static size_t thread_count = std::thread::hardware_concurrency() / 2;
 tmc::task<void> matmul(int* a, int* b, int* c, int n, int N) {
   if (n <= 32) {
     // Base case: Use simple triple-loop multiplication for small matrices
-    for (int i = 0; i < n; i++) {
-      for (int k = 0; k < n; k++) {
-        for (int j = 0; j < n; j++) {
-          c[i * N + j] += a[i * N + k] * b[k * N + j];
-        }
-      }
-    }
+    matmul_small(a, b, c, n, N);
   } else {
     // Recursive case: Divide the matrices into 4 submatrices and multiply them
     int k = n / 2;

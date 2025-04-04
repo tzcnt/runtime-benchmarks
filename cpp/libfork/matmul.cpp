@@ -7,6 +7,7 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
+#include "matmul.hpp"
 #include <libfork.hpp>
 
 #include <chrono>
@@ -20,13 +21,7 @@ inline constexpr auto matmul =
   [](auto matmul, int* a, int* b, int* c, int n, int N) -> lf::task<void> {
   if (n <= 32) {
     // Base case: Use simple triple-loop multiplication for small matrices
-    for (int i = 0; i < n; i++) {
-      for (int k = 0; k < n; k++) {
-        for (int j = 0; j < n; j++) {
-          c[i * N + j] += a[i * N + k] * b[k * N + j];
-        }
-      }
-    }
+    matmul_small(a, b, c, n, N);
   } else {
     // Recursive case: Divide the matrices into 4 submatrices and multiply
     // them
@@ -37,13 +32,13 @@ inline constexpr auto matmul =
     co_await lf::fork[matmul](a, b, c, k, N);
     co_await lf::fork[matmul](a, b + k, c + k, k, N);
     co_await lf::fork[matmul](a + k * N, b, c + k * N, k, N);
-    co_await lf::fork[matmul](a + k * N, b + k, c + k * N + k, k, N);
+    co_await lf::call[matmul](a + k * N, b + k, c + k * N + k, k, N);
     co_await lf::join;
 
     co_await lf::fork[matmul](a + k, b + k * N, c, k, N);
     co_await lf::fork[matmul](a + k, b + k * N + k, c + k, k, N);
     co_await lf::fork[matmul](a + k * N + k, b + k * N, c + k * N, k, N);
-    co_await lf::fork[matmul](
+    co_await lf::call[matmul](
       a + k * N + k, b + k * N + k, c + k * N + k, k, N
     );
     co_await lf::join;

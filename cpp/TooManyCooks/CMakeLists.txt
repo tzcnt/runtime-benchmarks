@@ -28,6 +28,8 @@ add_definitions(
 
 include(../1CMake/CPM.cmake)
 
+include_directories("../2common")
+
 # By default, download the TMC repos as CPM packages.
 # If this option is enabled, CMake will expect them to be in git submodules.
 # You must run `submodule update --init --recursive` before turning this on.

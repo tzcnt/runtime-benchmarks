@@ -21,6 +21,7 @@ CPMAddPackage(
     DOWNLOAD_ONLY)
 include_directories(
     ${coros_SOURCE_DIR}/include
+    "../2common"
 )
 
 # Since each new coroutine requires an allocation,

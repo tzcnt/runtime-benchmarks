@@ -23,6 +23,7 @@ set(TBB_DIR "/opt/intel/oneapi/tbb/latest/lib/cmake/tbb/")
 find_package(TBB REQUIRED)
 include_directories(
     ${TBB_SOURCE_DIR}/include
+    "../2common"
 )
 link_libraries(TBB::tbb)
 

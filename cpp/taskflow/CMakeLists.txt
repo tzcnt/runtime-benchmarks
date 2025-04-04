@@ -20,7 +20,10 @@ CPMAddPackage(
     GIT_TAG v3.9.0
     DOWNLOAD_ONLY)
 
-include_directories(${taskflow_SOURCE_DIR})
+include_directories(
+    ${taskflow_SOURCE_DIR}
+    "../2common"
+)
 
 # Since each new coroutine requires an allocation,
 # they are sensitive to allocator performance.

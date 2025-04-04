@@ -8,6 +8,7 @@
 // subdivision, for taskflow the library has chosen to use for_each_index -
 // likely because recursion performs very poorly on Taskflow.
 
+#include "matmul.hpp"
 #include <taskflow/algorithm/for_each.hpp>
 #include <taskflow/taskflow.hpp>
 
@@ -22,13 +23,7 @@ static const size_t iter_count = 1;
 void matmul(tf::Subflow& sbf, int* a, int* b, int* c, int n, int N) {
   if (n <= 32) {
     // Base case: Use simple triple-loop multiplication for small matrices
-    for (int i = 0; i < n; i++) {
-      for (int k = 0; k < n; k++) {
-        for (int j = 0; j < n; j++) {
-          c[i * N + j] += a[i * N + k] * b[k * N + j];
-        }
-      }
-    }
+    matmul_small(a, b, c, n, N);
   } else {
     // Recursive case: Divide the matrices into 4 submatrices and multiply them
     int k = n / 2;
