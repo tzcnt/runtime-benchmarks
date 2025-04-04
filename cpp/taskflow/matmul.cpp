@@ -1,12 +1,11 @@
 // An implementation of recursive matrix multiplication
 
 // Adapted from
-// https://github.com/taskflow/taskflow/blob/v3.9.0/benchmarks/matrix_multiplication/taskflow.cpp
-// Original author: taskflow
+// https://github.com/mtmucha/coros/blob/main/benchmarks/coros_mat.h
 
-// Although the other implementations of this benchmark this repo use recursive
-// subdivision, for taskflow the library has chosen to use for_each_index -
-// likely because recursion performs very poorly on Taskflow.
+// Original author: mtmucha
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #include "matmul.hpp"
 #include <taskflow/algorithm/for_each.hpp>
