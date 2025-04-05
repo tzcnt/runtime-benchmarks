@@ -32,6 +32,7 @@
 #include "thread_pool.h"
 #include "wait_tasks.h"
 
+#include <array>
 #include <chrono>
 #include <cinttypes>
 #include <cstdio>
@@ -50,18 +51,41 @@ coros::Task<size_t> skynet_one(size_t BaseNum, size_t Depth) {
     depthOffset *= 10;
   }
 
-  auto tasks =
-    std::ranges::views::iota(0UL, 10UL) |
-    std::ranges::views::transform([=](size_t idx) {
-      return skynet_one<DepthMax>(BaseNum + depthOffset * idx, Depth + 1);
-    });
-  std::vector<coros::Task<size_t>> taskVec(tasks.begin(), tasks.end());
+  // auto taskRange =
+  //   std::ranges::views::iota(0UL, 10UL) |
+  //   std::ranges::views::transform([=](size_t idx) {
+  //     return skynet_one<DepthMax>(BaseNum + depthOffset * idx, Depth + 1);
+  //   });
 
-  co_await coros::wait_tasks(taskVec);
+  //// This is slowest due to requiring multiple vector resizes
+  // std::vector<coros::Task<size_t>> tasks(taskRange.begin(), taskRange.end());
+  // co_await coros::wait_tasks(tasks);
+
+  //// This is a bit faster as it only requires 1 dynamic allocation
+  // std::vector<coros::Task<size_t>> tasks;
+  // tasks.reserve(10);
+  // for (auto&& t : taskRange) {
+  //   tasks.emplace_back(std::move(t));
+  // }
+  // co_await coros::wait_tasks(tasks);
+
+  //// This is the fastest, but obviously the syntax is horrible. wait_tasks
+  // doesn't expose an iterator-based API, nor can it return values; the tasks
+  // array must be preserved separately and then passed into the variadic form
+  // of the function.
+  std::array<coros::Task<size_t>, 10> tasks;
+  for (size_t i = 0; i < 10; ++i) {
+    tasks[i] = skynet_one<DepthMax>(BaseNum + depthOffset * i, Depth + 1);
+  }
+
+  co_await coros::wait_tasks(
+    tasks[0], tasks[1], tasks[2], tasks[3], tasks[4], tasks[5], tasks[6],
+    tasks[7], tasks[8], tasks[9]
+  );
 
   size_t count = 0;
   for (size_t idx = 0; idx < 10; ++idx) {
-    count += *taskVec[idx];
+    count += *tasks[idx];
   }
   co_return count;
 }
