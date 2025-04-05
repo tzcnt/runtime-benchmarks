@@ -12,6 +12,7 @@
 
 #include <chrono>
 #include <cstdio>
+#include <cstring>
 #include <exception>
 #include <vector>
 
@@ -45,7 +46,28 @@ inline constexpr auto matmul =
   }
 };
 
-std::vector<int> run_matmul(lf::lazy_pool& executor, int N) {
+inline constexpr auto matmul_flat_one = [](
+                                          auto matmul_flat_one, int* a, int* b,
+                                          int* c, int i, int N
+                                        ) -> lf::task<void> {
+  for (int j = 0; j < N; ++j) {
+    for (int k = 0; k < N; k++) {
+      c[i * N + j] += a[i * N + k] * b[k * N + j];
+    }
+  }
+  co_return;
+};
+
+inline constexpr auto matmul_flat =
+  [](auto matmul_flat, int* a, int* b, int* c, int N) -> lf::task<void> {
+  for (int i = 0; i < N; ++i) {
+    co_await lf::fork[matmul_flat_one](a, b, c, i, N);
+  }
+  co_await lf::join;
+  co_return;
+};
+
+std::vector<int> run_matmul(lf::lazy_pool& executor, int N, bool flat) {
   std::vector<int> A(N * N, 1);
   std::vector<int> B(N * N, 1);
   std::vector<int> C(N * N, 0);
@@ -61,7 +83,11 @@ std::vector<int> run_matmul(lf::lazy_pool& executor, int N) {
       c[i * N + j] = 0;
     }
   }
-  lf::sync_wait(executor, matmul, a, b, c, N, N);
+  if (flat) {
+    lf::sync_wait(executor, matmul_flat, a, b, c, N);
+  } else {
+    lf::sync_wait(executor, matmul, a, b, c, N, N);
+  }
   return C;
 }
 
@@ -82,9 +108,9 @@ void validate_result(std::vector<int>& C, int N) {
   }
 }
 
-void run_one(lf::lazy_pool& executor, int N) {
+void run_one(lf::lazy_pool& executor, int N, bool flat) {
   auto startTime = std::chrono::high_resolution_clock::now();
-  std::vector<int> result = run_matmul(executor, N);
+  std::vector<int> result = run_matmul(executor, N, flat);
   auto endTime = std::chrono::high_resolution_clock::now();
   validate_result(result, N);
   auto totalTimeUs =
@@ -94,17 +120,19 @@ void run_one(lf::lazy_pool& executor, int N) {
 }
 
 int main(int argc, char* argv[]) {
-  if (argc != 2) {
+  if (argc < 2) {
     printf("Usage: matmul <matrix size (power of 2)>\n");
     exit(0);
   }
   int n = atoi(argv[1]);
+  bool flat = argc >= 3 && strcmp(argv[2], "flat") == 0;
+
   std::printf("threads: %d\n", thread_count);
   lf::lazy_pool executor(thread_count);
 
-  run_matmul(executor, n); // warmup
+  run_matmul(executor, n, flat); // warmup
 
   std::printf("runs:\n");
 
-  run_one(executor, n);
+  run_one(executor, n, flat);
 }

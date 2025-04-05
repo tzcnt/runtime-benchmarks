@@ -22,7 +22,7 @@ runtime_links = {
     "concurrencpp": "https://github.com/David-Haim/concurrencpp",
 }
 
-benchmarks_order = ["skynet", "nqueens", "fib", "matmul"]
+benchmarks_order = ["matmul"]
 
 benchmarks={
     "skynet": {
@@ -35,7 +35,7 @@ benchmarks={
 
     },
     "matmul": {
-        "params": ["2048"]
+        "params": ["2048 flat", "2048 recursive"]
     },
 }
 
@@ -43,7 +43,7 @@ collect_results = {
     "fib": [{"params": "40"}],
     "skynet": [{"params": ""}],
     "nqueens": [{"params": ""}],
-    "matmul": [{"params": "2048"}]
+    "matmul": [{"params": "2048 flat"}, {"params": "2048 recursive"}]
 }
 
 root_dir = os.path.abspath(os.path.dirname(__file__))

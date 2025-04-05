@@ -13,6 +13,7 @@
 
 #include <chrono>
 #include <cstdio>
+#include <cstring>
 #include <exception>
 #include <vector>
 
@@ -62,7 +63,7 @@ void matmul(tf::Subflow& sbf, int* a, int* b, int* c, int n, int N) {
   }
 }
 
-std::vector<int> run_matmul(tf::Executor& executor, int N) {
+std::vector<int> run_matmul(tf::Executor& executor, int N, bool flat) {
   std::vector<int> A(N * N, 1);
   std::vector<int> B(N * N, 1);
   std::vector<int> C(N * N, 0);
@@ -80,7 +81,17 @@ std::vector<int> run_matmul(tf::Executor& executor, int N) {
   }
 
   tf::Taskflow taskflow;
-  taskflow.emplace([=](tf::Subflow& sbf) { matmul(sbf, a, b, c, N, N); });
+  if (flat) {
+    taskflow.for_each_index(0, N, 1, [&](int i) {
+      for (int j = 0; j < N; ++j) {
+        for (int k = 0; k < N; k++) {
+          c[i * N + j] += a[i * N + k] * b[k * N + j];
+        }
+      }
+    });
+  } else {
+    taskflow.emplace([=](tf::Subflow& sbf) { matmul(sbf, a, b, c, N, N); });
+  }
   executor.run(taskflow).wait();
   return C;
 }
@@ -102,9 +113,9 @@ void validate_result(std::vector<int>& C, int N) {
   }
 }
 
-void run_one(tf::Executor& executor, int N) {
+void run_one(tf::Executor& executor, int N, bool flat) {
   auto startTime = std::chrono::high_resolution_clock::now();
-  std::vector<int> result = run_matmul(executor, N);
+  std::vector<int> result = run_matmul(executor, N, flat);
   auto endTime = std::chrono::high_resolution_clock::now();
   validate_result(result, N);
   auto totalTimeUs =
@@ -114,17 +125,19 @@ void run_one(tf::Executor& executor, int N) {
 }
 
 int main(int argc, char* argv[]) {
-  if (argc != 2) {
+  if (argc < 2) {
     printf("Usage: matmul <matrix size (power of 2)>\n");
     exit(0);
   }
   int n = atoi(argv[1]);
+  bool flat = argc >= 3 && strcmp(argv[2], "flat") == 0;
+
   std::printf("threads: %d\n", thread_count);
   tf::Executor executor(thread_count);
 
-  run_matmul(executor, n); // warmup
+  run_matmul(executor, n, flat); // warmup
 
   std::printf("runs:\n");
 
-  run_one(executor, n);
+  run_one(executor, n, flat);
 }

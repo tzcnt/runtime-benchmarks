@@ -14,7 +14,9 @@
 
 #include <chrono>
 #include <cstdio>
+#include <cstring>
 #include <exception>
+#include <ranges>
 #include <vector>
 
 using namespace tmc;
@@ -45,7 +47,16 @@ tmc::task<void> matmul(int* a, int* b, int* c, int n, int N) {
   }
 }
 
-std::vector<int> run_matmul(int N) {
+tmc::task<void> matmul_flat_one(int* a, int* b, int* c, int i, int N) {
+  for (int j = 0; j < N; ++j) {
+    for (int k = 0; k < N; k++) {
+      c[i * N + j] += a[i * N + k] * b[k * N + j];
+    }
+  }
+  co_return;
+}
+
+std::vector<int> run_matmul(int N, bool flat) {
   std::vector<int> A(N * N, 1);
   std::vector<int> B(N * N, 1);
   std::vector<int> C(N * N, 0);
@@ -54,7 +65,15 @@ std::vector<int> run_matmul(int N) {
   int* b = B.data();
   int* c = C.data();
 
-  tmc::post_waitable(tmc::cpu_executor(), matmul(a, b, c, N, N)).get();
+  if (flat) {
+    auto tasks = std::ranges::views::iota(0) |
+                 std::ranges::views::transform([&](int i) -> tmc::task<void> {
+                   return matmul_flat_one(a, b, c, i, N);
+                 });
+    tmc::post_bulk_waitable(tmc::cpu_executor(), tasks.begin(), N).get();
+  } else {
+    tmc::post_waitable(tmc::cpu_executor(), matmul(a, b, c, N, N)).get();
+  }
   return C;
 }
 
@@ -75,9 +94,9 @@ void validate_result(std::vector<int>& C, int N) {
   }
 }
 
-void run_one(int N) {
+void run_one(int N, bool flat) {
   auto startTime = std::chrono::high_resolution_clock::now();
-  std::vector<int> result = run_matmul(N);
+  std::vector<int> result = run_matmul(N, flat);
   auto endTime = std::chrono::high_resolution_clock::now();
   validate_result(result, N);
   auto totalTimeUs =
@@ -87,17 +106,19 @@ void run_one(int N) {
 }
 
 int main(int argc, char* argv[]) {
-  if (argc != 2) {
+  if (argc < 2) {
     printf("Usage: matmul <matrix size (power of 2)>\n");
     exit(0);
   }
   int n = atoi(argv[1]);
+  bool flat = argc >= 3 && strcmp(argv[2], "flat") == 0;
+
   std::printf("threads: %zu\n", thread_count);
   tmc::cpu_executor().set_thread_count(thread_count).init();
 
-  run_matmul(n); // warmup
+  run_matmul(n, flat); // warmup
 
   std::printf("runs:\n");
 
-  run_one(n);
+  run_one(n, flat);
 }

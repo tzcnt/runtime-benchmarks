@@ -15,6 +15,7 @@
 #include <chrono>
 #include <concurrencpp/task.h>
 #include <cstdio>
+#include <cstring>
 #include <exception>
 #include <thread>
 #include <vector>
@@ -53,8 +54,32 @@ result<void> matmul(
   }
 }
 
+result<void> matmul_flat_one(
+  executor_tag, std::shared_ptr<thread_pool_executor> executor, int* a, int* b,
+  int* c, int i, int N
+) {
+  for (int j = 0; j < N; ++j) {
+    for (int k = 0; k < N; k++) {
+      c[i * N + j] += a[i * N + k] * b[k * N + j];
+    }
+  }
+  co_return;
+}
+
+result<void> matmul_flat(
+  executor_tag, std::shared_ptr<thread_pool_executor> executor, int* a, int* b,
+  int* c, int N
+) {
+  std::vector<result<void>> children;
+  children.reserve(N);
+  for (int i = 0; i < N; ++i) {
+    children.emplace_back(matmul_flat_one({}, executor, a, b, c, i, N));
+  }
+  co_await when_all(executor, children.begin(), children.end());
+}
+
 std::vector<int>
-run_matmul(std::shared_ptr<thread_pool_executor> executor, int N) {
+run_matmul(std::shared_ptr<thread_pool_executor> executor, int N, bool flat) {
   std::vector<int> A(N * N, 1);
   std::vector<int> B(N * N, 1);
   std::vector<int> C(N * N, 0);
@@ -62,7 +87,11 @@ run_matmul(std::shared_ptr<thread_pool_executor> executor, int N) {
   int* a = A.data();
   int* b = B.data();
   int* c = C.data();
-  matmul({}, executor, a, b, c, N, N).wait();
+  if (flat) {
+    matmul_flat({}, executor, a, b, c, N).wait();
+  } else {
+    matmul({}, executor, a, b, c, N, N).wait();
+  }
   return C;
 }
 
@@ -83,9 +112,9 @@ void validate_result(std::vector<int>& C, int N) {
   }
 }
 
-void run_one(std::shared_ptr<thread_pool_executor> executor, int N) {
+void run_one(std::shared_ptr<thread_pool_executor> executor, int N, bool flat) {
   auto startTime = std::chrono::high_resolution_clock::now();
-  std::vector<int> result = run_matmul(executor, N);
+  std::vector<int> result = run_matmul(executor, N, flat);
   auto endTime = std::chrono::high_resolution_clock::now();
   validate_result(result, N);
   auto totalTimeUs =
@@ -95,19 +124,21 @@ void run_one(std::shared_ptr<thread_pool_executor> executor, int N) {
 }
 
 int main(int argc, char* argv[]) {
-  if (argc != 2) {
+  if (argc < 2) {
     printf("Usage: matmul <matrix size (power of 2)>\n");
     exit(0);
   }
   int n = atoi(argv[1]);
+  bool flat = argc >= 3 && strcmp(argv[2], "flat") == 0;
+
   std::printf("threads: %zu\n", thread_count);
   concurrencpp::runtime_options opt;
   opt.max_cpu_threads = thread_count;
   concurrencpp::runtime runtime(opt);
 
-  run_matmul(runtime.thread_pool_executor(), n); // warmup
+  run_matmul(runtime.thread_pool_executor(), n, flat); // warmup
 
   std::printf("runs:\n");
 
-  run_one(runtime.thread_pool_executor(), n);
+  run_one(runtime.thread_pool_executor(), n, flat);
 }
