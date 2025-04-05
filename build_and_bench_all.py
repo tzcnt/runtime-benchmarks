@@ -10,7 +10,10 @@ import yaml
 import sys
 
 runtimes = {
-    "cpp": ["TooManyCooks", "libfork", "tbb", "coros", "taskflow", "concurrencpp"]
+    ### Taskflow is disabled due to high memory consumption in recursive subflows causing OOM kills
+    ### Add this value to the array below to re-enable taskflow benchmarks.
+    # "taskflow", 
+    "cpp": ["TooManyCooks", "libfork", "tbb", "coros", "concurrencpp"]
 }
 
 runtime_links = {

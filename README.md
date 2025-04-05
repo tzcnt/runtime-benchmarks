@@ -20,10 +20,27 @@ Current Benchmark Results:
 Benchmark configuration:
 - Processor: EPYC 7742 64-core processor
 - Worker Thread Count: 64 (no SMT)
-- OS: Debian 12 Server
+- OS: Debian 13 Server
 - Compiler: Clang 19.1.6 Release (-O3 -march=native)
 - CPU boost enabled / schedutil governor
 - Linked against libtcmalloc_minimal.so.4
+
+### Running the Benchmarks
+Install Dependencies:
+- libfork and TooManyCooks depend on the [hwloc](https://www.open-mpi.org/projects/hwloc/) library.
+- TBB benchmarks depend on system installed TBB
+- A high performance allocator (tcmalloc, jemalloc, or mimalloc) is also recommended. The build script will dynamically link to any of these if they are available.
+
+`apt-get install libhwloc-dev intel-oneapi-tbb-devel libtcmalloc-minimal4`
+
+Run the Script:
+
+`python3 ./build_and_bench_all.py`
+
+Results will appear in `RESULTS.md` and `RESULTS.csv` files.
+
+### Caveats
+taskflow benchmarks are currently disabled due to high memory consumption in recursive subflows ([issue link](https://github.com/taskflow/taskflow/issues/674)). The taskflow results shown in this README were gathered on a server with 128GB of RAM, but on smaller systems they do not complete. These will be re-enabled once I can update the benchmark script to handle an OOM kill and represent the data appropriately. 
 
 Frameworks to come:
 - (C#) .Net thread pool
