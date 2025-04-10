@@ -9,15 +9,17 @@ Currently only includes C++ frameworks, and 4 benchmarks:
 
 Current Benchmark Results:
 
-| Runtime | [libfork](https://github.com/ConorWilliams/libfork) | [TooManyCooks](https://github.com/tzcnt/TooManyCooks) | [tbb](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onetbb.html) | [coros](https://github.com/mtmucha/coros) | [concurrencpp](https://github.com/David-Haim/concurrencpp) | [taskflow](https://github.com/taskflow/taskflow) |
+| Runtime | [libfork](https://github.com/ConorWilliams/libfork) | [TooManyCooks](https://github.com/tzcnt/TooManyCooks) | [tbb](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onetbb.html) | [taskflow](https://github.com/taskflow/taskflow) | [coros](https://github.com/mtmucha/coros) | [concurrencpp](https://github.com/David-Haim/concurrencpp) |
 | --- | --- | --- | --- | --- | --- | --- |
-| Mean Ratio to Best<br>(lower is better) | 1.00x | 1.23x | 2.83x | 8.09x | 172.85x | 282.47x |
-| skynet | 38224 us | 48412 us | 140226 us | 642072 us | 11957154 us | 19889202 us |
-| nqueens | 82906 us | 95463 us | 160356 us | 860870 us | 8148187 us | 7239839 us |
-| fib(40) | 106895 us | 155419 us | 445900 us | 418247 us | 29787722 us | 55576715 us |
-| matmul(2048) | 42275 us | 43795 us | 64743 us | 53487 us | 69684 us | 98070 us |
+| Mean Ratio to Best<br>(lower is better) | 1.00x | 1.21x | 2.78x | 4.84x | 4.99x | 173.44x |
+| skynet | 38145 us | 48589 us | 141714 us | 283860 us | 146804 us | 11958233 us |
+| nqueens | 82695 us | 94381 us | 158044 us | 301047 us | 907845 us | 8183244 us |
+| fib(40) | 107244 us | 151679 us | 430398 us | 724958 us | 413680 us | 29999029 us |
+| matmul(2048) | 43705 us | 44391 us | 65441 us | 66211 us | 54986 us | 69851 us |
 
-Benchmark configuration:
+
+
+Configuration used in the above results:
 - Processor: EPYC 7742 64-core processor
 - Worker Thread Count: 64 (no SMT)
 - OS: Debian 13 Server
@@ -38,9 +40,6 @@ Run the Script:
 `python3 ./build_and_bench_all.py`
 
 Results will appear in `RESULTS.md` and `RESULTS.csv` files.
-
-### Caveats
-taskflow benchmarks are currently disabled due to high memory consumption in recursive subflows ([issue link](https://github.com/taskflow/taskflow/issues/674)). The taskflow results shown in this README were gathered on a server with 128GB of RAM, but on smaller systems they do not complete. These will be re-enabled once I can update the benchmark script to handle an OOM kill and represent the data appropriately. 
 
 Frameworks to come:
 - (C#) .Net thread pool
