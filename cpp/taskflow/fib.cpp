@@ -14,15 +14,15 @@
 static int thread_count = std::thread::hardware_concurrency() / 2;
 static const size_t iter_count = 1;
 
-size_t spawn(size_t n, tf::Subflow& sbf) {
+size_t fib(size_t n, tf::Runtime& rt) {
   if (n < 2) {
     return n;
   }
   size_t x, y;
-  sbf.emplace([&x, n](tf::Subflow& s) { x = spawn(n - 1, s); });
-  sbf.emplace([&y, n](tf::Subflow& s) { y = spawn(n - 2, s); });
+  rt.silent_async([&x, n](tf::Runtime& s) { x = fib(n - 1, s); });
+  rt.silent_async([&y, n](tf::Runtime& s) { y = fib(n - 2, s); });
 
-  sbf.join();
+  rt.corun_all();
   return x + y;
 }
 
@@ -41,7 +41,7 @@ int main(int argc, char* argv[]) {
 
   size_t result = 0;
 
-  taskflow.emplace([&result, n](tf::Subflow& sbf) { result = spawn(n, sbf); });
+  taskflow.emplace([&result, n](tf::Runtime& rt) { result = fib(n, rt); });
   executor.run(taskflow).wait();
 
   auto startTime = std::chrono::high_resolution_clock::now();

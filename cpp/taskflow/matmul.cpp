@@ -19,7 +19,7 @@
 static int thread_count = std::thread::hardware_concurrency() / 2;
 static const size_t iter_count = 1;
 
-void matmul(tf::Subflow& sbf, int* a, int* b, int* c, int n, int N) {
+void matmul(tf::Runtime& rt, int* a, int* b, int* c, int n, int N) {
   if (n <= 32) {
     // Base case: Use simple triple-loop multiplication for small matrices
     matmul_small(a, b, c, n, N);
@@ -29,36 +29,30 @@ void matmul(tf::Subflow& sbf, int* a, int* b, int* c, int n, int N) {
 
     // Split the execution into 2 sections to ensure output locations are not
     // written in parallel
-    auto A1 = sbf.emplace([=](tf::Subflow& s) { matmul(s, a, b, c, k, N); });
-    auto A2 = sbf.emplace([=](tf::Subflow& s) {
-      matmul(s, a + k, b + k * N, c, k, N);
-    });
-    A1.precede(A2);
-
-    auto B1 =
-      sbf.emplace([=](tf::Subflow& s) { matmul(s, a, b + k, c + k, k, N); });
-    auto B2 = sbf.emplace([=](tf::Subflow& s) {
-      matmul(s, a + k, b + k * N + k, c + k, k, N);
-    });
-    B1.precede(B2);
-
-    auto C1 = sbf.emplace([=](tf::Subflow& s) {
+    rt.silent_async([=](tf::Runtime& s) { matmul(s, a, b, c, k, N); });
+    rt.silent_async([=](tf::Runtime& s) { matmul(s, a, b + k, c + k, k, N); });
+    rt.silent_async([=](tf::Runtime& s) {
       matmul(s, a + k * N, b, c + k * N, k, N);
     });
-    auto C2 = sbf.emplace([=](tf::Subflow& s) {
-      matmul(s, a + k * N + k, b + k * N, c + k * N, k, N);
-    });
-    C1.precede(C2);
-
-    auto D1 = sbf.emplace([=](tf::Subflow& s) {
+    rt.silent_async([=](tf::Runtime& s) {
       matmul(s, a + k * N, b + k, c + k * N + k, k, N);
     });
-    auto D2 = sbf.emplace([=](tf::Subflow& s) {
+    rt.corun_all();
+
+
+    rt.silent_async([=](tf::Runtime& s) {
+      matmul(s, a + k, b + k * N, c, k, N);
+    });
+    rt.silent_async([=](tf::Runtime& s) {
+      matmul(s, a + k, b + k * N + k, c + k, k, N);
+    });
+    rt.silent_async([=](tf::Runtime& s) {
+      matmul(s, a + k * N + k, b + k * N, c + k * N, k, N);
+    });
+    rt.silent_async([=](tf::Runtime& s) {
       matmul(s, a + k * N + k, b + k * N + k, c + k * N + k, k, N);
     });
-    D1.precede(D2);
-
-    sbf.join();
+    rt.corun_all();
   }
 }
 
@@ -80,7 +74,7 @@ std::vector<int> run_matmul(tf::Executor& executor, int N) {
   }
 
   tf::Taskflow taskflow;
-  taskflow.emplace([=](tf::Subflow& sbf) { matmul(sbf, a, b, c, N, N); });
+  taskflow.emplace([=](tf::Runtime& rt) { matmul(rt, a, b, c, N, N); });
   executor.run(taskflow).wait();
   return C;
 }

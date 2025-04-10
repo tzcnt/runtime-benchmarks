@@ -10,13 +10,11 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-#include "taskflow/core/flow_builder.hpp"
 #include <taskflow/taskflow.hpp>
 
 #include <array>
 #include <cinttypes>
 #include <cstdio>
-#include <functional>
 #include <ranges>
 
 static int thread_count = std::thread::hardware_concurrency() / 2;
@@ -37,7 +35,7 @@ void check_answer(int result) {
 }
 
 template <size_t N>
-void nqueens(tf::Subflow& sbf, int xMax, std::array<char, N> buf, int& out) {
+void nqueens(tf::Runtime& rt, int xMax, std::array<char, N> buf, int& out) {
   if (N == xMax) {
     out = 1;
     return;
@@ -61,15 +59,15 @@ void nqueens(tf::Subflow& sbf, int xMax, std::array<char, N> buf, int& out) {
     std::ranges::views::transform([xMax, &buf, &taskCount, &results](int y) {
       size_t idx = taskCount;
       ++taskCount;
-      return [xMax, buf, idx, &results](tf::Subflow& s) {
+      return [xMax, buf, idx, &results](tf::Runtime& s) {
         nqueens(s, xMax + 1, buf, results[idx]);
       };
     });
 
   for (auto&& t : tasks) {
-    sbf.emplace(t);
+    rt.silent_async(t);
   }
-  sbf.join();
+  rt.corun_all();
 
   int ret = 0;
   for (size_t i = 0; i < taskCount; ++i) {
@@ -87,7 +85,7 @@ int main(int argc, char* argv[]) {
   {
     std::array<char, nqueens_work> buf{};
     int result;
-    taskflow.emplace([&](tf::Subflow& sbf) { nqueens(sbf, 0, buf, result); });
+    taskflow.emplace([&](tf::Runtime& rt) { nqueens(rt, 0, buf, result); });
     executor.run(taskflow).wait();
     check_answer(result);
   }
@@ -97,7 +95,7 @@ int main(int argc, char* argv[]) {
   for (size_t i = 0; i < iter_count; ++i) {
     std::array<char, nqueens_work> buf{};
     int result;
-    taskflow.emplace([&](tf::Subflow& sbf) { nqueens(sbf, 0, buf, result); });
+    taskflow.emplace([&](tf::Runtime& rt) { nqueens(rt, 0, buf, result); });
     executor.run(taskflow).wait();
     check_answer(result);
     std::printf("  - %d\n", result);

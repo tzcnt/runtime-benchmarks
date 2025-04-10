@@ -38,7 +38,7 @@ static int thread_count = std::thread::hardware_concurrency() / 2;
 static const size_t iter_count = 1;
 
 template <size_t DepthMax>
-size_t skynet_one(tf::Subflow& sbf, size_t BaseNum, size_t Depth) {
+size_t skynet_one(tf::Runtime& rt, size_t BaseNum, size_t Depth) {
   if (Depth == DepthMax) {
     return BaseNum;
   }
@@ -50,12 +50,12 @@ size_t skynet_one(tf::Subflow& sbf, size_t BaseNum, size_t Depth) {
   std::array<size_t, 10> results;
 
   for (size_t i = 0; i < 10; ++i) {
-    sbf.emplace([=, &results, idx = i](tf::Subflow& s) {
+    rt.silent_async([=, &results, idx = i](tf::Runtime& s) {
       results[idx] =
         skynet_one<DepthMax>(s, BaseNum + depthOffset * idx, Depth + 1);
     });
   }
-  sbf.join();
+  rt.corun_all();
 
   size_t count = 0;
   for (size_t idx = 0; idx < 10; ++idx) {
@@ -66,8 +66,8 @@ size_t skynet_one(tf::Subflow& sbf, size_t BaseNum, size_t Depth) {
 template <size_t DepthMax> void skynet(tf::Executor& executor) {
   tf::Taskflow taskflow;
   size_t count;
-  taskflow.emplace([&](tf::Subflow& sbf) {
-    count = skynet_one<DepthMax>(sbf, 0, 0);
+  taskflow.emplace([&](tf::Runtime& rt) {
+    count = skynet_one<DepthMax>(rt, 0, 0);
   });
   executor.run(taskflow).wait();
   if (count != 4999999950000000) {
