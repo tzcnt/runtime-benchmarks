@@ -30,7 +30,7 @@ Configuration used in the above results:
 ### Running the Benchmarks
 Install Dependencies:
 - libfork and TooManyCooks depend on the [hwloc](https://www.open-mpi.org/projects/hwloc/) library.
-- TBB benchmarks depend on system installed TBB
+- TBB benchmarks depend on system installed TBB - see the [installation guide here for the newest version](https://www.intel.com/content/www/us/en/docs/oneapi/installation-guide-linux/2024-2/apt.html) or you may be able to find the old version 'libtbb-dev' in your system package manager
 - A high performance allocator (tcmalloc, jemalloc, or mimalloc) is also recommended. The build script will dynamically link to any of these if they are available.
 
 `apt-get install libhwloc-dev intel-oneapi-tbb-devel libtcmalloc-minimal4`
