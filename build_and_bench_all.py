@@ -4,6 +4,8 @@
 
 # this script is a total hack job... but it works.
 
+import datetime
+import json
 import os
 import subprocess
 import yaml
@@ -47,6 +49,8 @@ collect_results = {
 }
 
 root_dir = os.path.abspath(os.path.dirname(__file__))
+
+md = {"start_time": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
 results = {}
 for language, runtime_names in runtimes.items():
     for runtime in runtime_names:
@@ -70,19 +74,19 @@ for language, runtime_names in runtimes.items():
 
 #print(results)
 
-def get_dur_in_ns(dur_string):
+def get_dur_in_us(dur_string):
     dur, unit = dur_string.split(" ")
     dur = int(dur)
-    # convert all units to ns for comparison
+    # convert all units to microseconds for comparison
     match unit:
         case "us":
-            return dur * 1000
+            return dur
         case "ms":
-            return dur * 1000000
+            return dur * 1000
         case "s":
-            return dur * 1000000000
+            return dur * 1000000
         case "sec":
-            return dur * 1000000000
+            return dur * 1000000
         case _:
             print(f"Unknown unit: {unit}")
             exit(1)
@@ -96,29 +100,77 @@ for runtime, runtime_results in results.items():
             which_run = 0
             params = collect_item["params"]
             dur_string = runtime_results[bench_name][params]["runs"][which_run]["duration"]
-            dur_in_ns = get_dur_in_ns(dur_string)
+            dur_in_us = get_dur_in_us(dur_string)
             friendly_name = bench_name
             if params:
                 friendly_name += f"({params})"
-            collated_results.setdefault(runtime, {})[friendly_name] = {"raw": dur_string, "ns": dur_in_ns}
+            collated_results.setdefault(runtime, {})[friendly_name] = {"raw": dur_string, "us": dur_in_us}
             if not friendly_name in bench_names:
                 bench_names.append(friendly_name)
 
+# Get system information and attach it as metadata to the JSON file only
+# TODO use 'sysctl -a | grep machdep.cpu' on Darwin
+try:
+    model_name_raw = subprocess.run(args=f"lscpu | grep \"Model name:\"", shell=True, capture_output=True, text=True)
+    model_name = model_name_raw.stdout.split(":")[1].strip()
+    md["cpu"] = model_name
+except:
+    md["cpu"] = "unknown"
+try:
+    model_name_raw = subprocess.run(args=f"lscpu | grep \"per socket:\"", shell=True, capture_output=True, text=True)
+    model_name = model_name_raw.stdout.split(":")[1].strip()
+    md["cores"] = model_name
+except:
+    md["cores"] = "unknown"
+try:
+    kernel_raw = subprocess.run(args=f"uname -v", shell=True, capture_output=True, text=True)
+    kernel = kernel_raw.stdout.strip()
+    md["kernel"] = kernel
+except:
+    md["kernel"] = "unknown"
+try:
+    for language, runtime_names in runtimes.items():
+        for runtime in runtime_names:
+            if "compiler" in md:
+                continue
+            # Build the benchmark
+            runtime_root_dir = os.path.join(root_dir, language, runtime)
+            ccj = os.path.join(runtime_root_dir, "build", "compile_commands.json")
+            compiler_bin = ""
+            with open(ccj, "r") as ccf:
+                cc = json.load(ccf)
+                compiler_bin = cc[0]["command"].split(" ")[0]
+            compiler_info = subprocess.run(args=f"{compiler_bin} --version", shell=True, capture_output=True, text=True)
+            compiler_line = compiler_info.stdout.splitlines()[0].strip()
+            md["compiler"] = compiler_line
+except:
+    md["compiler"] = "unknown"
+
+tagged = {
+    "metadata": md,
+    "results": collated_results,
+}
+outJson = json.dumps(tagged)
+with open("RESULTS.json", "w") as resultsJSON:
+    resultsJSON.write(outJson)
+
+
+# For each benchmark, find the fastest runtime and calculate the runtime ratio of the other runtimes against that
 lowest_results = {}
 for runtime, runtime_results in collated_results.items():
     for bench_name, result in runtime_results.items():
         curr_lowest = lowest_results.setdefault(bench_name, int(sys.maxsize))
-        ns = result["ns"]
-        if ns < curr_lowest:
-            lowest_results[bench_name] = ns
+        us = result["us"]
+        if us < curr_lowest:
+            lowest_results[bench_name] = us
 
 for runtime, runtime_results in collated_results.items():
     for bench_name, result in runtime_results.items():
-        ns = result["ns"]
-        ratio = float(ns) / float(lowest_results[bench_name])
+        us = result["us"]
+        ratio = float(us) / float(lowest_results[bench_name])
         runtime_results[bench_name]["ratio"] = ratio
-        # if ns == lowest_results[bench_name]:
-        #     print(f"{bench_name}: {runtime} is the fastest with {ns} ns")
+        # if us == lowest_results[bench_name]:
+        #     print(f"{bench_name}: {runtime} is the fastest with {us} us")
 
 sorted = []
 for runtime, runtime_results in collated_results.items():
