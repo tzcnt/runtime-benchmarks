@@ -31,7 +31,7 @@ benchmarks={
 
     },
     "fib": {
-        "params": ["40"]
+        "params": ["39"]
     },
     "nqueens": {
 
@@ -42,7 +42,7 @@ benchmarks={
 }
 
 collect_results = {
-    "fib": [{"params": "40"}],
+    "fib": [{"params": "39"}],
     "skynet": [{"params": ""}],
     "nqueens": [{"params": ""}],
     "matmul": [{"params": "2048"}]
