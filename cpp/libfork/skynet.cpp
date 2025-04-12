@@ -1,7 +1,8 @@
 // The skynet benchmark as described here:
 // https://github.com/atemerev/skynet
 
-// Adapted from https://github.com/tzcnt/tmc-examples/blob/main/examples/skynet/main.cpp
+// Adapted from
+// https://github.com/tzcnt/tmc-examples/blob/main/examples/skynet/main.cpp
 // Original author: tzcnt
 // Unlicense License
 // This is free and unencumbered software released into the public domain.
@@ -32,12 +33,14 @@
 #include <chrono>
 #include <cinttypes>
 #include <cstdio>
+#include <cstdlib>
 
-static size_t thread_count = std::thread::hardware_concurrency()/2;
+static size_t thread_count = std::thread::hardware_concurrency() / 2;
 static const size_t iter_count = 1;
 
 template <size_t DepthMax>
-inline constexpr auto skynet_one = [](auto skynet_one, size_t BaseNum, size_t Depth) -> lf::task<size_t>  {
+inline constexpr auto skynet_one =
+  [](auto skynet_one, size_t BaseNum, size_t Depth) -> lf::task<size_t> {
   if (Depth == DepthMax) {
     co_return BaseNum;
   }
@@ -48,7 +51,9 @@ inline constexpr auto skynet_one = [](auto skynet_one, size_t BaseNum, size_t De
 
   std::array<size_t, 10> results;
   for (size_t idx = 0; idx < 10; ++idx) {
-    co_await lf::fork[&results[idx], skynet_one](BaseNum + depthOffset * idx, Depth + 1);
+    co_await lf::fork[&results[idx], skynet_one](
+      BaseNum + depthOffset * idx, Depth + 1
+    );
   }
 
   co_await lf::join;
@@ -60,31 +65,36 @@ inline constexpr auto skynet_one = [](auto skynet_one, size_t BaseNum, size_t De
   co_return count;
 };
 
-template <size_t DepthMax> inline constexpr auto skynet = [](auto skynet) -> lf::task<void> {
+template <size_t DepthMax>
+inline constexpr auto skynet = [](auto skynet) -> lf::task<void> {
   size_t count = co_await lf::just[skynet_one<DepthMax>](0, 0);
   if (count != 4999999950000000) {
     std::printf("ERROR: wrong result - %" PRIu64 "\n", count);
   }
 };
 
-template <size_t Depth = 6> inline constexpr auto loop_skynet = [](auto loop_skynet) -> lf::task<void> {
+template <size_t Depth = 6>
+inline constexpr auto loop_skynet = [](auto loop_skynet) -> lf::task<void> {
   std::printf("runs:\n");
   for (size_t j = 0; j < iter_count; ++j) {
     auto startTime = std::chrono::high_resolution_clock::now();
 
     co_await lf::just[skynet<Depth>]();
-    
+
     auto endTime = std::chrono::high_resolution_clock::now();
     auto execDur = endTime - startTime;
     auto totalTimeUs = std::chrono::duration_cast<std::chrono::microseconds>(
       endTime - startTime
     );
-    std::printf("  - iteration_count: %" PRIu64 "\n",iter_count);
+    std::printf("  - iteration_count: %" PRIu64 "\n", iter_count);
     std::printf("    duration: %" PRIu64 " us\n", totalTimeUs.count());
   }
 };
 
-int main() {
+int main(int argc, char* argv[]) {
+  if (argc > 1) {
+    thread_count = static_cast<size_t>(atoi(argv[1]));
+  }
   std::printf("threads: %" PRIu64 "\n", thread_count);
   lf::lazy_pool pool(thread_count);
   lf::sync_wait(pool, skynet<8>); // warmup

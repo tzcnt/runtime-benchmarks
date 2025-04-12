@@ -31,8 +31,9 @@
 #include <chrono>
 #include <cinttypes>
 #include <cstdio>
+#include <cstdlib>
 
-static int thread_count = std::thread::hardware_concurrency() / 2;
+static size_t thread_count = std::thread::hardware_concurrency() / 2;
 static const size_t iter_count = 1;
 
 size_t fibonacci(size_t n) {
@@ -49,13 +50,16 @@ size_t fibonacci(size_t n) {
 }
 
 int main(int argc, char* argv[]) {
-  if (argc != 2) {
+  if (argc > 2) {
+    thread_count = static_cast<size_t>(atoi(argv[2]));
+  }
+  if (argc < 2) {
     printf("Usage: fib <n-th fibonacci number requested>\n");
     exit(0);
   }
   size_t n = static_cast<size_t>(atoi(argv[1]));
 
-  std::printf("threads: %d\n", thread_count);
+  std::printf("threads: %zu\n", thread_count);
   tbb::task_arena arena(thread_count);
   std::printf("results:\n");
 

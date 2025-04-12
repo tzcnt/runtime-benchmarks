@@ -14,10 +14,11 @@
 
 #include <chrono>
 #include <cstdio>
+#include <cstdlib>
 #include <exception>
 #include <vector>
 
-static int thread_count = std::thread::hardware_concurrency() / 2;
+static size_t thread_count = std::thread::hardware_concurrency() / 2;
 
 coros::Task<void> matmul(int* a, int* b, int* c, int n, int N) {
   if (n <= 32) {
@@ -95,13 +96,16 @@ void run_one(coros::ThreadPool& executor, int N) {
 }
 
 int main(int argc, char* argv[]) {
-  if (argc != 2) {
+  if (argc > 2) {
+    thread_count = static_cast<size_t>(atoi(argv[1]));
+  }
+  if (argc < 2) {
     printf("Usage: matmul <matrix size (power of 2)>\n");
     exit(0);
   }
   int n = atoi(argv[1]);
-  std::printf("threads: %d\n", thread_count);
-  coros::ThreadPool executor{thread_count};
+  std::printf("threads: %zu\n", thread_count);
+  coros::ThreadPool executor(thread_count);
 
   run_matmul(executor, n); // warmup
 

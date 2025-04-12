@@ -33,6 +33,7 @@
 #include <chrono>
 #include <cinttypes>
 #include <cstdio>
+#include <cstdlib>
 
 using namespace tmc;
 static size_t thread_count = std::thread::hardware_concurrency() / 2;
@@ -65,7 +66,10 @@ static task<size_t> fib(size_t n) {
 // }
 
 int main(int argc, char* argv[]) {
-  if (argc != 2) {
+  if (argc > 2) {
+    thread_count = static_cast<size_t>(atoi(argv[2]));
+  }
+  if (argc < 2) {
     printf("Usage: fib <n-th fibonacci number requested>\n");
     exit(0);
   }

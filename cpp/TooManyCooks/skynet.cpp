@@ -1,7 +1,8 @@
 // The skynet benchmark as described here:
 // https://github.com/atemerev/skynet
 
-// Adapted from https://github.com/tzcnt/tmc-examples/blob/main/examples/skynet/main.cpp
+// Adapted from
+// https://github.com/tzcnt/tmc-examples/blob/main/examples/skynet/main.cpp
 // Original author: tzcnt
 // Unlicense License
 // This is free and unencumbered software released into the public domain.
@@ -30,15 +31,16 @@
 #define TMC_IMPL
 
 #include "tmc/ex_cpu.hpp"
-#include "tmc/task.hpp"
 #include "tmc/spawn_many.hpp"
+#include "tmc/task.hpp"
 
 #include <chrono>
 #include <cinttypes>
 #include <cstdio>
+#include <cstdlib>
 #include <ranges>
 
-static size_t thread_count = std::thread::hardware_concurrency()/2;
+static size_t thread_count = std::thread::hardware_concurrency() / 2;
 static const size_t iter_count = 1;
 
 template <size_t DepthMax>
@@ -88,18 +90,21 @@ template <size_t Depth = 6> tmc::task<void> loop_skynet() {
     auto startTime = std::chrono::high_resolution_clock::now();
 
     co_await skynet<Depth>();
-    
+
     auto endTime = std::chrono::high_resolution_clock::now();
     auto execDur = endTime - startTime;
     auto totalTimeUs = std::chrono::duration_cast<std::chrono::microseconds>(
       endTime - startTime
     );
-    std::printf("  - iteration_count: %" PRIu64 "\n",iter_count);
+    std::printf("  - iteration_count: %" PRIu64 "\n", iter_count);
     std::printf("    duration: %" PRIu64 " us\n", totalTimeUs.count());
   }
 }
 
-int main() {
+int main(int argc, char* argv[]) {
+  if (argc > 1) {
+    thread_count = static_cast<size_t>(atoi(argv[1]));
+  }
   std::printf("threads: %" PRIu64 "\n", thread_count);
   tmc::cpu_executor().set_thread_count(thread_count).init();
   return tmc::async_main([]() -> tmc::task<int> {

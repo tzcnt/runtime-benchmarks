@@ -12,6 +12,7 @@
 
 #include <cinttypes>
 #include <cstdio>
+#include <cstdlib>
 #include <libfork.hpp>
 
 static size_t thread_count = std::thread::hardware_concurrency() / 2;
@@ -33,7 +34,10 @@ inline constexpr auto fib = [](auto fib, size_t n) -> lf::task<size_t> {
 };
 
 int main(int argc, char* argv[]) {
-  if (argc != 2) {
+  if (argc > 2) {
+    thread_count = static_cast<size_t>(atoi(argv[2]));
+  }
+  if (argc < 2) {
     printf("Usage: fib <n-th fibonacci number requested>\n");
     exit(0);
   }
