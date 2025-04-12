@@ -60,12 +60,11 @@ int main(int argc, char* argv[]) {
   auto result =
     fibonacci({}, runtime.thread_pool_executor(), 30).get(); // warmup
 
-  std::printf("results:\n");
   auto startTime = std::chrono::high_resolution_clock::now();
 
   for (size_t i = 0; i < iter_count; ++i) {
     auto result = fibonacci({}, runtime.thread_pool_executor(), n).get();
-    std::printf("  - %" PRIu64 "\n", result);
+    std::printf("output: %zu\n", result);
   }
 
   auto endTime = std::chrono::high_resolution_clock::now();

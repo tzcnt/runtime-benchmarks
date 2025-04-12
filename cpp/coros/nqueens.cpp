@@ -95,7 +95,7 @@ int main(int argc, char* argv[]) {
     coros::start_sync(tp, t); // warmup
     auto result = *t;
     check_answer(result);
-    std::printf("  - %d\n", result);
+    std::printf("output: %d\n", result);
   }
 
   auto endTime = std::chrono::high_resolution_clock::now();

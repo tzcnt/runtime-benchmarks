@@ -77,7 +77,6 @@ int main(int argc, char* argv[]) {
 
   std::printf("threads: %" PRIu64 "\n", thread_count);
   tmc::cpu_executor().set_thread_count(thread_count).init();
-  std::printf("results:\n");
 
   return tmc::async_main([](size_t N) -> tmc::task<int> {
     auto result = co_await fib(30); // warmup
@@ -86,7 +85,7 @@ int main(int argc, char* argv[]) {
 
     for (size_t i = 0; i < iter_count; ++i) {
       auto result = co_await fib(N);
-      std::printf("  - %" PRIu64 "\n", result);
+      std::printf("output: %zu\n", result);
     }
 
     auto endTime = std::chrono::high_resolution_clock::now();

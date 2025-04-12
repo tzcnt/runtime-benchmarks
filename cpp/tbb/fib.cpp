@@ -61,7 +61,6 @@ int main(int argc, char* argv[]) {
 
   std::printf("threads: %zu\n", thread_count);
   tbb::task_arena arena(thread_count);
-  std::printf("results:\n");
 
   size_t result;
   arena.execute([&] { result = fibonacci(n); }); // warmup
@@ -70,7 +69,7 @@ int main(int argc, char* argv[]) {
 
   for (size_t i = 0; i < iter_count; ++i) {
     arena.execute([&] { result = fibonacci(n); }); // warmup
-    std::printf("  - %" PRIu64 "\n", result);
+    std::printf("output: %zu\n", result);
   }
 
   auto endTime = std::chrono::high_resolution_clock::now();

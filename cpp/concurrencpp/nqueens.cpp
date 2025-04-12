@@ -101,14 +101,13 @@ int main(int argc, char* argv[]) {
     check_answer(result);
   }
 
-  std::printf("results:\n");
   auto startTime = std::chrono::high_resolution_clock::now();
 
   for (size_t i = 0; i < iter_count; ++i) {
     std::array<char, nqueens_work> buf{};
     auto result = nqueens({}, runtime.thread_pool_executor(), 0, buf).get();
     check_answer(result);
-    std::printf("  - %d\n", result);
+    std::printf("output: %d\n", result);
   }
 
   auto endTime = std::chrono::high_resolution_clock::now();

@@ -48,12 +48,11 @@ int main(int argc, char* argv[]) {
 
   auto result = lf::sync_wait(pool, fib, 30); // warmup
 
-  std::printf("results:\n");
   auto startTime = std::chrono::high_resolution_clock::now();
 
   for (size_t i = 0; i < iter_count; ++i) {
     auto result = lf::sync_wait(pool, fib, n);
-    std::printf("  - %" PRIu64 "\n", result);
+    std::printf("output: %zu\n", result);
   }
 
   auto endTime = std::chrono::high_resolution_clock::now();

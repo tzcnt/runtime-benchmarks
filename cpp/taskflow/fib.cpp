@@ -41,7 +41,6 @@ int main(int argc, char* argv[]) {
   tf::Taskflow taskflow("fibonacci");
 
   std::printf("threads: %zu\n", thread_count);
-  std::printf("results:\n");
 
   size_t result = 0;
 
@@ -53,7 +52,7 @@ int main(int argc, char* argv[]) {
   for (size_t i = 0; i < iter_count; ++i) {
     result = 0;
     executor.run(taskflow).wait();
-    std::printf("  - %" PRIu64 "\n", result);
+    std::printf("output: %zu\n", result);
   }
 
   auto endTime = std::chrono::high_resolution_clock::now();

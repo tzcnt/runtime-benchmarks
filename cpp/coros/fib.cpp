@@ -62,7 +62,6 @@ int main(int argc, char* argv[]) {
 
   std::printf("threads: %zu\n", thread_count);
   coros::ThreadPool tp(thread_count);
-  std::printf("results:\n");
 
   coros::start_sync(tp, fib(30));
 
@@ -72,7 +71,7 @@ int main(int argc, char* argv[]) {
     coros::Task<size_t> t = fib(n);
     coros::start_sync(tp, t);
     auto result = *t;
-    std::printf("  - %" PRIu64 "\n", result);
+    std::printf("output: %zu\n", result);
   }
 
   auto endTime = std::chrono::high_resolution_clock::now();

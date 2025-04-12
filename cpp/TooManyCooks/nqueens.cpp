@@ -92,7 +92,7 @@ int main(int argc, char* argv[]) {
       std::array<char, nqueens_work> buf{};
       auto result = co_await nqueens(0, buf);
       check_answer(result);
-      std::printf("  - %d\n", result);
+      std::printf("output: %d\n", result);
     }
 
     auto endTime = std::chrono::high_resolution_clock::now();
