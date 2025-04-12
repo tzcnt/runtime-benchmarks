@@ -90,6 +90,9 @@ result<int> nqueens(
 };
 
 int main(int argc, char* argv[]) {
+  if (argc > 1) {
+    thread_count = static_cast<size_t>(atoi(argv[1]));
+  }
   std::printf("threads: %" PRIu64 "\n", thread_count);
   concurrencpp::runtime_options opt;
   opt.max_cpu_threads = thread_count;

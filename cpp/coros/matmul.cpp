@@ -97,7 +97,7 @@ void run_one(coros::ThreadPool& executor, int N) {
 
 int main(int argc, char* argv[]) {
   if (argc > 2) {
-    thread_count = static_cast<size_t>(atoi(argv[1]));
+    thread_count = static_cast<size_t>(atoi(argv[2]));
   }
   if (argc < 2) {
     printf("Usage: matmul <matrix size (power of 2)>\n");
