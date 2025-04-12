@@ -104,3 +104,5 @@ add_executable(skynet skynet.cpp)
 add_executable(nqueens nqueens.cpp)
 
 add_executable(matmul matmul.cpp)
+
+add_executable(sieve sieve.cpp)
