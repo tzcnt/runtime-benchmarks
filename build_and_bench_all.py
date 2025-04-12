@@ -116,7 +116,10 @@ for language, runtime_names in runtimes.items():
                     output_array = subprocess.run(args=f"{bench_exe} {params} {thread_count}", shell=True, capture_output=True, text=True)
                     try:
                         print(output_array.stdout)
-                        result = yaml.safe_load(output_array.stdout)
+                        raw = yaml.safe_load(output_array.stdout)
+                        result = {
+                            "duration": raw["runs"][0]["duration"]
+                        }
                         one_run["result"] = result
                         full_results.setdefault(runtime, {}).setdefault(bench_name, []).append(one_run)
                     except yaml.YAMLError as exc:
@@ -130,7 +133,7 @@ for bench_name in benchmarks_order:
             bench_args = benchmarks[bench_name]
             for params in bench_args["params"]:
                 for i, thread_count in enumerate(threads):
-                    dur = get_dur_in_us(full_results[runtime][bench_name][i]["result"]["runs"][0]["duration"])
+                    dur = get_dur_in_us(full_results[runtime][bench_name][i]["result"]["duration"])
                     if (dur < lowest_dur):
                         lowest_dur = dur
     for language, runtime_names in runtimes.items():
@@ -138,7 +141,7 @@ for bench_name in benchmarks_order:
             bench_args = benchmarks[bench_name]
             for params in bench_args["params"]:
                 for i, thread_count in enumerate(threads):
-                    dur = get_dur_in_us(full_results[runtime][bench_name][i]["result"]["runs"][0]["duration"])
+                    dur = get_dur_in_us(full_results[runtime][bench_name][i]["result"]["duration"])
                     scaled = float(dur) / float(lowest_dur)
                     scaled = round(scaled, 2)
                     full_results[runtime][bench_name][i]["result"]["scaled"] = scaled
@@ -160,7 +163,7 @@ for runtime, runtime_results in full_results.items():
             params = collect_item["params"]
             bench_results = runtime_results[bench_name]
             last_result = bench_results[len(bench_results) - 1]
-            dur_string = last_result["result"]["runs"][which_run]["duration"]
+            dur_string = last_result["result"]["duration"]
             dur_in_us = get_dur_in_us(dur_string)
             friendly_name = bench_name
             if params:
