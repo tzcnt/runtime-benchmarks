@@ -88,14 +88,13 @@ int main(int argc, char* argv[]) {
   fib_data data{n, 0};
   photon::threads_create_join(1, fib, &data, 16UL * 1024);
 
-  std::printf("results:\n");
   auto startTime = std::chrono::high_resolution_clock::now();
 
   for (size_t i = 0; i < iter_count; ++i) {
     fib_data data{n, 0};
     photon::threads_create_join(1, fib, &data);
     auto result = data.sum;
-    std::printf("  - %" PRIu64 "\n", result);
+    std::printf("output: %zu\n", result);
   }
 
   auto endTime = std::chrono::high_resolution_clock::now();
