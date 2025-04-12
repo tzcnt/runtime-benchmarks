@@ -39,3 +39,4 @@ Makefile
 .cache
 .vs
 .vscode
+scratch/

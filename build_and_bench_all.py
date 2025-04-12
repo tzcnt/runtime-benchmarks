@@ -48,31 +48,23 @@ collect_results = {
     "matmul": [{"params": "2048"}]
 }
 
-root_dir = os.path.abspath(os.path.dirname(__file__))
+threads_sweep = [1,2,4,8,16,32,48,64]
 
-md = {"start_time": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
-results = {}
-for language, runtime_names in runtimes.items():
-    for runtime in runtime_names:
-        # Build the benchmark
-        runtime_root_dir = os.path.join(root_dir, language, runtime)
-        print(f"Building {runtime}")
-        build_script = os.path.join(runtime_root_dir, "build_all.sh")
-        subprocess.run(args=build_script, shell=True, cwd=runtime_root_dir)
-        for bench_name in benchmarks_order:
-            bench_args = benchmarks[bench_name]
-            bench_exe = os.path.join(runtime_root_dir, "build", bench_name)
-            for params in bench_args.setdefault("params",[""]):
-                print(f"Running {bench_exe} {params}")
-                output_array = subprocess.run(args=f"{bench_exe} {params}", shell=True, capture_output=True, text=True)
-                try:
-                    print(output_array.stdout)
-                    result = yaml.safe_load(output_array.stdout)
-                    results.setdefault(runtime, {}).setdefault(bench_name, {})[params] = result
-                except yaml.YAMLError as exc:
-                    print(exc)
-
-#print(results)
+def get_nproc():
+    try:
+        return int(subprocess.run(args=f"getconf _NPROCESSORS_ONLN 2>/dev/null || sysctl -n hw.ncpu", shell=True, capture_output=True, text=True).stdout)
+    except:
+        return 8
+    
+def get_threads_sweep():
+    proc = get_nproc()
+    if len(sys.argv) == 1:
+        return [proc]
+    result = []
+    for t in threads_sweep:
+        if t <= proc:
+            result.append(t)
+    return result
 
 def get_dur_in_us(dur_string):
     dur, unit = dur_string.split(" ")
@@ -91,15 +83,84 @@ def get_dur_in_us(dur_string):
             print(f"Unknown unit: {unit}")
             exit(1)
 
+root_dir = os.path.abspath(os.path.dirname(__file__))
+
+md = {"start_time": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
+full_results = {}
+
+# Build all runtimes, all benchmarks
+for language, runtime_names in runtimes.items():
+    for runtime in runtime_names:
+        # Build the benchmark
+        runtime_root_dir = os.path.join(root_dir, language, runtime)
+        print(f"Building {runtime}")
+        build_script = os.path.join(runtime_root_dir, "build_all.sh")
+        subprocess.run(args=build_script, shell=True, cwd=runtime_root_dir)
+
+# Run sweep runtime -> benchmark -> threads
+threads = get_threads_sweep()
+for language, runtime_names in runtimes.items():
+    for runtime in runtime_names:
+        for bench_name in benchmarks_order:
+            # lowest_dur = sys.maxsize
+            bench_args = benchmarks[bench_name]
+            runtime_root_dir = os.path.join(root_dir, language, runtime)
+            bench_exe = os.path.join(runtime_root_dir, "build", bench_name)
+            for params in bench_args.setdefault("params",[""]):
+                for thread_count in threads:
+                    one_run = {
+                        "params": params,
+                        "threads": thread_count,
+                    }
+                    print(f"Running {bench_exe} {params} {thread_count}")
+                    output_array = subprocess.run(args=f"{bench_exe} {params} {thread_count}", shell=True, capture_output=True, text=True)
+                    try:
+                        print(output_array.stdout)
+                        result = yaml.safe_load(output_array.stdout)
+                        one_run["result"] = result
+                        full_results.setdefault(runtime, {}).setdefault(bench_name, []).append(one_run)
+                    except yaml.YAMLError as exc:
+                        print(exc)
+
+
+for bench_name in benchmarks_order:
+    lowest_dur = sys.maxsize
+    for language, runtime_names in runtimes.items():
+        for runtime in runtime_names:
+            bench_args = benchmarks[bench_name]
+            for params in bench_args["params"]:
+                for i, thread_count in enumerate(threads):
+                    dur = get_dur_in_us(full_results[runtime][bench_name][i]["result"]["runs"][0]["duration"])
+                    if (dur < lowest_dur):
+                        lowest_dur = dur
+    for language, runtime_names in runtimes.items():
+        for runtime in runtime_names:
+            bench_args = benchmarks[bench_name]
+            for params in bench_args["params"]:
+                for i, thread_count in enumerate(threads):
+                    dur = get_dur_in_us(full_results[runtime][bench_name][i]["result"]["runs"][0]["duration"])
+                    scaled = float(dur) / float(lowest_dur)
+                    scaled = round(scaled, 2)
+                    full_results[runtime][bench_name][i]["result"]["scaled"] = scaled
+                    if i == 0:
+                        firstDur = dur
+                    speedup = float(firstDur) / float(dur)
+                    speedup = round(speedup, 2)
+                    full_results[runtime][bench_name][i]["result"]["speedup"] = speedup
+    
+# full_results is used to produce the .json for charting
+# collated_results is used to produce the .md summary for the README
 collated_results = {}
 bench_names = []
-for runtime, runtime_results in results.items():
+for runtime, runtime_results in full_results.items():
     for bench_name in benchmarks_order:
         collect = collect_results[bench_name]
         for collect_item in collect:
             which_run = 0
             params = collect_item["params"]
-            dur_string = runtime_results[bench_name][params]["runs"][which_run]["duration"]
+            bench_results = runtime_results[bench_name]
+            last_result = bench_results[len(bench_results) - 1]
+            dur_string = last_result["result"]["runs"][which_run]["duration"]
             dur_in_us = get_dur_in_us(dur_string)
             friendly_name = bench_name
             if params:
@@ -148,7 +209,7 @@ except:
 
 tagged = {
     "metadata": md,
-    "results": collated_results,
+    "results": full_results,
 }
 outJson = json.dumps(tagged)
 with open("RESULTS.json", "w") as resultsJSON:
