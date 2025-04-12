@@ -52,7 +52,8 @@ threads_sweep = [1,2,4,8,16,32,48,64]
 
 def get_nproc():
     try:
-        return int(subprocess.run(args=f"getconf _NPROCESSORS_ONLN 2>/dev/null || sysctl -n hw.ncpu", shell=True, capture_output=True, text=True).stdout)
+        #return int(subprocess.run(args=f"getconf _NPROCESSORS_ONLN 2>/dev/null || sysctl -n hw.ncpu", shell=True, capture_output=True, text=True).stdout)
+        return int(subprocess.run(args=f"./get_nproc.sh", shell=True, capture_output=True, text=True).stdout)
     except:
         return 8
     
