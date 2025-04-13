@@ -16,9 +16,10 @@
 #include <array>
 #include <cinttypes>
 #include <cstdio>
+#include <cstdlib>
 #include <ranges>
 
-static int thread_count = std::thread::hardware_concurrency() / 2;
+static size_t thread_count = std::thread::hardware_concurrency() / 2;
 static const size_t iter_count = 1;
 
 inline constexpr int nqueens_work = 14;
@@ -72,8 +73,11 @@ coros::Task<int> nqueens(int xMax, std::array<char, N> buf) {
 };
 
 int main(int argc, char* argv[]) {
-  std::printf("threads: %d\n", thread_count);
-  coros::ThreadPool tp{thread_count};
+  if (argc > 1) {
+    thread_count = static_cast<size_t>(atoi(argv[1]));
+  }
+  std::printf("threads: %zu\n", thread_count);
+  coros::ThreadPool tp(thread_count);
 
   {
     std::array<char, nqueens_work> buf{};
@@ -91,7 +95,7 @@ int main(int argc, char* argv[]) {
     coros::start_sync(tp, t); // warmup
     auto result = *t;
     check_answer(result);
-    std::printf("  - %d\n", result);
+    std::printf("output: %d\n", result);
   }
 
   auto endTime = std::chrono::high_resolution_clock::now();

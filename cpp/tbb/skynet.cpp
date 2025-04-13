@@ -33,8 +33,9 @@
 #include <chrono>
 #include <cinttypes>
 #include <cstdio>
+#include <cstdlib>
 
-static int thread_count = std::thread::hardware_concurrency() / 2;
+static size_t thread_count = std::thread::hardware_concurrency() / 2;
 static const size_t iter_count = 1;
 
 template <size_t DepthMax> size_t skynet_one(size_t BaseNum, size_t Depth) {
@@ -87,8 +88,11 @@ template <size_t Depth = 6> void loop_skynet() {
   }
 }
 
-int main() {
-  std::printf("threads: %d\n", thread_count);
+int main(int argc, char* argv[]) {
+  if (argc > 1) {
+    thread_count = static_cast<size_t>(atoi(argv[1]));
+  }
+  std::printf("threads: %zu\n", thread_count);
   tbb::task_arena arena(thread_count);
 
   arena.execute(skynet<8>); // warmup

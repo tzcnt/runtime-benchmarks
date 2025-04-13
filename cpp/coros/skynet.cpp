@@ -36,9 +36,10 @@
 #include <chrono>
 #include <cinttypes>
 #include <cstdio>
+#include <cstdlib>
 #include <ranges>
 
-static int thread_count = std::thread::hardware_concurrency() / 2;
+static size_t thread_count = std::thread::hardware_concurrency() / 2;
 static const size_t iter_count = 1;
 
 template <size_t DepthMax>
@@ -115,9 +116,12 @@ template <size_t Depth = 6> coros::Task<void> loop_skynet() {
   }
 }
 
-int main() {
-  std::printf("threads: %d\n", thread_count);
-  coros::ThreadPool tp{thread_count};
+int main(int argc, char* argv[]) {
+  if (argc > 1) {
+    thread_count = static_cast<size_t>(atoi(argv[1]));
+  }
+  std::printf("threads: %zu\n", thread_count);
+  coros::ThreadPool tp(thread_count);
   coros::start_sync(tp, skynet<8>());
   coros::start_sync(tp, loop_skynet<8>());
 }

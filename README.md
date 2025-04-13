@@ -35,11 +35,17 @@ Install Dependencies:
 
 `apt-get install libhwloc-dev intel-oneapi-tbb-devel libtcmalloc-minimal4`
 
-Run the Script:
+Quick Results (uses threads = #CPUs):
 
 `python3 ./build_and_bench_all.py`
 
 Results will appear in `RESULTS.md` and `RESULTS.csv` files.
+
+Full Results (sweeps threads from 1 to #CPUs):
+
+`python3 ./build_and_bench_all.py full`
+
+Results will appear in `RESULTS.json` file; this file can be parsed by the interactive benchmarks site.
 
 Frameworks to come:
 - (C#) .Net thread pool

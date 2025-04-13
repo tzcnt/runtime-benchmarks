@@ -31,7 +31,7 @@ benchmarks={
 
     },
     "fib": {
-        "params": ["40"]
+        "params": ["39"]
     },
     "nqueens": {
 
@@ -42,37 +42,30 @@ benchmarks={
 }
 
 collect_results = {
-    "fib": [{"params": "40"}],
+    "fib": [{"params": "39"}],
     "skynet": [{"params": ""}],
     "nqueens": [{"params": ""}],
     "matmul": [{"params": "2048"}]
 }
 
-root_dir = os.path.abspath(os.path.dirname(__file__))
+threads_sweep = [1,2,4,8,16,32,48,64]
 
-md = {"start_time": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
-results = {}
-for language, runtime_names in runtimes.items():
-    for runtime in runtime_names:
-        # Build the benchmark
-        runtime_root_dir = os.path.join(root_dir, language, runtime)
-        print(f"Building {runtime}")
-        build_script = os.path.join(runtime_root_dir, "build_all.sh")
-        subprocess.run(args=build_script, shell=True, cwd=runtime_root_dir)
-        for bench_name in benchmarks_order:
-            bench_args = benchmarks[bench_name]
-            bench_exe = os.path.join(runtime_root_dir, "build", bench_name)
-            for params in bench_args.setdefault("params",[""]):
-                print(f"Running {bench_exe} {params}")
-                output_array = subprocess.run(args=f"{bench_exe} {params}", shell=True, capture_output=True, text=True)
-                try:
-                    print(output_array.stdout)
-                    result = yaml.safe_load(output_array.stdout)
-                    results.setdefault(runtime, {}).setdefault(bench_name, {})[params] = result
-                except yaml.YAMLError as exc:
-                    print(exc)
-
-#print(results)
+def get_nproc():
+    try:
+        #return int(subprocess.run(args=f"getconf _NPROCESSORS_ONLN 2>/dev/null || sysctl -n hw.ncpu", shell=True, capture_output=True, text=True).stdout)
+        return int(subprocess.run(args=f"./get_nproc.sh", shell=True, capture_output=True, text=True).stdout)
+    except:
+        return 8
+    
+def get_threads_sweep():
+    proc = get_nproc()
+    if len(sys.argv) == 1:
+        return [proc]
+    result = []
+    for t in threads_sweep:
+        if t <= proc:
+            result.append(t)
+    return result
 
 def get_dur_in_us(dur_string):
     dur, unit = dur_string.split(" ")
@@ -91,15 +84,86 @@ def get_dur_in_us(dur_string):
             print(f"Unknown unit: {unit}")
             exit(1)
 
+root_dir = os.path.abspath(os.path.dirname(__file__))
+
+md = {"start_time": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
+full_results = {}
+
+# Build all runtimes, all benchmarks
+for language, runtime_names in runtimes.items():
+    for runtime in runtime_names:
+        runtime_root_dir = os.path.join(root_dir, language, runtime)
+        print(f"Building {runtime}")
+        build_script = os.path.join(runtime_root_dir, "build_all.sh")
+        subprocess.run(args=build_script, shell=True, cwd=runtime_root_dir)
+
+# Run sweep runtime -> benchmark -> threads
+threads = get_threads_sweep()
+for language, runtime_names in runtimes.items():
+    for runtime in runtime_names:
+        for bench_name in benchmarks_order:
+            # lowest_dur = sys.maxsize
+            bench_args = benchmarks[bench_name]
+            runtime_root_dir = os.path.join(root_dir, language, runtime)
+            bench_exe = os.path.join(runtime_root_dir, "build", bench_name)
+            for params in bench_args.setdefault("params",[""]):
+                for thread_count in threads:
+                    one_run = {
+                        "params": params,
+                        "threads": thread_count,
+                    }
+                    print(f"Running {bench_exe} {params} {thread_count}")
+                    output_array = subprocess.run(args=f"{bench_exe} {params} {thread_count}", shell=True, capture_output=True, text=True)
+                    try:
+                        print(output_array.stdout)
+                        raw = yaml.safe_load(output_array.stdout)
+                        result = {
+                            "duration": raw["runs"][0]["duration"]
+                        }
+                        one_run["result"] = result
+                        full_results.setdefault(runtime, {}).setdefault(bench_name, []).append(one_run)
+                    except yaml.YAMLError as exc:
+                        print(exc)
+
+
+for bench_name in benchmarks_order:
+    lowest_dur = sys.maxsize
+    for language, runtime_names in runtimes.items():
+        for runtime in runtime_names:
+            bench_args = benchmarks[bench_name]
+            for params in bench_args["params"]:
+                for i, thread_count in enumerate(threads):
+                    dur = get_dur_in_us(full_results[runtime][bench_name][i]["result"]["duration"])
+                    if (dur < lowest_dur):
+                        lowest_dur = dur
+    for language, runtime_names in runtimes.items():
+        for runtime in runtime_names:
+            bench_args = benchmarks[bench_name]
+            for params in bench_args["params"]:
+                for i, thread_count in enumerate(threads):
+                    dur = get_dur_in_us(full_results[runtime][bench_name][i]["result"]["duration"])
+                    scaled = float(dur) / float(lowest_dur)
+                    scaled = round(scaled, 2)
+                    full_results[runtime][bench_name][i]["result"]["scaled"] = scaled
+                    if i == 0:
+                        firstDur = dur
+                    speedup = float(firstDur) / float(dur)
+                    speedup = round(speedup, 2)
+                    full_results[runtime][bench_name][i]["result"]["speedup"] = speedup
+    
+# full_results is used to produce the .json for charting
+# collated_results is used to produce the .md summary for the README
 collated_results = {}
 bench_names = []
-for runtime, runtime_results in results.items():
+for runtime, runtime_results in full_results.items():
     for bench_name in benchmarks_order:
         collect = collect_results[bench_name]
         for collect_item in collect:
             which_run = 0
             params = collect_item["params"]
-            dur_string = runtime_results[bench_name][params]["runs"][which_run]["duration"]
+            bench_results = runtime_results[bench_name]
+            last_result = bench_results[len(bench_results) - 1]
+            dur_string = last_result["result"]["duration"]
             dur_in_us = get_dur_in_us(dur_string)
             friendly_name = bench_name
             if params:
@@ -109,50 +173,51 @@ for runtime, runtime_results in results.items():
                 bench_names.append(friendly_name)
 
 # Get system information and attach it as metadata to the JSON file only
-# TODO use 'sysctl -a | grep machdep.cpu' on Darwin
-try:
-    model_name_raw = subprocess.run(args=f"lscpu | grep \"Model name:\"", shell=True, capture_output=True, text=True)
-    model_name = model_name_raw.stdout.split(":")[1].strip()
-    md["cpu"] = model_name
-except:
-    md["cpu"] = "unknown"
-try:
-    model_name_raw = subprocess.run(args=f"lscpu | grep \"per socket:\"", shell=True, capture_output=True, text=True)
-    model_name = model_name_raw.stdout.split(":")[1].strip()
-    md["cores"] = model_name
-except:
-    md["cores"] = "unknown"
-try:
-    kernel_raw = subprocess.run(args=f"uname -v", shell=True, capture_output=True, text=True)
-    kernel = kernel_raw.stdout.strip()
-    md["kernel"] = kernel
-except:
-    md["kernel"] = "unknown"
-try:
-    for language, runtime_names in runtimes.items():
-        for runtime in runtime_names:
-            if "compiler" in md:
-                continue
-            # Build the benchmark
-            runtime_root_dir = os.path.join(root_dir, language, runtime)
-            ccj = os.path.join(runtime_root_dir, "build", "compile_commands.json")
-            compiler_bin = ""
-            with open(ccj, "r") as ccf:
-                cc = json.load(ccf)
-                compiler_bin = cc[0]["command"].split(" ")[0]
-            compiler_info = subprocess.run(args=f"{compiler_bin} --version", shell=True, capture_output=True, text=True)
-            compiler_line = compiler_info.stdout.splitlines()[0].strip()
-            md["compiler"] = compiler_line
-except:
-    md["compiler"] = "unknown"
+if len(sys.argv) != 1:
+    print("Generating RESULTS.json...")
+    try:
+        model_name_raw = subprocess.run(args=f"lscpu | grep \"Model name:\"", shell=True, capture_output=True, text=True)
+        model_name = model_name_raw.stdout.split(":")[1].strip()
+        md["cpu"] = model_name
+    except:
+        md["cpu"] = "unknown"
+    try:
+        model_name_raw = subprocess.run(args=f"lscpu | grep \"per socket:\"", shell=True, capture_output=True, text=True)
+        model_name = model_name_raw.stdout.split(":")[1].strip()
+        md["cores"] = model_name
+    except:
+        md["cores"] = "unknown"
+    try:
+        kernel_raw = subprocess.run(args=f"uname -v", shell=True, capture_output=True, text=True)
+        kernel = kernel_raw.stdout.strip()
+        md["kernel"] = kernel
+    except:
+        md["kernel"] = "unknown"
+    try:
+        for language, runtime_names in runtimes.items():
+            for runtime in runtime_names:
+                # find the compiler exe from compile_commands.json and call it to get the version
+                if "compiler" in md:
+                    continue
+                runtime_root_dir = os.path.join(root_dir, language, runtime)
+                ccj = os.path.join(runtime_root_dir, "build", "compile_commands.json")
+                compiler_bin = ""
+                with open(ccj, "r") as ccf:
+                    cc = json.load(ccf)
+                    compiler_bin = cc[0]["command"].split(" ")[0]
+                compiler_info = subprocess.run(args=f"{compiler_bin} --version", shell=True, capture_output=True, text=True)
+                compiler_line = compiler_info.stdout.splitlines()[0].strip()
+                md["compiler"] = compiler_line
+    except:
+        md["compiler"] = "unknown"
 
-tagged = {
-    "metadata": md,
-    "results": collated_results,
-}
-outJson = json.dumps(tagged)
-with open("RESULTS.json", "w") as resultsJSON:
-    resultsJSON.write(outJson)
+    tagged = {
+        "metadata": md,
+        "results": full_results,
+    }
+    outJson = json.dumps(tagged)
+    with open("RESULTS.json", "w") as resultsJSON:
+        resultsJSON.write(outJson)
 
 
 # For each benchmark, find the fastest runtime and calculate the runtime ratio of the other runtimes against that
@@ -182,7 +247,6 @@ for runtime, runtime_results in collated_results.items():
     sorted.append({"runtime": runtime, "mean": mean})
 
 sorted.sort(key=lambda x: x["mean"])
-# print(sorted)
 output_array = [["Runtime", "Mean Ratio to Best<br>(lower is better)"] + bench_names]
 for runtime in sorted:
     runtime_name = runtime["runtime"]
@@ -195,8 +259,6 @@ for runtime in sorted:
     for bench in bench_names:
         runtime_output.append(runtime_results.setdefault(bench, {"raw": "N/A"})["raw"])
     output_array.append(runtime_output)
-
-# print(output_array)
 
 print("Generating RESULTS.md and RESULTS.csv ...", end=" ")
 
@@ -229,6 +291,5 @@ with open("RESULTS.md", "w") as resultsMD:
 
 with open("RESULTS.csv", "w") as resultsCSV:
     resultsCSV.write(outCSV)
-
 
 print("done.")

@@ -15,9 +15,10 @@
 #include <array>
 #include <cinttypes>
 #include <cstdio>
+#include <cstdlib>
 #include <ranges>
 
-static int thread_count = std::thread::hardware_concurrency() / 2;
+static size_t thread_count = std::thread::hardware_concurrency() / 2;
 static const size_t iter_count = 1;
 
 inline constexpr int nqueens_work = 14;
@@ -78,7 +79,10 @@ void nqueens(tf::Runtime& rt, int xMax, std::array<char, N> buf, int& out) {
 };
 
 int main(int argc, char* argv[]) {
-  std::printf("threads: %d\n", thread_count);
+  if (argc > 1) {
+    thread_count = static_cast<size_t>(atoi(argv[1]));
+  }
+  std::printf("threads: %zu\n", thread_count);
   tf::Executor executor(thread_count);
   tf::Taskflow taskflow;
 
@@ -98,7 +102,7 @@ int main(int argc, char* argv[]) {
     taskflow.emplace([&](tf::Runtime& rt) { nqueens(rt, 0, buf, result); });
     executor.run(taskflow).wait();
     check_answer(result);
-    std::printf("  - %d\n", result);
+    std::printf("output: %d\n", result);
   }
 
   auto endTime = std::chrono::high_resolution_clock::now();

@@ -1,7 +1,8 @@
 // The skynet benchmark as described here:
 // https://github.com/atemerev/skynet
 
-// Adapted from https://github.com/tzcnt/tmc-examples/blob/main/examples/skynet/main.cpp
+// Adapted from
+// https://github.com/tzcnt/tmc-examples/blob/main/examples/skynet/main.cpp
 // Original author: tzcnt
 // Unlicense License
 // This is free and unencumbered software released into the public domain.
@@ -33,13 +34,17 @@
 #include <chrono>
 #include <cinttypes>
 #include <cstdio>
+#include <cstdlib>
 
 using namespace concurrencpp;
-static size_t thread_count = std::thread::hardware_concurrency()/2;
+static size_t thread_count = std::thread::hardware_concurrency() / 2;
 static const size_t iter_count = 1;
 
 template <size_t DepthMax>
-result<size_t> skynet_one(executor_tag, std::shared_ptr<thread_pool_executor> executor, size_t BaseNum, size_t Depth) {
+result<size_t> skynet_one(
+  executor_tag, std::shared_ptr<thread_pool_executor> executor, size_t BaseNum,
+  size_t Depth
+) {
   if (Depth == DepthMax) {
     co_return BaseNum;
   }
@@ -49,8 +54,10 @@ result<size_t> skynet_one(executor_tag, std::shared_ptr<thread_pool_executor> ex
   }
 
   std::array<result<size_t>, 10> children;
-    for (size_t idx = 0; idx < 10; ++idx) {
-    children[idx] = skynet_one<DepthMax>({}, executor,BaseNum + depthOffset * idx, Depth + 1);
+  for (size_t idx = 0; idx < 10; ++idx) {
+    children[idx] = skynet_one<DepthMax>(
+      {}, executor, BaseNum + depthOffset * idx, Depth + 1
+    );
   }
 
   auto results = co_await when_all(executor, children.begin(), children.end());
@@ -61,31 +68,38 @@ result<size_t> skynet_one(executor_tag, std::shared_ptr<thread_pool_executor> ex
   }
   co_return count;
 }
-template <size_t DepthMax> result<void> skynet(executor_tag, std::shared_ptr<thread_pool_executor> executor) {
+template <size_t DepthMax>
+result<void>
+skynet(executor_tag, std::shared_ptr<thread_pool_executor> executor) {
   size_t count = co_await skynet_one<DepthMax>({}, executor, 0, 0);
   if (count != 4999999950000000) {
     std::printf("ERROR: wrong result - %" PRIu64 "\n", count);
   }
 }
 
-template <size_t Depth = 6> result<void> loop_skynet(executor_tag, std::shared_ptr<thread_pool_executor> executor) {
+template <size_t Depth = 6>
+result<void>
+loop_skynet(executor_tag, std::shared_ptr<thread_pool_executor> executor) {
   std::printf("runs:\n");
   for (size_t j = 0; j < iter_count; ++j) {
     auto startTime = std::chrono::high_resolution_clock::now();
 
     co_await skynet<Depth>({}, executor);
-    
+
     auto endTime = std::chrono::high_resolution_clock::now();
     auto execDur = endTime - startTime;
     auto totalTimeUs = std::chrono::duration_cast<std::chrono::microseconds>(
       endTime - startTime
     );
-    std::printf("  - iteration_count: %" PRIu64 "\n",iter_count);
+    std::printf("  - iteration_count: %" PRIu64 "\n", iter_count);
     std::printf("    duration: %" PRIu64 " us\n", totalTimeUs.count());
   }
 }
 
-int main() {
+int main(int argc, char* argv[]) {
+  if (argc > 1) {
+    thread_count = static_cast<size_t>(atoi(argv[1]));
+  }
   std::printf("threads: %" PRIu64 "\n", thread_count);
   concurrencpp::runtime_options opt;
   opt.max_cpu_threads = thread_count;

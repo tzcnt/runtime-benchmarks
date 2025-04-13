@@ -15,6 +15,7 @@
 #include <chrono>
 #include <concurrencpp/task.h>
 #include <cstdio>
+#include <cstdlib>
 #include <exception>
 #include <thread>
 #include <vector>
@@ -95,7 +96,10 @@ void run_one(std::shared_ptr<thread_pool_executor> executor, int N) {
 }
 
 int main(int argc, char* argv[]) {
-  if (argc != 2) {
+  if (argc > 2) {
+    thread_count = static_cast<size_t>(atoi(argv[2]));
+  }
+  if (argc < 2) {
     printf("Usage: matmul <matrix size (power of 2)>\n");
     exit(0);
   }
