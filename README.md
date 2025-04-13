@@ -11,12 +11,13 @@ Current Benchmark Results:
 
 | Runtime | [libfork](https://github.com/ConorWilliams/libfork) | [TooManyCooks](https://github.com/tzcnt/TooManyCooks) | [tbb](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onetbb.html) | [taskflow](https://github.com/taskflow/taskflow) | [coros](https://github.com/mtmucha/coros) | [concurrencpp](https://github.com/David-Haim/concurrencpp) |
 | --- | --- | --- | --- | --- | --- | --- |
-| Mean Ratio to Best<br>(lower is better) | 1.00x | 1.21x | 2.78x | 4.84x | 4.99x | 173.44x |
-| skynet | 38145 us | 48589 us | 141714 us | 283860 us | 146804 us | 11958233 us |
-| nqueens | 82695 us | 94381 us | 158044 us | 301047 us | 907845 us | 8183244 us |
-| fib(40) | 107244 us | 151679 us | 430398 us | 724958 us | 413680 us | 29999029 us |
-| matmul(2048) | 43705 us | 44391 us | 65441 us | 66211 us | 54986 us | 69851 us |
+| Mean Ratio to Best<br>(lower is better) | 1.00x | 1.22x | 2.79x | 4.72x | 4.89x | 172.59x |
+| skynet | 38959 us | 49876 us | 143463 us | 297976 us | 169046 us | 12022416 us |
+| nqueens | 84538 us | 94694 us | 157681 us | 295778 us | 856788 us | 8248584 us |
+| fib(39) | 66197 us | 98391 us | 271773 us | 415146 us | 254883 us | 18706393 us |
+| matmul(2048) | 43163 us | 43367 us | 65335 us | 63915 us | 53713 us | 69539 us |
 
+Benchmark problem sizes were chosen to balance between making the total runtime of a full sweep tolerable (especially on weaker hardware with slower runtimes), and being sufficiently large to show meaningful differentiation between faster runtimes.
 
 
 Configuration used in the above results:
