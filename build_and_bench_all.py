@@ -92,7 +92,6 @@ full_results = {}
 # Build all runtimes, all benchmarks
 for language, runtime_names in runtimes.items():
     for runtime in runtime_names:
-        # Build the benchmark
         runtime_root_dir = os.path.join(root_dir, language, runtime)
         print(f"Building {runtime}")
         build_script = os.path.join(runtime_root_dir, "build_all.sh")
@@ -174,50 +173,51 @@ for runtime, runtime_results in full_results.items():
                 bench_names.append(friendly_name)
 
 # Get system information and attach it as metadata to the JSON file only
-# TODO use 'sysctl -a | grep machdep.cpu' on Darwin
-try:
-    model_name_raw = subprocess.run(args=f"lscpu | grep \"Model name:\"", shell=True, capture_output=True, text=True)
-    model_name = model_name_raw.stdout.split(":")[1].strip()
-    md["cpu"] = model_name
-except:
-    md["cpu"] = "unknown"
-try:
-    model_name_raw = subprocess.run(args=f"lscpu | grep \"per socket:\"", shell=True, capture_output=True, text=True)
-    model_name = model_name_raw.stdout.split(":")[1].strip()
-    md["cores"] = model_name
-except:
-    md["cores"] = "unknown"
-try:
-    kernel_raw = subprocess.run(args=f"uname -v", shell=True, capture_output=True, text=True)
-    kernel = kernel_raw.stdout.strip()
-    md["kernel"] = kernel
-except:
-    md["kernel"] = "unknown"
-try:
-    for language, runtime_names in runtimes.items():
-        for runtime in runtime_names:
-            if "compiler" in md:
-                continue
-            # Build the benchmark
-            runtime_root_dir = os.path.join(root_dir, language, runtime)
-            ccj = os.path.join(runtime_root_dir, "build", "compile_commands.json")
-            compiler_bin = ""
-            with open(ccj, "r") as ccf:
-                cc = json.load(ccf)
-                compiler_bin = cc[0]["command"].split(" ")[0]
-            compiler_info = subprocess.run(args=f"{compiler_bin} --version", shell=True, capture_output=True, text=True)
-            compiler_line = compiler_info.stdout.splitlines()[0].strip()
-            md["compiler"] = compiler_line
-except:
-    md["compiler"] = "unknown"
+if len(sys.argv) != 1:
+    print("Generating RESULTS.json...")
+    try:
+        model_name_raw = subprocess.run(args=f"lscpu | grep \"Model name:\"", shell=True, capture_output=True, text=True)
+        model_name = model_name_raw.stdout.split(":")[1].strip()
+        md["cpu"] = model_name
+    except:
+        md["cpu"] = "unknown"
+    try:
+        model_name_raw = subprocess.run(args=f"lscpu | grep \"per socket:\"", shell=True, capture_output=True, text=True)
+        model_name = model_name_raw.stdout.split(":")[1].strip()
+        md["cores"] = model_name
+    except:
+        md["cores"] = "unknown"
+    try:
+        kernel_raw = subprocess.run(args=f"uname -v", shell=True, capture_output=True, text=True)
+        kernel = kernel_raw.stdout.strip()
+        md["kernel"] = kernel
+    except:
+        md["kernel"] = "unknown"
+    try:
+        for language, runtime_names in runtimes.items():
+            for runtime in runtime_names:
+                # find the compiler exe from compile_commands.json and call it to get the version
+                if "compiler" in md:
+                    continue
+                runtime_root_dir = os.path.join(root_dir, language, runtime)
+                ccj = os.path.join(runtime_root_dir, "build", "compile_commands.json")
+                compiler_bin = ""
+                with open(ccj, "r") as ccf:
+                    cc = json.load(ccf)
+                    compiler_bin = cc[0]["command"].split(" ")[0]
+                compiler_info = subprocess.run(args=f"{compiler_bin} --version", shell=True, capture_output=True, text=True)
+                compiler_line = compiler_info.stdout.splitlines()[0].strip()
+                md["compiler"] = compiler_line
+    except:
+        md["compiler"] = "unknown"
 
-tagged = {
-    "metadata": md,
-    "results": full_results,
-}
-outJson = json.dumps(tagged)
-with open("RESULTS.json", "w") as resultsJSON:
-    resultsJSON.write(outJson)
+    tagged = {
+        "metadata": md,
+        "results": full_results,
+    }
+    outJson = json.dumps(tagged)
+    with open("RESULTS.json", "w") as resultsJSON:
+        resultsJSON.write(outJson)
 
 
 # For each benchmark, find the fastest runtime and calculate the runtime ratio of the other runtimes against that
@@ -247,7 +247,6 @@ for runtime, runtime_results in collated_results.items():
     sorted.append({"runtime": runtime, "mean": mean})
 
 sorted.sort(key=lambda x: x["mean"])
-# print(sorted)
 output_array = [["Runtime", "Mean Ratio to Best<br>(lower is better)"] + bench_names]
 for runtime in sorted:
     runtime_name = runtime["runtime"]
@@ -260,8 +259,6 @@ for runtime in sorted:
     for bench in bench_names:
         runtime_output.append(runtime_results.setdefault(bench, {"raw": "N/A"})["raw"])
     output_array.append(runtime_output)
-
-# print(output_array)
 
 print("Generating RESULTS.md and RESULTS.csv ...", end=" ")
 
@@ -294,6 +291,5 @@ with open("RESULTS.md", "w") as resultsMD:
 
 with open("RESULTS.csv", "w") as resultsCSV:
     resultsCSV.write(outCSV)
-
 
 print("done.")
