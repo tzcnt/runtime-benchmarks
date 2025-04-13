@@ -7,7 +7,12 @@ Currently only includes C++ frameworks, and 4 benchmarks:
 - nqueens (forks up to x14)
 - matmul (forks x4)
 
-Current Benchmark Results:
+Benchmark problem sizes were chosen to balance between making the total runtime of a full sweep tolerable (especially on weaker hardware with slower runtimes), and being sufficiently large to show meaningful differentiation between faster runtimes.
+
+An interactive view of the full dataset is available at: https://fleetcode.com/runtime-benchmarks/
+[<img src="https://fleetcode.com/runtime-benchmarks/splash.png">](https://fleetcode.com/runtime-benchmarks/)
+
+Summary table of a single configuration:
 
 | Runtime | [libfork](https://github.com/ConorWilliams/libfork) | [TooManyCooks](https://github.com/tzcnt/TooManyCooks) | [tbb](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onetbb.html) | [taskflow](https://github.com/taskflow/taskflow) | [coros](https://github.com/mtmucha/coros) | [concurrencpp](https://github.com/David-Haim/concurrencpp) |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -17,10 +22,7 @@ Current Benchmark Results:
 | fib(39) | 66197 us | 98391 us | 271773 us | 415146 us | 254883 us | 18706393 us |
 | matmul(2048) | 43163 us | 43367 us | 65335 us | 63915 us | 53713 us | 69539 us |
 
-Benchmark problem sizes were chosen to balance between making the total runtime of a full sweep tolerable (especially on weaker hardware with slower runtimes), and being sufficiently large to show meaningful differentiation between faster runtimes.
-
-
-Configuration used in the above results:
+Configuration used in the summary table:
 - Processor: EPYC 7742 64-core processor
 - Worker Thread Count: 64 (no SMT)
 - OS: Debian 13 Server
