@@ -24,10 +24,8 @@ using namespace concurrencpp;
 
 static size_t thread_count = std::thread::hardware_concurrency() / 2;
 
-result<void> matmul(
-  executor_tag, std::shared_ptr<thread_pool_executor> executor, int* a, int* b,
-  int* c, int n, int N
-) {
+fork_result<void>
+matmul(thread_pool_executor* executor, int* a, int* b, int* c, int n, int N) {
   if (n <= 32) {
     // Base case: Use simple triple-loop multiplication for small matrices
     matmul_small(a, b, c, n, N);
@@ -37,25 +35,23 @@ result<void> matmul(
 
     // Split the execution into 2 sections to ensure output locations are not
     // written in parallel
-    std::array<result<void>, 4> children;
-    children[0] = matmul({}, executor, a, b, c, k, N);
-    children[1] = matmul({}, executor, a, b + k, c + k, k, N);
-    children[2] = matmul({}, executor, a + k * N, b, c + k * N, k, N);
-    children[3] = matmul({}, executor, a + k * N, b + k, c + k * N + k, k, N);
-    co_await when_all(executor, children.begin(), children.end());
+    std::array<fork_result<void>, 4> children;
+    children[0] = matmul(executor, a, b, c, k, N);
+    children[1] = matmul(executor, a, b + k, c + k, k, N);
+    children[2] = matmul(executor, a + k * N, b, c + k * N, k, N);
+    children[3] = matmul(executor, a + k * N, b + k, c + k * N + k, k, N);
+    auto results = co_await fork_join(executor, children);
 
-    children[0] = matmul({}, executor, a + k, b + k * N, c, k, N);
-    children[1] = matmul({}, executor, a + k, b + k * N + k, c + k, k, N);
-    children[2] =
-      matmul({}, executor, a + k * N + k, b + k * N, c + k * N, k, N);
+    children[0] = matmul(executor, a + k, b + k * N, c, k, N);
+    children[1] = matmul(executor, a + k, b + k * N + k, c + k, k, N);
+    children[2] = matmul(executor, a + k * N + k, b + k * N, c + k * N, k, N);
     children[3] =
-      matmul({}, executor, a + k * N + k, b + k * N + k, c + k * N + k, k, N);
-    co_await when_all(executor, children.begin(), children.end());
+      matmul(executor, a + k * N + k, b + k * N + k, c + k * N + k, k, N);
+    results = co_await fork_join(executor, children);
   }
 }
 
-std::vector<int>
-run_matmul(std::shared_ptr<thread_pool_executor> executor, int N) {
+std::vector<int> run_matmul(thread_pool_executor* executor, int N) {
   std::vector<int> A(N * N, 1);
   std::vector<int> B(N * N, 1);
   std::vector<int> C(N * N, 0);
@@ -63,7 +59,7 @@ run_matmul(std::shared_ptr<thread_pool_executor> executor, int N) {
   int* a = A.data();
   int* b = B.data();
   int* c = C.data();
-  matmul({}, executor, a, b, c, N, N).wait();
+  matmul(executor, a, b, c, N, N).as_root(executor).run().get();
   return C;
 }
 
@@ -84,7 +80,7 @@ void validate_result(std::vector<int>& C, int N) {
   }
 }
 
-void run_one(std::shared_ptr<thread_pool_executor> executor, int N) {
+void run_one(thread_pool_executor* executor, int N) {
   auto startTime = std::chrono::high_resolution_clock::now();
   std::vector<int> result = run_matmul(executor, N);
   auto endTime = std::chrono::high_resolution_clock::now();
@@ -109,9 +105,9 @@ int main(int argc, char* argv[]) {
   opt.max_cpu_threads = thread_count;
   concurrencpp::runtime runtime(opt);
 
-  run_matmul(runtime.thread_pool_executor(), n); // warmup
+  run_matmul(runtime.thread_pool_executor().get(), n); // warmup
 
   std::printf("runs:\n");
 
-  run_one(runtime.thread_pool_executor(), n);
+  run_one(runtime.thread_pool_executor().get(), n);
 }

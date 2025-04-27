@@ -16,15 +16,26 @@ add_definitions(
 
 include(../1CMake/CPM.cmake)
 
-CPMAddPackage(
-    NAME concurrencpp
-    GIT_REPOSITORY https://github.com/David-Haim/concurrencpp.git
-    GIT_TAG v.0.1.7
-    DOWNLOAD_ONLY)
-include_directories(
-    ${concurrencpp_SOURCE_DIR}/include
-    "../2common"
-)
+include_directories("../2common")
+
+option(CCPP_AS_SUBMODULE "Download concurrencpp as Git submodules" OFF)
+
+if(CCPP_AS_SUBMODULE)
+    add_subdirectory(submodule)
+
+# include_directories(
+# ${runtime_benchmarks_concurrencpp_SOURCE_DIR}/submodule/include
+# )
+else()
+    CPMAddPackage(
+        NAME concurrencpp
+        GIT_REPOSITORY https://github.com/tzcnt/concurrencpp.git
+        GIT_TAG 06881fdbe8eedd4831c83a412306d04b5e8aa457
+        DOWNLOAD_ONLY)
+    include_directories(
+        ${concurrencpp_SOURCE_DIR}/include
+    )
+endif()
 
 # Since each new coroutine requires an allocation,
 # they are sensitive to allocator performance.

@@ -41,10 +41,8 @@ static size_t thread_count = std::thread::hardware_concurrency() / 2;
 static const size_t iter_count = 1;
 
 template <size_t DepthMax>
-result<size_t> skynet_one(
-  executor_tag, std::shared_ptr<thread_pool_executor> executor, size_t BaseNum,
-  size_t Depth
-) {
+fork_result<size_t>
+skynet_one(thread_pool_executor* executor, size_t BaseNum, size_t Depth) {
   if (Depth == DepthMax) {
     co_return BaseNum;
   }
@@ -53,33 +51,32 @@ result<size_t> skynet_one(
     depthOffset *= 10;
   }
 
-  std::array<result<size_t>, 10> children;
+  std::array<fork_result<size_t>, 10> children;
   for (size_t idx = 0; idx < 10; ++idx) {
-    children[idx] = skynet_one<DepthMax>(
-      {}, executor, BaseNum + depthOffset * idx, Depth + 1
-    );
+    children[idx] =
+      skynet_one<DepthMax>(executor, BaseNum + depthOffset * idx, Depth + 1);
   }
 
-  auto results = co_await when_all(executor, children.begin(), children.end());
+  auto results = co_await fork_join(executor, children);
 
   size_t count = 0;
   for (auto& res : results) {
-    count += co_await res;
+    count += res.get();
   }
   co_return count;
 }
 template <size_t DepthMax>
-result<void>
-skynet(executor_tag, std::shared_ptr<thread_pool_executor> executor) {
-  size_t count = co_await skynet_one<DepthMax>({}, executor, 0, 0);
+result<void> skynet(executor_tag, thread_pool_executor* executor) {
+  auto join_result =
+    co_await fork_join(executor, skynet_one<DepthMax>(executor, 0, 0));
+  size_t count = join_result.get();
   if (count != 4999999950000000) {
     std::printf("ERROR: wrong result - %" PRIu64 "\n", count);
   }
 }
 
 template <size_t Depth = 6>
-result<void>
-loop_skynet(executor_tag, std::shared_ptr<thread_pool_executor> executor) {
+result<void> loop_skynet(thread_pool_executor* executor) {
   std::printf("runs:\n");
   for (size_t j = 0; j < iter_count; ++j) {
     auto startTime = std::chrono::high_resolution_clock::now();
@@ -104,6 +101,7 @@ int main(int argc, char* argv[]) {
   concurrencpp::runtime_options opt;
   opt.max_cpu_threads = thread_count;
   concurrencpp::runtime runtime(opt);
-  skynet<8>({}, runtime.thread_pool_executor()).get(); // warmup
-  loop_skynet<8>({}, runtime.thread_pool_executor()).get();
+
+  skynet<8>({}, runtime.thread_pool_executor().get()).get(); // warmup
+  loop_skynet<8>(runtime.thread_pool_executor().get()).get();
 }

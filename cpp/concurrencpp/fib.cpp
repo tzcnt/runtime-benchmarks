@@ -29,17 +29,15 @@ using namespace concurrencpp;
 static size_t thread_count = std::thread::hardware_concurrency() / 2;
 static const size_t iter_count = 1;
 
-result<size_t> fibonacci(
-  executor_tag, std::shared_ptr<thread_pool_executor> tpe, const size_t curr
-) {
+fork_result<size_t> fibonacci(thread_pool_executor* tpe, const size_t curr) {
   if (curr < 2) {
     co_return curr;
   }
 
-  auto x = fibonacci({}, tpe, curr - 1);
-  auto y = fibonacci({}, tpe, curr - 2);
+  auto [x, y] =
+    co_await fork_join(tpe, fibonacci(tpe, curr - 1), fibonacci(tpe, curr - 2));
 
-  co_return co_await x + co_await y;
+  co_return x.get() + y.get();
 }
 
 int main(int argc, char* argv[]) {
@@ -57,13 +55,13 @@ int main(int argc, char* argv[]) {
   opt.max_cpu_threads = thread_count;
   concurrencpp::runtime runtime(opt);
 
-  auto result =
-    fibonacci({}, runtime.thread_pool_executor(), 30).get(); // warmup
+  auto tpe = runtime.thread_pool_executor().get();
+  auto result = fibonacci(tpe, 30).as_root(tpe).run().get(); // warmup
 
   auto startTime = std::chrono::high_resolution_clock::now();
 
   for (size_t i = 0; i < iter_count; ++i) {
-    auto result = fibonacci({}, runtime.thread_pool_executor(), n).get();
+    auto result = fibonacci(tpe, n).as_root(tpe).run().get();
     std::printf("output: %zu\n", result);
   }
 

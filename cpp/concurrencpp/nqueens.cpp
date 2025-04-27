@@ -1,23 +1,16 @@
-// Adapted from the benchmark provided at:
-// https://github.com/ConorWilliams/libfork/blob/ce40fa0f3178a43f5da8016788d6cfdadc85554f/bench/source/nqueens/libfork.cpp
-
-// Original Copyright Notice:
-// Copyright © Conor Williams <conorwilliams@outlook.com>
-
 // SPDX-License-Identifier: MPL-2.0
-
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 #include "concurrencpp/concurrencpp.h"
 #include <concurrencpp/runtime/runtime.h>
 
 #include <array>
+#include <chrono>
 #include <cinttypes>
 #include <cstdio>
 #include <cstdlib>
 #include <ranges>
+#include <thread>
+#include <vector>
 
 using namespace concurrencpp;
 static size_t thread_count = std::thread::hardware_concurrency() / 2;
@@ -50,10 +43,8 @@ inline auto queens_ok(int n, char* a) -> bool {
 }
 
 template <size_t N>
-result<int> nqueens(
-  executor_tag, std::shared_ptr<thread_pool_executor> executor, int xMax,
-  std::array<char, N> buf
-) {
+fork_result<int>
+nqueens(thread_pool_executor* executor, int xMax, std::array<char, N> buf) {
   if (N == xMax) {
     co_return 1;
   }
@@ -71,19 +62,21 @@ result<int> nqueens(
                  return true;
                }) |
                std::ranges::views::transform([xMax, executor, &buf](int y) {
-                 return nqueens({}, executor, xMax + 1, buf);
+                 return nqueens(executor, xMax + 1, buf);
                });
 
-  // Calling when_all(tasks.begin(), tasks.end()) directly seems to trigger some
-  // kind of UB Materializing a vector first fixes it
-  std::vector<result<int>> taskVec =
-    std::vector<result<int>>(tasks.begin(), tasks.end());
+  std::vector<fork_result<int>> taskVec;
+  taskVec.reserve(nqueens_work);
+  taskVec.insert(taskVec.end(), tasks.begin(), tasks.end());
 
-  auto parts = co_await when_all(executor, taskVec.begin(), taskVec.end());
+  auto parts = co_await fork_join(executor, std::move(taskVec));
+
+  // Does not compile
+  // auto parts = co_await fork_join(executor, taskVec.begin(), taskVec.end());
 
   int ret = 0;
   for (auto& p : parts) {
-    ret += co_await p;
+    ret += p.get();
   }
 
   co_return ret;
@@ -97,10 +90,11 @@ int main(int argc, char* argv[]) {
   concurrencpp::runtime_options opt;
   opt.max_cpu_threads = thread_count;
   concurrencpp::runtime runtime(opt);
+  auto tpe = runtime.thread_pool_executor().get();
+
   {
     std::array<char, nqueens_work> buf{};
-    auto result =
-      nqueens({}, runtime.thread_pool_executor(), 0, buf).get(); // warmup
+    auto result = nqueens(tpe, 0, buf).as_root(tpe).run().get(); // warmup
     check_answer(result);
   }
 
@@ -108,7 +102,7 @@ int main(int argc, char* argv[]) {
 
   for (size_t i = 0; i < iter_count; ++i) {
     std::array<char, nqueens_work> buf{};
-    auto result = nqueens({}, runtime.thread_pool_executor(), 0, buf).get();
+    auto result = nqueens(tpe, 0, buf).as_root(tpe).run().get();
     check_answer(result);
     std::printf("output: %d\n", result);
   }
