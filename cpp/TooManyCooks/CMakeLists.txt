@@ -40,10 +40,32 @@ else()
         GIT_REPOSITORY https://github.com/tzcnt/TooManyCooks.git
         GIT_TAG v1.3.0
         DOWNLOAD_ONLY)
+
     include_directories(
         ${TooManyCooks_SOURCE_DIR}/include
     )
 endif()
+
+CPMAddPackage(
+    NAME asio
+    GIT_REPOSITORY https://github.com/chriskohlhoff/asio.git
+    VERSION 1.28.1
+    GIT_TAG asio-1-28-1
+    DOWNLOAD_ONLY)
+
+# mark Asio headers as SYSTEM to ignore warnings
+include_directories(SYSTEM
+    ${asio_SOURCE_DIR}/asio/include
+)
+
+CPMAddPackage(
+    NAME tmc_asio
+    GIT_REPOSITORY https://github.com/tzcnt/tmc-asio.git
+    GIT_TAG v0.0.9
+    DOWNLOAD_ONLY)
+include_directories(
+    ${tmc_asio_SOURCE_DIR}/include
+)
 
 # HWLOC support
 option(TMC_USE_HWLOC "libhwloc" ON)
@@ -106,3 +128,7 @@ target_compile_options(nqueens PRIVATE "-falign-loops=64")
 add_executable(matmul matmul.cpp)
 
 add_executable(threads_sweep threads_sweep.cpp)
+
+add_executable(channel channel.cpp)
+
+add_executable(io_socket_st io_socket_st.cpp)
