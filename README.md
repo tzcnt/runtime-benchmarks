@@ -16,11 +16,11 @@ Summary table of a single configuration:
 
 | Runtime | [libfork](https://github.com/ConorWilliams/libfork) | [TooManyCooks](https://github.com/tzcnt/TooManyCooks) | [tbb](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onetbb.html) | [taskflow](https://github.com/taskflow/taskflow) | [coros](https://github.com/mtmucha/coros) | [concurrencpp](https://github.com/David-Haim/concurrencpp) |
 | --- | --- | --- | --- | --- | --- | --- |
-| Mean Ratio to Best<br>(lower is better) | 1.00x | 1.22x | 2.79x | 4.72x | 4.89x | 172.59x |
-| skynet | 38959 us | 49876 us | 143463 us | 297976 us | 169046 us | 12022416 us |
-| nqueens | 84538 us | 94694 us | 157681 us | 295778 us | 856788 us | 8248584 us |
-| fib(39) | 66197 us | 98391 us | 271773 us | 415146 us | 254883 us | 18706393 us |
-| matmul(2048) | 43163 us | 43367 us | 65335 us | 63915 us | 53713 us | 69539 us |
+| Mean Ratio to Best<br>(lower is better) | 1.00x | 1.23x | 2.81x | 4.90x | 5.47x | 172.07x |
+| skynet | 38969 us | 47814 us | 140654 us | 319194 us | 155641 us | 11897934 us |
+| nqueens | 84264 us | 101143 us | 155222 us | 304693 us | 1068882 us | 8268987 us |
+| fib(39) | 65770 us | 96357 us | 277522 us | 410498 us | 259020 us | 18622792 us |
+| matmul(2048) | 42150 us | 43804 us | 65524 us | 64675 us | 52583 us | 70133 us |
 
 Configuration used in the summary table:
 - Processor: EPYC 7742 64-core processor
