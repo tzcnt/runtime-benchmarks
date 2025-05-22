@@ -61,7 +61,7 @@ include_directories(SYSTEM
 CPMAddPackage(
     NAME tmc_asio
     GIT_REPOSITORY https://github.com/tzcnt/tmc-asio.git
-    GIT_TAG v0.0.9
+    GIT_TAG v0.0.11
     DOWNLOAD_ONLY)
 include_directories(
     ${tmc_asio_SOURCE_DIR}/include
