@@ -82,7 +82,6 @@ inline constexpr auto loop_skynet = [](auto loop_skynet) -> lf::task<void> {
     co_await lf::just[skynet<Depth>]();
 
     auto endTime = std::chrono::high_resolution_clock::now();
-    auto execDur = endTime - startTime;
     auto totalTimeUs = std::chrono::duration_cast<std::chrono::microseconds>(
       endTime - startTime
     );

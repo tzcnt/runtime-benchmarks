@@ -87,7 +87,6 @@ loop_skynet(executor_tag, std::shared_ptr<thread_pool_executor> executor) {
     co_await skynet<Depth>({}, executor);
 
     auto endTime = std::chrono::high_resolution_clock::now();
-    auto execDur = endTime - startTime;
     auto totalTimeUs = std::chrono::duration_cast<std::chrono::microseconds>(
       endTime - startTime
     );

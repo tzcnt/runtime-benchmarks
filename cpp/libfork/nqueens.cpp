@@ -66,7 +66,7 @@ constexpr auto nqueens =
                  return true;
                });
 
-  int taskCount = 0;
+  size_t taskCount = 0;
   std::array<int, N> parts;
   for (auto t : tasks) {
     co_await lf::fork[&parts[taskCount], nqueens](xMax + 1, buf);

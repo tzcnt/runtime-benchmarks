@@ -84,7 +84,6 @@ template <size_t Depth = 6> void loop_skynet(tf::Executor& executor) {
     skynet<Depth>(executor);
 
     auto endTime = std::chrono::high_resolution_clock::now();
-    auto execDur = endTime - startTime;
     auto totalTimeUs = std::chrono::duration_cast<std::chrono::microseconds>(
       endTime - startTime
     );

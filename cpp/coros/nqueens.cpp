@@ -42,7 +42,7 @@ coros::Task<int> nqueens(int xMax, std::array<char, N> buf) {
     co_return 1;
   }
 
-  int taskCount = 0;
+  size_t taskCount = 0;
   auto tasks = std::ranges::views::iota(0UL, N) |
                std::ranges::views::filter([xMax, &buf](int y) {
                  buf[xMax] = y;

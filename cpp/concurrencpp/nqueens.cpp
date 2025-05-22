@@ -76,8 +76,7 @@ result<int> nqueens(
 
   // Calling when_all(tasks.begin(), tasks.end()) directly seems to trigger some
   // kind of UB Materializing a vector first fixes it
-  std::vector<result<int>> taskVec =
-    std::vector<result<int>>(tasks.begin(), tasks.end());
+  std::vector<result<int>> taskVec(tasks.begin(), tasks.end());
 
   auto parts = co_await when_all(executor, taskVec.begin(), taskVec.end());
 

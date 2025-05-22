@@ -42,7 +42,7 @@ void nqueens(tf::Runtime& rt, int xMax, std::array<char, N> buf, int& out) {
     return;
   }
 
-  int taskCount = 0;
+  size_t taskCount = 0;
   std::array<int, nqueens_work> results;
   auto tasks =
     std::ranges::views::iota(0UL, N) |

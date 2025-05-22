@@ -18,7 +18,6 @@
 #include <exception>
 #include <vector>
 
-using namespace tmc;
 static size_t thread_count = std::thread::hardware_concurrency() / 2;
 
 tmc::task<void> matmul(int* a, int* b, int* c, int n, int N) {

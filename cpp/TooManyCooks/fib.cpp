@@ -35,7 +35,6 @@
 #include <cstdio>
 #include <cstdlib>
 
-using namespace tmc;
 static size_t thread_count = std::thread::hardware_concurrency() / 2;
 static const size_t iter_count = 1;
 
@@ -43,7 +42,7 @@ static const size_t iter_count = 1;
 // parallel with the current task, then continue the other leg serially.
 // It has better performance than the tuple variant (by using separate
 // synchronization variables) but uses more memory for the same reason.
-static task<size_t> fib(size_t n) {
+static tmc::task<size_t> fib(size_t n) {
   if (n < 2)
     co_return n;
 
@@ -51,19 +50,14 @@ static task<size_t> fib(size_t n) {
   auto y = co_await fib(n - 2);
   auto x = co_await std::move(x_hot);
   co_return x + y;
+
+  // // TooManyCooks offers a cleaner approach that uses less memory.
+  // // However it does run slightly slower (due to the shared synchronization
+  // // variable) for this specific example.
+  // // Fork the tasks in parallel and retrieve the results in a tuple.
+  //   auto [x, y] = co_await spawn_tuple(fib(n - 1), fib(n - 2));
+  //   co_return x + y;
 }
-
-// // TooManyCooks offers a cleaner approach that uses less memory.
-// // However it does run slightly slower (due to the shared synchronization
-// // variable) for this specific example.
-// // Fork the tasks in parallel and retrieve the results in a tuple.
-// static task<size_t> fib(size_t n) {
-//   if (n < 2)
-//     co_return n;
-
-//   auto [x, y] = co_await spawn_tuple(fib(n - 1), fib(n - 2));
-//   co_return x + y;
-// }
 
 int main(int argc, char* argv[]) {
   if (argc > 2) {
@@ -84,7 +78,7 @@ int main(int argc, char* argv[]) {
     auto startTime = std::chrono::high_resolution_clock::now();
 
     for (size_t i = 0; i < iter_count; ++i) {
-      auto result = co_await fib(N);
+      result = co_await fib(N);
       std::printf("output: %zu\n", result);
     }
 
