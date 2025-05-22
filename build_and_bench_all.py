@@ -12,15 +12,16 @@ import yaml
 import sys
 
 runtimes = {
-    "cpp": ["TooManyCooks", "libfork", "tbb", "coros", "concurrencpp", "taskflow"]
+    "cpp": ["libfork", "TooManyCooks", "tbb", "taskflow", "cppcoro", "coros", "concurrencpp"]
 }
 
 runtime_links = {
-    "TooManyCooks": "https://github.com/tzcnt/TooManyCooks",
     "libfork": "https://github.com/ConorWilliams/libfork",
+    "TooManyCooks": "https://github.com/tzcnt/TooManyCooks",
     "tbb": "https://www.intel.com/content/www/us/en/developer/tools/oneapi/onetbb.html",
-    "coros": "https://github.com/mtmucha/coros",
     "taskflow": "https://github.com/taskflow/taskflow",
+    "cppcoro": "https://github.com/andreasbuhr/cppcoro",
+    "coros": "https://github.com/mtmucha/coros",
     "concurrencpp": "https://github.com/David-Haim/concurrencpp",
 }
 
