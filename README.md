@@ -1,19 +1,19 @@
 # runtime-benchmarks
 Benchmarks to compare the performance of async runtimes / executors.
 
-[<img src="https://fleetcode.com/runtime-benchmarks/splash.png">](https://fleetcode.com/runtime-benchmarks/)
+[<img src="https://fleetcode.com/runtime-benchmarks/splash.png?">](https://fleetcode.com/runtime-benchmarks/)
 
 An interactive view of the full results dataset is available at: https://fleetcode.com/runtime-benchmarks/
 
 Results summary table of a single configuration:
 
-| Runtime | [libfork](https://github.com/ConorWilliams/libfork) | [TooManyCooks](https://github.com/tzcnt/TooManyCooks) | [tbb](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onetbb.html) | [taskflow](https://github.com/taskflow/taskflow) | [coros](https://github.com/mtmucha/coros) | [concurrencpp](https://github.com/David-Haim/concurrencpp) |
-| --- | --- | --- | --- | --- | --- | --- |
-| Mean Ratio to Best<br>(lower is better) | 1.00x | 1.23x | 2.81x | 4.90x | 5.47x | 172.07x |
-| skynet | 38969 us | 47814 us | 140654 us | 319194 us | 155641 us | 11897934 us |
-| nqueens | 84264 us | 101143 us | 155222 us | 304693 us | 1068882 us | 8268987 us |
-| fib(39) | 65770 us | 96357 us | 277522 us | 410498 us | 259020 us | 18622792 us |
-| matmul(2048) | 42150 us | 43804 us | 65524 us | 64675 us | 52583 us | 70133 us |
+| Runtime | [libfork](https://github.com/ConorWilliams/libfork) | [TooManyCooks](https://github.com/tzcnt/TooManyCooks) | [tbb](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onetbb.html) | [cppcoro](https://github.com/andreasbuhr/cppcoro) | [taskflow](https://github.com/taskflow/taskflow) | [coros](https://github.com/mtmucha/coros) | [concurrencpp](https://github.com/David-Haim/concurrencpp) |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Mean Ratio to Best<br>(lower is better) | 1.00x | 1.21x | 2.78x | 3.69x | 4.91x | 5.26x | 170.29x |
+| skynet(8) | 39243 us | 48183 us | 142476 us | 277238 us | 310068 us | 150896 us | 11879067 us |
+| nqueens(14) | 85499 us | 97645 us | 158381 us | 216374 us | 323129 us | 1024948 us | 8247812 us |
+| fib(39) | 66483 us | 94078 us | 271683 us | 243936 us | 428538 us | 266954 us | 18636205 us |
+| matmul(2048) | 41195 us | 42898 us | 64231 us | 61755 us | 62715 us | 49846 us | 68094 us |
 
 <details>
 <summary>Click to view the machine configuration used in the summary table</summary>
@@ -21,7 +21,7 @@ Results summary table of a single configuration:
 - Processor: EPYC 7742 64-core processor
 - Worker Thread Count: 64 (no SMT)
 - OS: Debian 13 Server
-- Compiler: Clang 19.1.6 Release (-O3 -march=native)
+- Compiler: Clang 19.1.7 Release (-O3 -march=native)
 - CPU boost enabled / schedutil governor
 - Linked against libtcmalloc_minimal.so.4
 
