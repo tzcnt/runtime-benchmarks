@@ -1,9 +1,9 @@
 # runtime-benchmarks
 Benchmarks to compare the performance of async runtimes / executors.
 
-[<img src="https://fleetcode.com/runtime-benchmarks/splash.png">](https://fleetcode.com/runtime-benchmarks/)
-
 An interactive view of the full results dataset is available at: https://fleetcode.com/runtime-benchmarks/
+
+[<img src="https://fleetcode.com/runtime-benchmarks/splash.png">](https://fleetcode.com/runtime-benchmarks/)
 
 Results summary table of a single configuration:
 
