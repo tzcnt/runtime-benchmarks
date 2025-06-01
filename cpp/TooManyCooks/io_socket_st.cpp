@@ -17,9 +17,20 @@
 #include "tmc/sync.hpp"
 #include "tmc/task.hpp"
 
+#ifdef TMC_USE_BOOST_ASIO
+#include <boost/asio/buffer.hpp>
+#include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/write.hpp>
+
+namespace asio = boost::asio;
+using boost::system::error_code;
+#else
 #include <asio/buffer.hpp>
 #include <asio/ip/tcp.hpp>
 #include <asio/write.hpp>
+
+using asio::error_code;
+#endif
 
 #include <cstdint>
 #include <cstdio>
@@ -43,7 +54,7 @@ const std::string static_request =
   "HEAD / HTTP/1.1\r\nHost: host:port\r\nConnection: close\r\n\r\n";
 
 struct result {
-  asio::error_code ec;
+  error_code ec;
   size_t recv_count;
 };
 
@@ -73,7 +84,7 @@ server_handler(auto Socket, size_t Count, tmc::chan_tok<result> Results) {
 
   Socket.shutdown(tcp::socket::shutdown_both);
   Socket.close();
-  Results.post(result{asio::error_code{}, i});
+  Results.post(result{error_code{}, i});
 }
 
 static tmc::task<void> server(tmc::ex_asio& ex, uint16_t Port) {
