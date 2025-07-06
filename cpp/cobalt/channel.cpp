@@ -36,7 +36,8 @@
 
 namespace cobalt = boost::cobalt;
 
-static size_t thread_count = std::thread::hardware_concurrency() / 2;
+static size_t producer_count = 4;
+static size_t consumer_count = 1;
 static const size_t iter_count = 1;
 
 static constexpr size_t element_count = 10000000;
@@ -68,25 +69,20 @@ cobalt::promise<result> consumer(token& chan) {
 }
 
 static cobalt::task<size_t> do_bench() {
-  // Half the workers are producers, and half are consumers
-  size_t workerCount = thread_count / 2;
-  if (workerCount == 0) {
-    workerCount = 1;
-  }
   cobalt::channel<size_t> chan;
-  size_t per_task = element_count / workerCount;
-  size_t rem = element_count % workerCount;
+  size_t per_task = element_count / producer_count;
+  size_t rem = element_count % producer_count;
   std::vector<cobalt::promise<void>> prod;
-  prod.reserve(workerCount);
+  prod.reserve(producer_count);
   size_t base = 0;
-  for (size_t i = 0; i < workerCount; ++i) {
+  for (size_t i = 0; i < producer_count; ++i) {
     size_t count = i < rem ? per_task + 1 : per_task;
     prod.emplace_back(producer(chan, count, base));
     base += count;
   }
   std::vector<cobalt::promise<result>> cons;
-  cons.reserve(workerCount);
-  for (size_t i = 0; i < workerCount; ++i) {
+  cons.reserve(consumer_count);
+  for (size_t i = 0; i < consumer_count; ++i) {
     cons.emplace_back(consumer(chan));
   }
   co_await cobalt::join(prod);
@@ -114,7 +110,24 @@ static cobalt::task<size_t> do_bench() {
 
 cobalt::main co_main(int argc, char* argv[]) {
   if (argc > 1) {
-    thread_count = static_cast<size_t>(atoi(argv[1]));
+    auto thread_count = static_cast<size_t>(atoi(argv[1]));
+    if (thread_count != 1) {
+      std::printf("boost::cobalt channel benchmark only supports 1 thread.\n");
+      co_return -1;
+    }
+    auto c = thread_count / 2;
+    if (c == 0) {
+      c = 1;
+    }
+    producer_count = c;
+    consumer_count = c;
+  }
+  if (argc > 2) {
+    producer_count = static_cast<size_t>(atoi(argv[2]));
+    consumer_count = static_cast<size_t>(atoi(argv[2]));
+  }
+  if (argc > 3) {
+    consumer_count = static_cast<size_t>(atoi(argv[3]));
   }
 
   expected_sum = 0;
@@ -122,7 +135,9 @@ cobalt::main co_main(int argc, char* argv[]) {
     expected_sum += i;
   }
 
-  std::printf("threads: %" PRIu64 "\n", thread_count);
+  std::printf("threads: 1\n");
+  std::printf("producers: %zu\n", producer_count);
+  std::printf("consumers: %zu\n", consumer_count);
 
   {
     auto result = co_await do_bench(); // warmup

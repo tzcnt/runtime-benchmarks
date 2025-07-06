@@ -6,7 +6,7 @@ set(CMAKE_MODULE_PATH
     ${CMAKE_MODULE_PATH})
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS "1")
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 
 add_definitions(
     "-march=native"
@@ -19,7 +19,7 @@ include_directories("../2common")
 
 SET(LIBCORO_BUILD_TESTS OFF CACHE BOOL "Build libcoro tests" FORCE)
 SET(LIBCORO_BUILD_EXAMPLES OFF CACHE BOOL "Build libcoro examples" FORCE)
-SET(LIBCORO_FEATURE_NETWORKING OFF CACHE BOOL "libcoro networking" FORCE)
+SET(LIBCORO_FEATURE_NETWORKING ON CACHE BOOL "libcoro networking" FORCE)
 SET(LIBCORO_FEATURE_TLS OFF CACHE BOOL "libcoro TLS (networking)" FORCE)
 
 CPMAddPackage(
@@ -71,3 +71,7 @@ add_executable(nqueens nqueens.cpp)
 target_compile_options(nqueens PRIVATE "-falign-loops=64")
 
 add_executable(matmul matmul.cpp)
+
+add_executable(channel channel.cpp)
+
+add_executable(io_socket_st io_socket_st.cpp)
