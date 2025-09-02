@@ -76,18 +76,15 @@ inline constexpr auto skynet = [](auto skynet) -> lf::task<void> {
 template <size_t Depth = 6>
 inline constexpr auto loop_skynet = [](auto loop_skynet) -> lf::task<void> {
   std::printf("runs:\n");
+  auto startTime = std::chrono::high_resolution_clock::now();
   for (size_t j = 0; j < iter_count; ++j) {
-    auto startTime = std::chrono::high_resolution_clock::now();
-
     co_await lf::just[skynet<Depth>]();
-
-    auto endTime = std::chrono::high_resolution_clock::now();
-    auto totalTimeUs = std::chrono::duration_cast<std::chrono::microseconds>(
-      endTime - startTime
-    );
-    std::printf("  - iteration_count: %" PRIu64 "\n", iter_count);
-    std::printf("    duration: %" PRIu64 " us\n", totalTimeUs.count());
   }
+  auto endTime = std::chrono::high_resolution_clock::now();
+  auto totalTimeUs =
+    std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime);
+  std::printf("  - iteration_count: %" PRIu64 "\n", iter_count);
+  std::printf("    duration: %" PRIu64 " us\n", totalTimeUs.count());
 };
 
 int main(int argc, char* argv[]) {
