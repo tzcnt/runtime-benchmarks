@@ -53,23 +53,26 @@ constexpr auto nqueens =
     co_return 1;
   }
 
-  auto tasks = std::ranges::views::iota(0UL, N) |
-               std::ranges::views::filter([xMax, &buf](int y) {
-                 buf[xMax] = y;
-                 char q = y;
-                 for (int x = 0; x < xMax; x++) {
-                   char p = buf[x];
-                   if (q == p || q == p - (xMax - x) || q == p + (xMax - x)) {
-                     return false;
-                   }
-                 }
-                 return true;
-               });
+  auto ys = std::ranges::views::iota(0UL, N) |
+            std::ranges::views::filter([xMax, &buf](int y) {
+              char q = y;
+              for (int x = 0; x < xMax; x++) {
+                char p = buf[x];
+                if (q == p || q == p - (xMax - x) || q == p + (xMax - x)) {
+                  return false;
+                }
+              }
+              return true;
+            });
 
+  // Spawn up to N tasks (but possibly less, if filter fails).
+  // Using an array for the results and tracking taskCount manually allows us to
+  // avoid an allocation.
   size_t taskCount = 0;
-  std::array<int, N> parts;
-  for (auto t : tasks) {
-    co_await lf::fork[&parts[taskCount], nqueens](xMax + 1, buf);
+  std::array<int, N> values;
+  for (auto y : ys) {
+    buf[xMax] = y;
+    co_await lf::fork[&values[taskCount], nqueens](xMax + 1, buf);
     ++taskCount;
   }
 
@@ -77,7 +80,7 @@ constexpr auto nqueens =
 
   int ret = 0;
   for (size_t i = 0; i < taskCount; ++i) {
-    ret += parts[i];
+    ret += values[i];
   }
 
   co_return ret;

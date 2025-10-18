@@ -60,7 +60,6 @@ result<int> nqueens(
 
   auto tasks = std::ranges::views::iota(0UL, N) |
                std::ranges::views::filter([xMax, &buf](int y) {
-                 buf[xMax] = y;
                  char q = y;
                  for (int x = 0; x < xMax; x++) {
                    char p = buf[x];
@@ -71,18 +70,19 @@ result<int> nqueens(
                  return true;
                }) |
                std::ranges::views::transform([xMax, executor, &buf](int y) {
+                 buf[xMax] = y;
                  return nqueens({}, executor, xMax + 1, buf);
                });
 
   // Calling when_all(tasks.begin(), tasks.end()) directly seems to trigger some
-  // kind of UB Materializing a vector first fixes it
+  // kind of UB. Materializing a vector first fixes it.
   std::vector<result<int>> taskVec(tasks.begin(), tasks.end());
 
-  auto parts = co_await when_all(executor, taskVec.begin(), taskVec.end());
+  auto futures = co_await when_all(executor, taskVec.begin(), taskVec.end());
 
   int ret = 0;
-  for (auto& p : parts) {
-    ret += co_await p;
+  for (auto& f : futures) {
+    ret += co_await f;
   }
 
   co_return ret;

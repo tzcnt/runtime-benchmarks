@@ -50,35 +50,32 @@ nqueens(cppcoro::static_thread_pool& tp, int xMax, std::array<char, N> buf) {
     co_return 1;
   }
 
-  size_t taskCount = 0;
-  auto tasks =
-    std::ranges::views::iota(0UL, N) |
-    std::ranges::views::filter([xMax, &buf](int y) {
-      buf[xMax] = y;
-      char q = y;
-      for (int x = 0; x < xMax; x++) {
-        char p = buf[x];
-        if (q == p || q == p - (xMax - x) || q == p + (xMax - x)) {
-          return false;
-        }
-      }
-      return true;
-    }) |
-    std::ranges::views::transform([xMax, &buf, &taskCount, &tp](int y) {
-      ++taskCount;
-      return nqueens(tp, xMax + 1, buf);
-    });
+  auto tasks = std::ranges::views::iota(0UL, N) |
+               std::ranges::views::filter([xMax, &buf](int y) {
+                 char q = y;
+                 for (int x = 0; x < xMax; x++) {
+                   char p = buf[x];
+                   if (q == p || q == p - (xMax - x) || q == p + (xMax - x)) {
+                     return false;
+                   }
+                 }
+                 return true;
+               }) |
+               std::ranges::views::transform([xMax, &buf, &tp](int y) {
+                 buf[xMax] = y;
+                 return nqueens(tp, xMax + 1, buf);
+               });
 
   // when_all won't compile if the range is passed directly
   // materializing a vector is required
   std::vector<cppcoro::task<int>> taskVec(tasks.begin(), tasks.end());
 
-  // Spawn up to N tasks (but possibly less, if queens_ok fails)
-  auto parts = co_await cppcoro::when_all(std::move(taskVec));
+  // Spawn up to N tasks (but possibly less, if filter fails)
+  auto values = co_await cppcoro::when_all(std::move(taskVec));
 
   int ret = 0;
-  for (size_t i = 0; i < taskCount; ++i) {
-    ret += parts[i];
+  for (int v : values) {
+    ret += v;
   }
 
   co_return ret;

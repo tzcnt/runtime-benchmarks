@@ -42,10 +42,8 @@ coros::Task<int> nqueens(int xMax, std::array<char, N> buf) {
     co_return 1;
   }
 
-  size_t taskCount = 0;
   auto tasks = std::ranges::views::iota(0UL, N) |
                std::ranges::views::filter([xMax, &buf](int y) {
-                 buf[xMax] = y;
                  char q = y;
                  for (int x = 0; x < xMax; x++) {
                    char p = buf[x];
@@ -55,18 +53,18 @@ coros::Task<int> nqueens(int xMax, std::array<char, N> buf) {
                  }
                  return true;
                }) |
-               std::ranges::views::transform([xMax, &buf, &taskCount](int y) {
-                 ++taskCount;
+               std::ranges::views::transform([xMax, &buf](int y) {
+                 buf[xMax] = y;
                  return nqueens(xMax + 1, buf);
                });
 
-  // Spawn up to N tasks (but possibly less, if queens_ok fails)
+  // Spawn up to N tasks (but possibly less, if filter fails)
   std::vector<coros::Task<int>> taskVec(tasks.begin(), tasks.end());
   co_await coros::wait_tasks_async(taskVec);
 
   int ret = 0;
-  for (size_t i = 0; i < taskCount; ++i) {
-    ret += *taskVec[i];
+  for (auto& t : taskVec) {
+    ret += *t;
   }
 
   co_return ret;

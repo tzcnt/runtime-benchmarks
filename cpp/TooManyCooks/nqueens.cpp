@@ -46,7 +46,6 @@ template <size_t N> tmc::task<int> nqueens(int xMax, std::array<char, N> buf) {
   size_t taskCount = 0;
   auto tasks = std::ranges::views::iota(0UL, N) |
                std::ranges::views::filter([xMax, &buf](int y) {
-                 buf[xMax] = y;
                  char q = y;
                  for (int x = 0; x < xMax; x++) {
                    char p = buf[x];
@@ -57,16 +56,19 @@ template <size_t N> tmc::task<int> nqueens(int xMax, std::array<char, N> buf) {
                  return true;
                }) |
                std::ranges::views::transform([xMax, &buf, &taskCount](int y) {
+                 buf[xMax] = y;
                  ++taskCount;
                  return nqueens(xMax + 1, buf);
                });
 
-  // Spawn up to N tasks (but possibly less, if queens_ok fails)
-  auto parts = co_await tmc::spawn_many<N>(tasks.begin(), tasks.end());
+  // Spawn up to N tasks (but possibly less, if filter returns false).
+  // Using N template parameter allows storage in an array (not vector),
+  // avoiding an allocation. Thus we have to track taskCount manually.
+  auto values = co_await tmc::spawn_many<N>(tasks.begin(), tasks.end());
 
   int ret = 0;
   for (size_t i = 0; i < taskCount; ++i) {
-    ret += parts[i];
+    ret += values[i];
   }
 
   co_return ret;

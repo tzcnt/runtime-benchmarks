@@ -46,7 +46,6 @@ template <size_t N> void nqueens(int xMax, std::array<char, N> buf, int& out) {
   auto tasks =
     std::ranges::views::iota(0UL, N) |
     std::ranges::views::filter([xMax, &buf, &taskCount](int y) {
-      buf[xMax] = y;
       char q = y;
       for (int x = 0; x < xMax; x++) {
         char p = buf[x];
@@ -57,6 +56,7 @@ template <size_t N> void nqueens(int xMax, std::array<char, N> buf, int& out) {
       return true;
     }) |
     std::ranges::views::transform([xMax, &buf, &taskCount, &results](int y) {
+      buf[xMax] = y;
       size_t idx = taskCount;
       ++taskCount;
       return
