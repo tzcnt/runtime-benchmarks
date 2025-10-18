@@ -22,7 +22,7 @@ SET(BUILD_TESTING OFF CACHE BOOL "Build cppcoro tests" FORCE)
 CPMAddPackage(
     NAME cppcoro
     GIT_REPOSITORY https://github.com/andreasbuhr/cppcoro.git
-    GIT_TAG 6c9c0cea4a54d427e9ca7153f27baaae19039439
+    GIT_TAG f05170fbc71aaae06dc31e32812f1caba9525377
     DOWNLOAD_ONLY)
 
 include_directories(${cppcoro_SOURCE_DIR}/include)
