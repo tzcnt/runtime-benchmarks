@@ -1,0 +1,138 @@
+// An implementation of recursive matrix multiplication
+
+// Adapted from
+// https://github.com/mtmucha/coros/blob/main/benchmarks/coros_mat.h
+
+// Original author: mtmucha
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+#include "matmul.hpp"
+
+#include <hpx/future.hpp>
+#include <hpx/init.hpp>
+
+#include <chrono>
+#include <cstdio>
+#include <cstdlib>
+#include <exception>
+#include <vector>
+
+static size_t thread_count = std::thread::hardware_concurrency() / 2;
+static int matmul_n = 0;
+
+void matmul(int* a, int* b, int* c, int n, int N) {
+  if (n <= 32) {
+    matmul_small(a, b, c, n, N);
+  } else {
+    int k = n / 2;
+
+    // The hpx::async version is faster than co_await when_all for this
+    // benchmark. IDK why.
+
+    std::vector<hpx::future<void>> futures1;
+    futures1.push_back(hpx::async([=]() { matmul(a, b, c, k, N); }));
+    futures1.push_back(hpx::async([=]() { matmul(a, b + k, c + k, k, N); }));
+    futures1.push_back(hpx::async([=]() {
+      matmul(a + k * N, b, c + k * N, k, N);
+    }));
+    futures1.push_back(hpx::async([=]() {
+      matmul(a + k * N, b + k, c + k * N + k, k, N);
+    }));
+    for (auto& f : futures1) {
+      f.get();
+    }
+
+    std::vector<hpx::future<void>> futures2;
+    futures2.push_back(hpx::async([=]() {
+      matmul(a + k, b + k * N, c, k, N);
+    }));
+    futures2.push_back(hpx::async([=]() {
+      matmul(a + k, b + k * N + k, c + k, k, N);
+    }));
+    futures2.push_back(hpx::async([=]() {
+      matmul(a + k * N + k, b + k * N, c + k * N, k, N);
+    }));
+    futures2.push_back(hpx::async([=]() {
+      matmul(a + k * N + k, b + k * N + k, c + k * N + k, k, N);
+    }));
+    for (auto& f : futures2) {
+      f.get();
+    }
+  }
+}
+
+std::vector<int> run_matmul(int N) {
+  std::vector<int> A(N * N, 1);
+  std::vector<int> B(N * N, 1);
+  std::vector<int> C(N * N, 0);
+
+  int* a = A.data();
+  int* b = B.data();
+  int* c = C.data();
+
+  matmul(a, b, c, N, N);
+  return C;
+}
+
+void validate_result(std::vector<int>& C, int N) {
+  std::atomic_thread_fence(std::memory_order_seq_cst);
+  int* c = C.data();
+  for (int i = 0; i < N; i++) {
+    for (int j = 0; j < N; j++) {
+      auto res = c[i * N + j];
+      if (res != N) {
+        std::printf(
+          "Wrong result at (%d,%d) : %d. expected %d\n", i, j, res, N
+        );
+        std::fflush(stdout);
+        std::terminate();
+      }
+    }
+  }
+}
+
+void run_one(int N) {
+  auto startTime = std::chrono::high_resolution_clock::now();
+  std::vector<int> result = run_matmul(N);
+  auto endTime = std::chrono::high_resolution_clock::now();
+  validate_result(result, N);
+  auto totalTimeUs =
+    std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime);
+  std::printf("  - matrix_size: %d\n", N);
+  std::printf("    duration: %zu us\n", totalTimeUs.count());
+}
+
+int hpx_main(hpx::program_options::variables_map&) {
+  hpx::threads::set_scheduler_mode(
+    hpx::threads::policies::scheduler_mode::enable_stealing |
+    hpx::threads::policies::scheduler_mode::enable_stealing_numa |
+    // hpx::threads::policies::scheduler_mode::assign_work_round_robin |
+    hpx::threads::policies::scheduler_mode::steal_after_local
+  );
+
+  run_matmul(matmul_n); // warmup
+
+  std::printf("runs:\n");
+
+  run_one(matmul_n);
+
+  return hpx::local::finalize();
+}
+
+int main(int argc, char* argv[]) {
+  if (argc > 2) {
+    thread_count = static_cast<size_t>(atoi(argv[2]));
+  }
+  if (argc < 2) {
+    printf("Usage: matmul <matrix size (power of 2)>\n");
+    exit(0);
+  }
+  matmul_n = atoi(argv[1]);
+  std::printf("threads: %zu\n", thread_count);
+
+  hpx::local::init_params init_args;
+  init_args.cfg = {"hpx.os_threads=" + std::to_string(thread_count)};
+
+  return hpx::local::init(hpx_main, argc, argv, init_args);
+}
