@@ -99,12 +99,12 @@ int hpx_main(hpx::program_options::variables_map& vm) {
     hpx::threads::policies::scheduler_mode::steal_after_local
   );
 
-  // {
-  //   std::array<char, nqueens_work> buf{};
-  //   auto result = nqueens(0, buf);
-  //   auto r = result.get();
-  //   check_answer(r);
-  // }
+  {
+    std::array<char, nqueens_work> buf{};
+    auto result = nqueens(0, buf); // warmup
+    auto r = result.get();
+    check_answer(r);
+  }
 
   auto startTime = std::chrono::high_resolution_clock::now();
 
@@ -132,9 +132,8 @@ int main(int argc, char* argv[]) {
   }
   std::printf("threads: %" PRIu64 "\n", thread_count);
 
-  // hpx::local::init_params init_args;
-  // init_args.cfg = {"hpx.os_threads=" + std::to_string(thread_count)};
+  hpx::local::init_params init_args;
+  init_args.cfg = {"hpx.os_threads=" + std::to_string(thread_count)};
 
-  // return hpx::local::init(hpx_main, argc, argv, init_args);
-  return hpx::local::init(hpx_main, argc, argv);
+  return hpx::local::init(hpx_main, argc, argv, init_args);
 }
