@@ -16,6 +16,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <exception>
+#include <string>
 #include <vector>
 
 static size_t thread_count = std::thread::hardware_concurrency() / 2;
@@ -116,6 +117,11 @@ int main(int argc, char* argv[]) {
   }
   matmul_n = atoi(argv[1]);
   std::printf("threads: %zu\n", thread_count);
+
+  // Force HPX to use the most efficient (?) queue mode
+  // in a hacky way since it only allows for command line configuration.
+  std::string queue_mode("--hpx:queuing=abp-priority-lifo");
+  argv[1] = const_cast<char*>(queue_mode.c_str());
 
   hpx::local::init_params init_args;
   init_args.cfg = {"hpx.os_threads=" + std::to_string(thread_count)};

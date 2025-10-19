@@ -37,6 +37,7 @@
 #include <cinttypes>
 #include <cstdio>
 #include <cstdlib>
+#include <string>
 #include <vector>
 
 static size_t thread_count = std::thread::hardware_concurrency() / 2;
@@ -122,8 +123,17 @@ int main(int argc, char* argv[]) {
   }
   std::printf("threads: %" PRIu64 "\n", thread_count);
 
+  // Force HPX to use the most efficient (?) queue mode
+  // in a hacky way since it only allows for command line configuration.
+  std::string queue_mode("--hpx:queuing=abp-priority-lifo");
+  std::array<char*, 2> fake_argv = {
+    argv[0], const_cast<char*>(queue_mode.c_str())
+  };
+
   hpx::local::init_params init_args;
   init_args.cfg = {"hpx.os_threads=" + std::to_string(thread_count)};
 
-  return hpx::local::init(hpx_main, argc, argv, init_args);
+  return hpx::local::init(
+    hpx_main, fake_argv.size(), fake_argv.data(), init_args
+  );
 }
