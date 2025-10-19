@@ -220,6 +220,15 @@ if len(sys.argv) != 1:
     with open("RESULTS.json", "w") as resultsJSON:
         resultsJSON.write(outJson)
 
+    # Generate RESULTS.html from the template for local viewing
+    print("Generating RESULTS.html...")
+    with open("results.html.tmpl", "r") as tmpl_file:
+        html_content = tmpl_file.read()
+    html_content = html_content.replace("{{ Script Will Substitute Latest Run Data Here }}", outJson)
+    with open("RESULTS.html", "w") as html_file:
+        html_file.write(html_content)
+    print("View benchmark charts in your browser at: file:///"+os.path.abspath("RESULTS.html").replace("\\", "/"))
+
 
 # For each benchmark, find the fastest runtime and calculate the runtime ratio of the other runtimes against that
 lowest_results = {}

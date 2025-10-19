@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>runtime-benchmarks</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style type="text/css">
+    .chartBox {
+      display: inline-block;
+      width: 90%;
+      padding: 10px;
+    }
+  </style>
+
+  <!--
+    Run `python3 ./build_and_bench_all.py full` to generate this data.
+    The data will be statically embedded into this file so it can be viewed on your local machine.
+  -->
+  <script id="latestRun" type="application/json">
+    {{ Script Will Substitute Latest Run Data Here }}
+  </script>
+</head>
+
+<body>
+  <div class="selectBox">
+    Benchmark: <select id="selectBench">
+      <option value="skynet">skynet</option>
+      <option value="fib">fib</option>
+      <option value="nqueens">nqueens</option>
+      <option value="matmul">matmul</option>
+    </select>
+    Run: <select id="selectMachine">
+      <option value="latest">Latest</option>
+    </select>
+    Transform: <select id="selectTransform">
+      <option value="duration">Duration (raw)</option>
+      <option value="speedup">Speedup (vs. self)</option>
+      <option value="scaled">Normalized (vs. fastest)</option>
+    </select>
+    Y-Axis: <select id="selectScale">
+      <option value="logarithmic">Logarithmic</option>
+      <option value="linear">Linear</option>
+    </select>
+    <a href="" id="rawDataLink">View raw data (JSON)</a>
+  </div>
+  <div style="text-align:center">
+    Click titles below to hide or show individual runtimes.
+  </div>
+  <div class="chartBox">
+    <canvas id="myChart"></canvas>
+  </div>
+  <script>
+    const machineToFileMap = {
+      "latest": "latestRun",
+    };
+
+    const selectMachine = document.getElementById('selectMachine');
+    var currentMachine = selectMachine.value;
+    document.getElementById('rawDataLink').href = "RESULTS.json";
+    selectMachine.addEventListener('change', switchMachine);
+    async function switchMachine() {
+      currentMachine = selectMachine.value;
+      await loadDataIfNeeded(currentMachine);
+      document.getElementById('rawDataLink').href = machineToFileMap[currentMachine];
+      myChart.data.datasets = all_data[currentMachine][currentBench];
+      myChart.update();
+    }
+
+
+    const selectBench = document.getElementById('selectBench');
+    var currentBench = selectBench.value;
+    selectBench.addEventListener('change', switchBench);
+    function switchBench() {
+      currentBench = selectBench.value;
+      myChart.data.datasets = all_data[currentMachine][currentBench];
+      myChart.update();
+    }
+
+    const selectTransform = document.getElementById('selectTransform');
+    var currentTransform = selectTransform.value;
+    selectTransform.addEventListener('change', switchTransform);
+    function switchTransform() {
+      currentTransform = selectTransform.value;
+      for (machine of Object.values(all_data)) {
+        for (bench of Object.values(machine)) {
+          for (let i = 0; i < bench.length; i++) {
+            bench[i].data = bench[i][currentTransform]
+          }
+        }
+      }
+      switch (currentTransform) {
+        case 'duration':
+          myChart.options.scales.y.title.text = 'duration (ms)';
+          myChart.options.plugins.tooltip.callbacks.label = (item) =>
+            " " + item.dataset.label + ": " + item.raw.toFixed(2) + " ms";
+          break;
+        case 'speedup':
+          myChart.options.scales.y.title.text = 'speedup (relative to self w/ 1 thread)';
+          myChart.options.plugins.tooltip.callbacks.label = (item) =>
+            " " + item.dataset.label + ": " + item.raw.toFixed(2) + "x";
+          break;
+        case 'scaled':
+          myChart.options.scales.y.title.text = 'normalized (relative to fastest runtime w/ max threads)';
+          myChart.options.plugins.tooltip.callbacks.label = (item) =>
+            " " + item.dataset.label + ": " + item.raw.toFixed(2) + "x";
+          break;
+      }
+      myChart.update();
+    }
+
+    const selectScale = document.getElementById('selectScale');
+    var currentScale = selectScale.value;
+    selectScale.addEventListener('change', switchScale);
+    function switchScale() {
+      currentScale = selectScale.value;
+      myChart.options.scales.y.type = currentScale;
+      myChart.update();
+    }
+
+    var all_data = {};
+    const multipliers = {
+      "ns": 1 / 1000000.0,
+      "us": 1 / 1000.0,
+      "ms": 1.0,
+      "s": 1000.0
+    };
+    const styles = {
+      "TooManyCooks": {
+        backgroundColor: 'rgba(54, 162, 235, 1)',
+        borderColor: 'rgba(54, 162, 235, 1)',
+        borderWidth: 3
+      },
+      "libfork": {
+        backgroundColor: 'rgba(3, 252, 215, 1)',
+        borderColor: 'rgba(3, 252, 215, 1)',
+        borderWidth: 3
+      },
+      "concurrencpp": {
+        backgroundColor: 'rgba(252, 3, 3, 1)',
+        borderColor: 'rgba(252, 3, 3, 1)',
+        borderWidth: 3
+      },
+      "tbb": {
+        backgroundColor: 'rgba(173, 252, 3, 1)',
+        borderColor: 'rgba(173, 252, 3, 1)',
+        borderWidth: 3
+      },
+      "cppcoro": {
+        backgroundColor: 'rgba(235, 207, 52, 1)',
+        borderColor: 'rgba(235, 207, 52, 1)',
+        borderWidth: 3
+      },
+      "coros": {
+        backgroundColor: 'rgba(252, 157, 3, 1)',
+        borderColor: 'rgba(252, 157, 3, 1)',
+        borderWidth: 3
+      },
+      "taskflow": {
+        backgroundColor: 'rgba(245, 66, 227, 1)',
+        borderColor: 'rgba(245, 66, 227, 1)',
+        borderWidth: 3
+      }
+    };
+
+    function loadFile(filename) {
+      return parseJson(JSON.parse(document.getElementById(filename).textContent));
+    }
+
+    async function loadDataIfNeeded(machine) {
+      if (all_data[machine] === undefined) {
+        let filename = machineToFileMap[machine];
+        all_data[machine] = makeDatasets(loadFile(filename));
+      }
+    }
+
+    async function loadDataAndCreateChart() {
+      await loadDataIfNeeded(currentMachine);
+      createChart();
+    }
+
+
+    function parseJson(obj) {
+      let benchmarks = {};
+      for (const [rname, rdata] of Object.entries(obj.results)) {
+        for (const [bname, bdata] of Object.entries(rdata)) {
+          if (!benchmarks.hasOwnProperty(bname)) {
+            benchmarks[bname] = {};
+          }
+          if (!benchmarks[bname].hasOwnProperty(rname)) {
+            benchmarks[bname][rname] = [];
+          }
+          for (let i = 0; i < bdata.length; i++) {
+            run = {};
+            run.threads = bdata[i].threads;
+            run.scaled = bdata[i].result.scaled;
+            run.speedup = bdata[i].result.speedup;
+
+            const subValues = bdata[i].result.duration.split(' ');
+            var numeric = subValues[0].replace(/[^0-9.]/g, '');
+            var num = parseFloat(numeric);
+            if (subValues.length > 1 && multipliers[subValues[1]] !== undefined) {
+              num *= multipliers[subValues[1]];
+            }
+            run.duration = num;
+            benchmarks[bname][rname].push(run);
+          }
+        }
+      }
+      return benchmarks;
+    }
+
+    function makeDatasets(data) {
+      let all = {};
+      for (const [bname, bdata] of Object.entries(data)) {
+        let datasets = [];
+        for (const [runtime, rdata] of Object.entries(bdata)) {
+          let dataset = {};
+          if (styles[runtime] !== undefined) {
+            dataset = { ...styles[runtime] };
+          }
+          dataset.label = runtime;
+
+          // Make all 3 data series available to switch in the dropdown
+          dataset.duration = rdata.map(row => row.duration);
+          dataset.scaled = rdata.map(row => row.scaled);
+          dataset.speedup = rdata.map(row => row.speedup);
+
+          // Display the duration by default
+          dataset.data = dataset[currentTransform];
+          dataset.xaxis = rdata.map(row => row.threads);
+          datasets.push(dataset);
+        }
+        all[bname] = datasets;
+      }
+      return all;
+    }
+
+    var myChart;
+
+    function createChart() {
+      var dataset = all_data[currentMachine][currentBench];
+      const ctx = document.getElementById('myChart').getContext('2d');
+      myChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: dataset[0].xaxis,
+          datasets: dataset
+        },
+        options: {
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: (item) =>
+                  " " + item.dataset.label + ": " + item.raw.toFixed(2) + " ms",
+              },
+            },
+          },
+          interaction: {
+            mode: 'x',
+            position: 'nearest',
+            itemSort: function (a, b) {
+              return b.raw - a.raw;
+            },
+          },
+          animation: false,
+          scales: {
+            y: {
+              title: {
+                display: true,
+                text: 'duration (ms)',
+              },
+              type: currentScale,
+              beginAtZero: true,
+            },
+            x: {
+              title: {
+                display: true,
+                text: '# of threads',
+              },
+            }
+          }
+        }
+      });
+    }
+
+    loadDataAndCreateChart();
+  </script>
+</body>
+</html>
