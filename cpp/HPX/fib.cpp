@@ -99,6 +99,7 @@ int main(int argc, char* argv[]) {
     printf("Usage: fib <n-th fibonacci number requested> [thread count]\n");
     exit(0);
   }
+  std::printf("threads: %" PRIu64 "\n", thread_count);
   fib_n = static_cast<size_t>(atoi(argv[1]));
 
   // Force HPX to use the most efficient (?) queue mode
