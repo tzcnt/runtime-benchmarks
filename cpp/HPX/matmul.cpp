@@ -23,6 +23,10 @@
 static size_t thread_count = std::thread::hardware_concurrency() / 2;
 static int matmul_n = 0;
 
+// For the matmul implementation we use the stackful coroutines of HPX
+// since it offers much better performance, and the high memory consumption
+// issue (as seen in the other benchmarks) is not present here due to low
+// recursion depth.
 void matmul(int* a, int* b, int* c, int n, int N) {
   if (n <= 32) {
     matmul_small(a, b, c, n, N);
