@@ -9,6 +9,7 @@
 
 #include "matmul.hpp"
 
+#include <hpx/experimental/task_group.hpp>
 #include <hpx/future.hpp>
 #include <hpx/init.hpp>
 
@@ -22,29 +23,31 @@
 static size_t thread_count = std::thread::hardware_concurrency() / 2;
 static int matmul_n = 0;
 
-hpx::future<void> matmul(int* a, int* b, int* c, int n, int N) {
+void matmul(int* a, int* b, int* c, int n, int N) {
   if (n <= 32) {
     matmul_small(a, b, c, n, N);
   } else {
     int k = n / 2;
 
-    // Fork 3, run 1 synchronously
-    std::array<hpx::future<void>, 3> futures1{
-      hpx::async(matmul, a, b, c, k, N),
-      hpx::async(matmul, a, b + k, c + k, k, N),
-      hpx::async(matmul, a + k * N, b, c + k * N, k, N)
-    };
-    co_await matmul(a + k * N, b + k, c + k * N + k, k, N);
-    co_await hpx::when_all(futures1);
+    {
+      hpx::experimental::task_group tg;
+      tg.run(matmul, a, b, c, k, N);
+      tg.run(matmul, a, b + k, c + k, k, N);
+      tg.run(matmul, a + k * N, b, c + k * N, k, N);
+      // Fork 3, run 1 synchronously
+      matmul(a + k * N, b + k, c + k * N + k, k, N);
+      tg.wait();
+    }
 
-    // Fork 3, run 1 synchronously
-    std::array<hpx::future<void>, 3> futures2{
-      hpx::async(matmul, a + k, b + k * N, c, k, N),
-      hpx::async(matmul, a + k, b + k * N + k, c + k, k, N),
-      hpx::async(matmul, a + k * N + k, b + k * N, c + k * N, k, N)
-    };
-    co_await matmul(a + k * N + k, b + k * N + k, c + k * N + k, k, N);
-    co_await hpx::when_all(futures2);
+    {
+      hpx::experimental::task_group tg;
+      tg.run(matmul, a + k, b + k * N, c, k, N);
+      tg.run(matmul, a + k, b + k * N + k, c + k, k, N);
+      tg.run(matmul, a + k * N + k, b + k * N, c + k * N, k, N);
+      // Fork 3, run 1 synchronously
+      matmul(a + k * N + k, b + k * N + k, c + k * N + k, k, N);
+      tg.wait();
+    }
   }
 }
 
@@ -57,7 +60,7 @@ std::vector<int> run_matmul(int N) {
   int* b = B.data();
   int* c = C.data();
 
-  matmul(a, b, c, N, N).get();
+  matmul(a, b, c, N, N);
   return C;
 }
 
