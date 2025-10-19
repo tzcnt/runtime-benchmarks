@@ -12,7 +12,7 @@ import yaml
 import sys
 
 runtimes = {
-    "cpp": ["libfork", "TooManyCooks", "tbb", "taskflow", "cppcoro", "coros", "concurrencpp", "HPX"]
+    "cpp": ["libfork", "TooManyCooks", "tbb", "taskflow", "cppcoro", "coros", "concurrencpp", "HPX", "libcoro"]
 }
 
 runtime_links = {
@@ -24,6 +24,7 @@ runtime_links = {
     "coros": "https://github.com/mtmucha/coros",
     "concurrencpp": "https://github.com/David-Haim/concurrencpp",
     "HPX": "https://github.com/STEllAR-GROUP/hpx",
+    "libcoro": "https://github.com/jbaldwin/libcoro"
 }
 
 benchmarks_order = ["skynet", "nqueens", "fib", "matmul"]
