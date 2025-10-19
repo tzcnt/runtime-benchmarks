@@ -7,6 +7,14 @@ set(CMAKE_MODULE_PATH
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS "1")
 set(HPX_WITH_CXX_STANDARD 20 CACHE STRING "")
+
+# Required for high performance "ABP" scheduler
+set(HPX_THREAD_SCHEDULERS "all" CACHE BOOL "")
+set(HPX_WITH_CXX11_ATOMIC_128BIT ON CACHE BOOL "")
+add_definitions("-DHPX_HAVE_CXX11_STD_ATOMIC_128BIT")
+add_compile_options("-mcx16")
+
+# HPX requires Asio but we don't want to require system Asio
 set(HPX_WITH_FETCH_ASIO ON CACHE BOOL "")
 
 # Remove unnecessary builds
@@ -17,7 +25,6 @@ set(HPX_WITH_DISTRIBUTED_RUNTIME OFF CACHE BOOL "")
 
 # On my Debian machine with Clang 21 and GCC 14 the build fails if this config is enabled
 set(HPX_WITH_CXX11_ATOMIC_RESULT OFF CACHE BOOL "")
-set(HPX_WITH_CXX11_ATOMIC_128BIT OFF CACHE BOOL "")
 
 add_definitions(
 

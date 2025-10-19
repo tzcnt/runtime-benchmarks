@@ -43,20 +43,21 @@ hpx::future<size_t> fib(size_t n) {
   if (n < 2)
     co_return n;
 
-  // Calling hpx::async is very slow and consumes a ton of memory. I'm not sure
-  // how to efficiently implement the hot-fork version of this.
-  // hpx::future<size_t> n1 = hpx::async(fib, n - 1);
-  // size_t n2 = co_await fib(n - 2);
-  // co_return co_await n1 + n2;
+  hpx::future<size_t> n1 = hpx::async(fib, n - 1);
+  size_t n2 = co_await fib(n - 2);
+  co_return co_await n1 + n2;
 
-  auto [x, y] = co_await hpx::when_all(fib(n - 1), fib(n - 2));
-  co_return co_await x + co_await y;
+  // This version is faster, but cheats the benchmark - it doesn't actually
+  // fork. There is no difference in runtime scaling from 1 to 64 threads.
+  // auto [x, y] = co_await hpx::when_all(fib(n - 1), fib(n - 2));
+  // co_return co_await x + co_await y;
 }
 
 int hpx_main(hpx::program_options::variables_map&) {
   hpx::threads::set_scheduler_mode(
     hpx::threads::policies::scheduler_mode::enable_stealing |
     hpx::threads::policies::scheduler_mode::enable_stealing_numa |
+    hpx::threads::policies::scheduler_mode::assign_work_thread_parent |
     // hpx::threads::policies::scheduler_mode::assign_work_round_robin |
     hpx::threads::policies::scheduler_mode::steal_after_local
   );

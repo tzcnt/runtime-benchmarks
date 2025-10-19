@@ -52,14 +52,29 @@ hpx::future<size_t> skynet_one(size_t BaseNum, size_t Depth) {
     depthOffset *= 10;
   }
 
-  std::array<hpx::future<size_t>, 10> futures;
-  for (size_t idx = 0; idx < 10; ++idx) {
-    futures[idx] = skynet_one<DepthMax>(BaseNum + depthOffset * idx, Depth + 1);
+  std::array<hpx::future<size_t>, 9> futures;
+  for (size_t idx = 0; idx < 9; ++idx) {
+    // This is the fastest overall (11 seconds) but has no scaling: 1 or 64
+    // threads all take 11 seconds. I believe this means that it's not actually
+    // being parallelized; using the debugger confirms skynet is being called
+    // directly each time, rather than dispatched. This cheats the benchmark.
+    // futures[idx] = skynet_one<DepthMax>(BaseNum + depthOffset * idx, Depth +
+    // 1);
+
+    // This is slower but is accurate to the intent of the benchmark.
+    // However it still causes a huge memory blowup, even when using 1 thread
+    // and running with --hpx:queuing=abp-priority-lifo which SHOULD prevent
+    // this memory blowup...
+    futures[idx] =
+      hpx::async(skynet_one<DepthMax>, BaseNum + depthOffset * idx, Depth + 1);
   }
+
+  // Fork 9, run 1 synchronously
+  size_t count =
+    co_await skynet_one<DepthMax>(BaseNum + depthOffset * 9, Depth + 1);
 
   auto results = co_await hpx::when_all(futures);
 
-  size_t count = 0;
   for (auto& f : results) {
     count += co_await f;
   }
@@ -87,6 +102,14 @@ template <size_t Depth = 6> void loop_skynet() {
 }
 
 int hpx_main(hpx::program_options::variables_map&) {
+  hpx::threads::set_scheduler_mode(
+    hpx::threads::policies::scheduler_mode::enable_stealing |
+    hpx::threads::policies::scheduler_mode::enable_stealing_numa |
+    hpx::threads::policies::scheduler_mode::assign_work_thread_parent |
+    // hpx::threads::policies::scheduler_mode::assign_work_round_robin |
+    hpx::threads::policies::scheduler_mode::steal_after_local
+  );
+
   skynet<8>(); // warmup
   loop_skynet<8>();
 

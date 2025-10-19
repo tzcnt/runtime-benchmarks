@@ -21,44 +21,29 @@
 static size_t thread_count = std::thread::hardware_concurrency() / 2;
 static int matmul_n = 0;
 
-void matmul(int* a, int* b, int* c, int n, int N) {
+hpx::future<void> matmul(int* a, int* b, int* c, int n, int N) {
   if (n <= 32) {
     matmul_small(a, b, c, n, N);
   } else {
     int k = n / 2;
 
-    // The hpx::async version is faster than co_await when_all for this
-    // benchmark. IDK why.
+    // Fork 3, run 1 synchronously
+    std::array<hpx::future<void>, 3> futures1{
+      hpx::async(matmul, a, b, c, k, N),
+      hpx::async(matmul, a, b + k, c + k, k, N),
+      hpx::async(matmul, a + k * N, b, c + k * N, k, N)
+    };
+    co_await matmul(a + k * N, b + k, c + k * N + k, k, N);
+    co_await hpx::when_all(futures1);
 
-    std::vector<hpx::future<void>> futures1;
-    futures1.push_back(hpx::async([=]() { matmul(a, b, c, k, N); }));
-    futures1.push_back(hpx::async([=]() { matmul(a, b + k, c + k, k, N); }));
-    futures1.push_back(hpx::async([=]() {
-      matmul(a + k * N, b, c + k * N, k, N);
-    }));
-    futures1.push_back(hpx::async([=]() {
-      matmul(a + k * N, b + k, c + k * N + k, k, N);
-    }));
-    for (auto& f : futures1) {
-      f.get();
-    }
-
-    std::vector<hpx::future<void>> futures2;
-    futures2.push_back(hpx::async([=]() {
-      matmul(a + k, b + k * N, c, k, N);
-    }));
-    futures2.push_back(hpx::async([=]() {
-      matmul(a + k, b + k * N + k, c + k, k, N);
-    }));
-    futures2.push_back(hpx::async([=]() {
-      matmul(a + k * N + k, b + k * N, c + k * N, k, N);
-    }));
-    futures2.push_back(hpx::async([=]() {
-      matmul(a + k * N + k, b + k * N + k, c + k * N + k, k, N);
-    }));
-    for (auto& f : futures2) {
-      f.get();
-    }
+    // Fork 3, run 1 synchronously
+    std::array<hpx::future<void>, 3> futures2{
+      hpx::async(matmul, a + k, b + k * N, c, k, N),
+      hpx::async(matmul, a + k, b + k * N + k, c + k, k, N),
+      hpx::async(matmul, a + k * N + k, b + k * N, c + k * N, k, N)
+    };
+    co_await matmul(a + k * N + k, b + k * N + k, c + k * N + k, k, N);
+    co_await hpx::when_all(futures2);
   }
 }
 
@@ -71,7 +56,7 @@ std::vector<int> run_matmul(int N) {
   int* b = B.data();
   int* c = C.data();
 
-  matmul(a, b, c, N, N);
+  matmul(a, b, c, N, N).get();
   return C;
 }
 
@@ -107,6 +92,7 @@ int hpx_main(hpx::program_options::variables_map&) {
   hpx::threads::set_scheduler_mode(
     hpx::threads::policies::scheduler_mode::enable_stealing |
     hpx::threads::policies::scheduler_mode::enable_stealing_numa |
+    hpx::threads::policies::scheduler_mode::assign_work_thread_parent |
     // hpx::threads::policies::scheduler_mode::assign_work_round_robin |
     hpx::threads::policies::scheduler_mode::steal_after_local
   );

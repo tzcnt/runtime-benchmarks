@@ -13,7 +13,6 @@
 #include "hpx/async_combinators/when_all.hpp"
 #include <hpx/config.hpp>
 #include <hpx/future.hpp>
-#include <hpx/hpx.hpp>
 #include <hpx/init.hpp>
 
 #include <array>
@@ -46,42 +45,27 @@ hpx::future<int> nqueens(int xMax, std::array<char, N> buf) {
     co_return 1;
   }
 
-  auto tasks = std::ranges::views::iota(0UL, N) |
-               std::ranges::views::filter([xMax, &buf](int y) {
-                 char q = y;
-                 for (int x = 0; x < xMax; x++) {
-                   char p = buf[x];
-                   if (q == p || q == p - (xMax - x) || q == p + (xMax - x)) {
-                     return false;
-                   }
-                 }
-                 return true;
-               }) |
-               std::ranges::views::transform([xMax, &buf](int y) {
-                 buf[xMax] = y;
-                 return nqueens(xMax + 1, buf);
-               });
+  auto ys = std::ranges::views::iota(0UL, N) |
+            std::ranges::views::filter([xMax, &buf](int y) {
+              char q = y;
+              for (int x = 0; x < xMax; x++) {
+                char p = buf[x];
+                if (q == p || q == p - (xMax - x) || q == p + (xMax - x)) {
+                  return false;
+                }
+              }
+              return true;
+            });
 
-  // Calling when_all(tasks.begin(), tasks.end()) directly will not compile,
-  // perhaps because HPX calls std::distance on the range first.
-  // So we collect the tasks in a vector before passing to HPX.
-  std::vector<hpx::future<int>> taskVec(tasks.begin(), tasks.end());
-
-  auto futures = co_await hpx::when_all(taskVec);
-
-  // The alternative implementation using hpx::async is very slow and uses a ton
-  // of memory. This probably triggers a FIFO / BFS traversal of the task graph
-  // rather than a LIFO / DFS traversal.
-  // std::vector<hpx::future<int>> futures;
-  // futures.reserve(nqueens_work);
-  // for (auto y : tasks) {
-  //   // Also comment out the "transform" part of the range pipeline - this
-  //   // replaces that transform
-  //   buf[xMax] = y;
-  //   futures.push_back(hpx::async([xMax, buf]() {
-  //     return nqueens(xMax + 1, buf);
-  //   }));
-  // }
+  size_t taskCount = 0;
+  std::array<hpx::future<int>, nqueens_work> taskArr;
+  for (auto y : ys) {
+    buf[xMax] = y;
+    taskArr[taskCount] = hpx::async(nqueens<nqueens_work>, xMax + 1, buf);
+    ++taskCount;
+  }
+  auto futures =
+    co_await hpx::when_all(taskArr.begin(), taskArr.begin() + taskCount);
 
   int ret = 0;
   for (auto& f : futures) {
@@ -95,6 +79,7 @@ int hpx_main(hpx::program_options::variables_map& vm) {
   hpx::threads::set_scheduler_mode(
     hpx::threads::policies::scheduler_mode::enable_stealing |
     hpx::threads::policies::scheduler_mode::enable_stealing_numa |
+    hpx::threads::policies::scheduler_mode::assign_work_thread_parent |
     // hpx::threads::policies::scheduler_mode::assign_work_round_robin |
     hpx::threads::policies::scheduler_mode::steal_after_local
   );
