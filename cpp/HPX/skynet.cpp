@@ -29,6 +29,7 @@
 // OTHER DEALINGS IN THE SOFTWARE.
 
 #include "hpx/async_combinators/when_all.hpp"
+#include <hpx/experimental/task_group.hpp>
 #include <hpx/future.hpp>
 #include <hpx/init.hpp>
 
@@ -55,17 +56,21 @@ hpx::future<size_t> skynet_one(size_t BaseNum, size_t Depth) {
 
   std::array<hpx::future<size_t>, 9> futures;
   for (size_t idx = 0; idx < 9; ++idx) {
-    // This is the fastest overall (11 seconds) but has no scaling: 1 or 64
-    // threads all take 11 seconds. I believe this means that it's not actually
-    // being parallelized; using the debugger confirms skynet is being called
-    // directly each time, rather than dispatched. This cheats the benchmark.
-    // futures[idx] = skynet_one<DepthMax>(BaseNum + depthOffset * idx, Depth +
-    // 1);
+    // // This is the fastest overall (11 seconds) but has no scaling: 1 or 64
+    // // threads all take 11 seconds. I believe this means that it's not
+    // // actually being parallelized; using the debugger confirms skynet is
+    // // being called directly each time, rather than dispatched, which defeats
+    // the purpose of the benchmark.
+    // futures[idx] = skynet_one<DepthMax>(BaseNum + depthOffset
+    // * idx, Depth + 1);
 
     // This is slower but is accurate to the intent of the benchmark.
     // However it still causes a huge memory blowup, even when using 1 thread
     // and running with --hpx:queuing=abp-priority-lifo which SHOULD prevent
     // this memory blowup...
+    // But the memory blowup is not as high as using the default HPX stackful
+    // coroutines approach. It eventually stabilizes at ~29GB mem used, which
+    // means this can actually complete on a consumer grade system.
     futures[idx] =
       hpx::async(skynet_one<DepthMax>, BaseNum + depthOffset * idx, Depth + 1);
   }
@@ -81,6 +86,50 @@ hpx::future<size_t> skynet_one(size_t BaseNum, size_t Depth) {
   }
   co_return count;
 }
+
+// // This stackful coroutine implementation caused OOM despite being the
+// // recommended implementation in /hpx-src/tests/performance/local/skynet.cpp
+// template <size_t DepthMax> size_t skynet_one(size_t BaseNum, size_t Depth)
+// {
+//   if (Depth == DepthMax) {
+//     return BaseNum;
+//   }
+//   size_t depthOffset = 1;
+//   for (size_t i = 0; i < DepthMax - Depth - 1; ++i) {
+//     depthOffset *= 10;
+//   }
+
+//   std::array<hpx::future<size_t>, 10> futures;
+//   for (size_t idx = 0; idx < 10; ++idx) {
+//     futures[idx] =
+//       hpx::async(skynet_one<DepthMax>, BaseNum + depthOffset * idx, Depth +
+//       1);
+//   }
+//   hpx::wait_all(futures);
+
+//   size_t count = 0;
+//   for (auto& f : futures) {
+//     count += f.get();
+//   }
+
+//   // // This implementation using task_group also caused OOM.
+//   // std::array<size_t, 10> results;
+//   // hpx::experimental::task_group tg;
+//   // for (size_t idx = 0; idx < 10; ++idx) {
+//   //   tg.run(
+//   //     [&results, idx, base = BaseNum + depthOffset * idx, Depth]() -> void
+//   {
+//   //       results[idx] = skynet_one<DepthMax>(base, Depth + 1);
+//   //     }
+//   //   );
+//   // }
+//   // tg.wait();
+//   // size_t count = 0;
+//   // for (size_t i = 0; i < 10; ++i) {
+//   //   count += results[i];
+//   // }
+//   return count;
+// }
 
 template <size_t DepthMax> void skynet() {
   size_t count = skynet_one<DepthMax>(0, 0).get();

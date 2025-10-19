@@ -12,6 +12,7 @@
 
 #include "hpx/async_combinators/when_all.hpp"
 #include <hpx/config.hpp>
+#include <hpx/experimental/task_group.hpp>
 #include <hpx/future.hpp>
 #include <hpx/init.hpp>
 
@@ -40,6 +41,8 @@ void check_answer(int result) {
   }
 }
 
+// Stackless coroutine approach - peaks at 12GB memory usage
+// and completes in 34663728 us on my EPYC server.
 template <size_t N>
 hpx::future<int> nqueens(int xMax, std::array<char, N> buf) {
   if (N == xMax) {
@@ -76,6 +79,46 @@ hpx::future<int> nqueens(int xMax, std::array<char, N> buf) {
   co_return ret;
 }
 
+// // Stackful coroutine approach - peaked at 98GB of mem usage,
+// // and completed in 5749374 us on my EPYC server.
+// template <size_t N> int nqueens(int xMax, std::array<char, N> buf) {
+//   if (N == xMax) {
+//     return 1;
+//   }
+
+//   auto ys = std::ranges::views::iota(0UL, N) |
+//             std::ranges::views::filter([xMax, &buf](int y) {
+//               char q = y;
+//               for (int x = 0; x < xMax; x++) {
+//                 char p = buf[x];
+//                 if (q == p || q == p - (xMax - x) || q == p + (xMax - x)) {
+//                   return false;
+//                 }
+//               }
+//               return true;
+//             });
+
+//   std::array<int, nqueens_work> results;
+//   hpx::experimental::task_group tg;
+//   std::array<hpx::future<int>, nqueens_work> taskArr;
+//   size_t taskCount = 0;
+//   for (auto y : ys) {
+//     buf[xMax] = y;
+//     tg.run([xMax, buf, &results, taskCount]() -> void {
+//       results[taskCount] = nqueens<nqueens_work>(xMax + 1, buf);
+//     });
+//     ++taskCount;
+//   }
+//   tg.wait();
+
+//   int ret = 0;
+//   for (size_t i = 0; i < taskCount; ++i) {
+//     ret += results[i];
+//   }
+
+//   return ret;
+// }
+
 int hpx_main(hpx::program_options::variables_map& vm) {
   hpx::threads::set_scheduler_mode(
     hpx::threads::policies::scheduler_mode::enable_stealing |
@@ -87,19 +130,17 @@ int hpx_main(hpx::program_options::variables_map& vm) {
 
   {
     std::array<char, nqueens_work> buf{};
-    auto result = nqueens(0, buf); // warmup
-    auto r = result.get();
-    check_answer(r);
+    auto result = nqueens(0, buf).get(); // warmup
+    check_answer(result);
   }
 
   auto startTime = std::chrono::high_resolution_clock::now();
 
   for (size_t i = 0; i < iter_count; ++i) {
     std::array<char, nqueens_work> buf{};
-    auto result = nqueens(0, buf);
-    auto r = result.get();
-    check_answer(r);
-    std::printf("output: %d\n", r);
+    auto result = nqueens(0, buf).get();
+    check_answer(result);
+    std::printf("output: %d\n", result);
   }
 
   auto endTime = std::chrono::high_resolution_clock::now();

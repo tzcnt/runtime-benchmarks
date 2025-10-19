@@ -26,7 +26,6 @@
 // ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 // OTHER DEALINGS IN THE SOFTWARE.
 
-#include "hpx/async_combinators/when_all.hpp"
 #include <hpx/future.hpp>
 #include <hpx/init.hpp>
 
@@ -53,6 +52,16 @@ hpx::future<size_t> fib(size_t n) {
   // auto [x, y] = co_await hpx::when_all(fib(n - 1), fib(n - 2));
   // co_return co_await x + co_await y;
 }
+
+// // This version causes HUGE memory blowup (using stackful coroutine)
+// size_t fib(size_t n) {
+//   if (n < 2)
+//     return n;
+
+//   hpx::future<size_t> n1 = hpx::async(fib, n - 1);
+//   size_t n2 = fib(n - 2);
+//   return n1.get() + n2;
+// }
 
 int hpx_main(hpx::program_options::variables_map&) {
   hpx::threads::set_scheduler_mode(
