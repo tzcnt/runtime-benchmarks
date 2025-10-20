@@ -9,6 +9,7 @@
 
 #include "matmul.hpp"
 #include "coro/coro.hpp"
+#include "coro/thread_pool.hpp"
 
 #include <chrono>
 #include <cstdio>
@@ -97,13 +98,13 @@ int main(int argc, char* argv[]) {
   }
   int n = atoi(argv[1]);
   std::printf("threads: %zu\n", thread_count);
-  coro::thread_pool tp{coro::thread_pool::options{
-    .thread_count = static_cast<uint32_t>(thread_count)
-  }};
 
-  run_matmul(tp, n); // warmup
+  coro::thread_pool::options opts;
+  opts.thread_count = static_cast<uint32_t>(thread_count);
+  auto tp = coro::thread_pool::make_shared(opts);
+  run_matmul(*tp, n); // warmup
 
   std::printf("runs:\n");
 
-  run_one(tp, n);
+  run_one(*tp, n);
 }

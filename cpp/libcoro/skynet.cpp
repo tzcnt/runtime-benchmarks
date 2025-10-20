@@ -29,6 +29,7 @@
 // OTHER DEALINGS IN THE SOFTWARE.
 
 #include "coro/coro.hpp"
+#include "coro/thread_pool.hpp"
 
 #include <chrono>
 #include <cinttypes>
@@ -92,14 +93,15 @@ int main(int argc, char* argv[]) {
     thread_count = static_cast<size_t>(atoi(argv[1]));
   }
   std::printf("threads: %" PRIu64 "\n", thread_count);
-  coro::thread_pool tp{coro::thread_pool::options{
-    .thread_count = static_cast<uint32_t>(thread_count)
-  }};
+
+  coro::thread_pool::options opts;
+  opts.thread_count = static_cast<uint32_t>(thread_count);
+  auto tp = coro::thread_pool::make_shared(opts);
 
   return coro::sync_wait([](coro::thread_pool& tp) -> coro::task<int> {
     co_await tp.schedule();
     co_await skynet<8>(tp); // warmup
     co_await loop_skynet<8>(tp);
     co_return 0;
-  }(tp));
+  }(*tp));
 }

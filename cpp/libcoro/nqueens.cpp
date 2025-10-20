@@ -11,6 +11,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 #include "coro/coro.hpp"
+#include "coro/thread_pool.hpp"
 
 #include <array>
 #include <cinttypes>
@@ -76,9 +77,10 @@ int main(int argc, char* argv[]) {
     thread_count = static_cast<size_t>(atoi(argv[1]));
   }
   std::printf("threads: %" PRIu64 "\n", thread_count);
-  coro::thread_pool tp{coro::thread_pool::options{
-    .thread_count = static_cast<uint32_t>(thread_count)
-  }};
+
+  coro::thread_pool::options opts;
+  opts.thread_count = static_cast<uint32_t>(thread_count);
+  auto tp = coro::thread_pool::make_shared(opts);
 
   return coro::sync_wait([](coro::thread_pool& tp) -> coro::task<int> {
     co_await tp.schedule();
@@ -105,5 +107,5 @@ int main(int argc, char* argv[]) {
     std::printf("  - iteration_count: %" PRIu64 "\n", iter_count);
     std::printf("    duration: %" PRIu64 " us\n", totalTimeUs.count());
     co_return 0;
-  }(tp));
+  }(*tp));
 }
