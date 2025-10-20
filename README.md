@@ -7,13 +7,13 @@ An interactive view of the full results dataset is available at: https://fleetco
 
 Results summary table of a single configuration:
 
-| Runtime | [libfork](https://github.com/ConorWilliams/libfork) | [TooManyCooks](https://github.com/tzcnt/TooManyCooks) | [tbb](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onetbb.html) | [cppcoro](https://github.com/andreasbuhr/cppcoro) | [taskflow](https://github.com/taskflow/taskflow) | [coros](https://github.com/mtmucha/coros) | [concurrencpp](https://github.com/David-Haim/concurrencpp) |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| Mean Ratio to Best<br>(lower is better) | 1.00x | 1.21x | 2.78x | 3.69x | 4.91x | 5.26x | 170.29x |
-| skynet(8) | 39243 us | 48183 us | 142476 us | 277238 us | 310068 us | 150896 us | 11879067 us |
-| nqueens(14) | 85499 us | 97645 us | 158381 us | 216374 us | 323129 us | 1024948 us | 8247812 us |
-| fib(39) | 66483 us | 94078 us | 271683 us | 243936 us | 428538 us | 266954 us | 18636205 us |
-| matmul(2048) | 41195 us | 42898 us | 64231 us | 61755 us | 62715 us | 49846 us | 68094 us |
+| Runtime | [libfork](https://github.com/ConorWilliams/libfork) | [TooManyCooks](https://github.com/tzcnt/TooManyCooks) | [tbb](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onetbb.html) | [taskflow](https://github.com/taskflow/taskflow) | [cppcoro](https://github.com/andreasbuhr/cppcoro) | [coros](https://github.com/mtmucha/coros) | [concurrencpp](https://github.com/David-Haim/concurrencpp) | [HPX](https://github.com/STEllAR-GROUP/hpx) | [libcoro](https://github.com/jbaldwin/libcoro) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Mean Ratio to Best<br>(lower is better) | 1.00x | 1.21x | 2.77x | 3.40x | 4.03x | 4.26x | 171.21x | 903.93x | 2163.58x |
+| skynet | 39050 us | 48412 us | 137643 us | 195920 us | 283737 us | 105094 us | 12080295 us | 49761721 us | 161232827 us |
+| nqueens | 79549 us | 83999 us | 162379 us | 258937 us | 187504 us | 834379 us | 8235763 us | 34641489 us | 42377788 us |
+| fib(39) | 68338 us | 102193 us | 272868 us | 257003 us | 333695 us | 179554 us | 18472130 us | 130125704 us | 272088332 us |
+| matmul(2048) | 40772 us | 42863 us | 62607 us | 63254 us | 65595 us | 49801 us | 68045 us | 73184 us | 456989 us |
 
 <details>
 <summary>Click to view the machine configuration used in the summary table</summary>
@@ -57,7 +57,7 @@ Results will appear in `RESULTS.md` and `RESULTS.csv` files.
 
 `python3 ./build_and_bench_all.py full`
 
-Results will also appear in `RESULTS.json` file; this file can be parsed by the interactive benchmarks site.
+Results will also appear in `RESULTS.json` file; this file can be parsed by the interactive benchmarks site. A locally viewable version of this HTML chart will be generated as well.
 
 ### Future Plans
 
