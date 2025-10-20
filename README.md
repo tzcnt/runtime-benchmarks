@@ -21,7 +21,7 @@ Results summary table of a single configuration:
 - Processor: EPYC 7742 64-core processor
 - Worker Thread Count: 64 (no SMT)
 - OS: Debian 13 Server
-- Compiler: Clang 19.1.7 Release (-O3 -march=native)
+- Compiler: Clang 21.1.3 Release (-O3 -march=native)
 - CPU boost enabled / schedutil governor
 - Linked against libtcmalloc_minimal.so.4
 
