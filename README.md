@@ -7,13 +7,13 @@ An interactive view of the full results dataset is available at: https://fleetco
 
 Results summary table of a single configuration:
 
-| Runtime | [libfork](https://github.com/ConorWilliams/libfork) | [TooManyCooks](https://github.com/tzcnt/TooManyCooks) | [tbb](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onetbb.html) | [taskflow](https://github.com/taskflow/taskflow) | [cppcoro](https://github.com/andreasbuhr/cppcoro) | [coros](https://github.com/mtmucha/coros) | [concurrencpp](https://github.com/David-Haim/concurrencpp) | [HPX](https://github.com/STEllAR-GROUP/hpx) | [libcoro](https://github.com/jbaldwin/libcoro) |
+| Runtime | [libfork](https://github.com/ConorWilliams/libfork) | [TooManyCooks](https://github.com/tzcnt/TooManyCooks) | [tbb](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onetbb.html) | [taskflow](https://github.com/taskflow/taskflow) | [cppcoro](https://github.com/andreasbuhr/cppcoro) | [coros](https://github.com/mtmucha/coros) | [HPX](https://github.com/STEllAR-GROUP/hpx) | [concurrencpp](https://github.com/David-Haim/concurrencpp) | [libcoro](https://github.com/jbaldwin/libcoro) |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Mean Ratio to Best<br>(lower is better) | 1.00x | 1.21x | 2.77x | 3.40x | 4.03x | 4.26x | 171.21x | 903.93x | 2163.58x |
-| skynet | 39050 us | 48412 us | 137643 us | 195920 us | 283737 us | 105094 us | 12080295 us | 49761721 us | 161232827 us |
-| nqueens | 79549 us | 83999 us | 162379 us | 258937 us | 187504 us | 834379 us | 8235763 us | 34641489 us | 42377788 us |
-| fib(39) | 68338 us | 102193 us | 272868 us | 257003 us | 333695 us | 179554 us | 18472130 us | 130125704 us | 272088332 us |
-| matmul(2048) | 40772 us | 42863 us | 62607 us | 63254 us | 65595 us | 49801 us | 68045 us | 73184 us | 456989 us |
+| Mean Ratio to Best<br>(lower is better) | 1.00x | 1.21x | 2.77x | 3.40x | 4.03x | 4.26x | 163.45x | 171.21x | 2163.58x |
+| skynet | 39050 us | 48412 us | 137643 us | 195920 us | 283737 us | 105094 us | 15554118 us | 12080295 us | 161232827 us |
+| nqueens | 79549 us | 83999 us | 162379 us | 258937 us | 187504 us | 834379 us | 3223386 us | 8235763 us | 42377788 us |
+| fib(39) | 68338 us | 102193 us | 272868 us | 257003 us | 333695 us | 179554 us | 14568716 us | 18472130 us | 272088332 us |
+| matmul(2048) | 40772 us | 42863 us | 62607 us | 63254 us | 65595 us | 49801 us | 71952 us | 68045 us | 456989 us |
 
 <details>
 <summary>Click to view the machine configuration used in the summary table</summary>

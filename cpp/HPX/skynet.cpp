@@ -68,9 +68,14 @@ hpx::future<size_t> skynet_one(size_t BaseNum, size_t Depth) {
     // However it still causes a huge memory blowup, even when using 1 thread
     // and running with --hpx:queuing=abp-priority-lifo which SHOULD prevent
     // this memory blowup...
+    //
     // But the memory blowup is not as high as using the default HPX stackful
-    // coroutines approach. It eventually stabilizes at ~29GB mem used, which
+    // coroutines approach. It eventually stabilizes at ~24GB mem used, which
     // means this can actually complete on a consumer grade system.
+    //
+    // Adding hpx::launch::fork increases the speed of the benchmark, but pushes
+    // memory usage over 30GB which will cause OOM on several of the test
+    // machines. Thus it is not included here.
     futures[idx] =
       hpx::async(skynet_one<DepthMax>, BaseNum + depthOffset * idx, Depth + 1);
   }
@@ -175,8 +180,9 @@ int main(int argc, char* argv[]) {
   // Force HPX to use the most efficient (?) queue mode
   hpx::local::init_params init_args;
   init_args.cfg = {
-    "hpx.os_threads=" + std::to_string(thread_count),
-    "--hpx:queuing=abp-priority-lifo"
+    "hpx.os_threads=" + std::to_string(thread_count)
+    // ,
+    // "--hpx:queuing=abp-priority-lifo"
   };
 
   return hpx::local::init(hpx_main, argc, argv, init_args);

@@ -128,8 +128,9 @@ int main(int argc, char* argv[]) {
   // Force HPX to use the most efficient (?) queue mode
   hpx::local::init_params init_args;
   init_args.cfg = {
-    "hpx.os_threads=" + std::to_string(thread_count),
-    "--hpx:queuing=abp-priority-lifo"
+    "hpx.os_threads=" + std::to_string(thread_count)
+    // ,
+    // "--hpx:queuing=abp-priority-lifo"
   };
 
   return hpx::local::init(hpx_main, argc, argv, init_args);

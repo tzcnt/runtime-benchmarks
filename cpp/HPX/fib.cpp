@@ -43,6 +43,9 @@ hpx::future<size_t> fib(size_t n) {
   if (n < 2)
     co_return n;
 
+  // Adding hpx::launch::fork increases the speed of the other benchmarks.
+  // However, it also increases memory consumption, and on this benchmark causes
+  // OOM (> 128GB mem used).
   hpx::future<size_t> n1 = hpx::async(fib, n - 1);
   size_t n2 = co_await fib(n - 2);
   co_return co_await n1 + n2;
@@ -61,6 +64,21 @@ hpx::future<size_t> fib(size_t n) {
 //   hpx::future<size_t> n1 = hpx::async(fib, n - 1);
 //   size_t n2 = fib(n - 2);
 //   return n1.get() + n2;
+// }
+
+// // This version also causes HUGE memory blowup
+// void fib(size_t n, size_t* result) {
+//   if (n < 2) {
+//     *result = n;
+//     return;
+//   }
+//   size_t x, y;
+//   hpx::experimental::task_group tg;
+//   tg.run(fib, n - 1, &x);
+//   tg.run(fib, n - 2, &y);
+//   tg.wait();
+//   auto r = x + y;
+//   *result = r;
 // }
 
 int hpx_main(hpx::program_options::variables_map&) {
@@ -105,8 +123,9 @@ int main(int argc, char* argv[]) {
   // Force HPX to use the most efficient (?) queue mode
   hpx::local::init_params init_args;
   init_args.cfg = {
-    "hpx.os_threads=" + std::to_string(thread_count),
-    "--hpx:queuing=abp-priority-lifo"
+    "hpx.os_threads=" + std::to_string(thread_count)
+    // ,
+    // "--hpx:queuing=abp-priority-lifo"
   };
 
   return hpx::local::init(hpx_main, argc, argv, init_args);
