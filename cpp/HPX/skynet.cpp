@@ -165,7 +165,12 @@ int hpx_main(hpx::program_options::variables_map&) {
     hpx::threads::policies::scheduler_mode::steal_after_local
   );
 
-  skynet<8>(); // warmup
+  // This benchmark peaks around 27GB usage on
+  // the warmup, and then the real run goes to 30.5GB which causes OOM kill on
+  // my 32GB RAM systems. So I can only reliably complete this benchmark with
+  // the warmup disabled.
+  // skynet<8>(); // warmup
+
   loop_skynet<8>();
 
   return hpx::local::finalize();
