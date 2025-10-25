@@ -65,10 +65,10 @@ hpx::future<int> nqueens(int xMax, std::array<char, N> buf) {
   std::array<hpx::future<int>, nqueens_work> taskArr;
   for (auto y : ys) {
     buf[xMax] = y;
-    taskArr[taskCount] =
-      hpx::async(hpx::launch::fork, [=]() -> hpx::future<int> {
-        return nqueens<nqueens_work>(xMax + 1, buf);
-      });
+    // Adding hpx::launch::fork causes occasional segfaults
+    taskArr[taskCount] = hpx::async([=]() -> hpx::future<int> {
+      return nqueens<nqueens_work>(xMax + 1, buf);
+    });
     ++taskCount;
   }
   auto futures =
