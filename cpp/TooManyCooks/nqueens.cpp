@@ -79,7 +79,10 @@ int main(int argc, char* argv[]) {
     thread_count = static_cast<size_t>(atoi(argv[1]));
   }
   std::printf("threads: %" PRIu64 "\n", thread_count);
-  tmc::cpu_executor().set_thread_count(thread_count).init();
+  tmc::cpu_executor()
+    .set_thread_count(thread_count)
+    .set_thread_pinning_level(tmc::topology::ThreadPinningLevel::CORE)
+    .init();
 
   return tmc::async_main([]() -> tmc::task<int> {
     {
