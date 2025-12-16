@@ -64,10 +64,11 @@ tmc::task<size_t> skynet_one(size_t BaseNum, size_t Depth) {
 
   /// Concise and slightly faster way to run subtasks
   std::array<size_t, 10> results = co_await tmc::spawn_many<10>(
-    (std::ranges::views::iota(0UL) |
-     std::ranges::views::transform([=](size_t idx) {
-       return skynet_one<DepthMax>(BaseNum + depthOffset * idx, Depth + 1);
-     })
+    (
+      std::ranges::views::iota(0UL) |
+      std::ranges::views::transform([=](size_t idx) {
+        return skynet_one<DepthMax>(BaseNum + depthOffset * idx, Depth + 1);
+      })
     ).begin()
   );
 
@@ -102,7 +103,10 @@ int main(int argc, char* argv[]) {
     thread_count = static_cast<size_t>(atoi(argv[1]));
   }
   std::printf("threads: %" PRIu64 "\n", thread_count);
-  tmc::cpu_executor().set_thread_count(thread_count).init();
+  tmc::cpu_executor()
+    .set_thread_count(thread_count)
+    .set_thread_pinning_level(tmc::topology::ThreadPinningLevel::CORE)
+    .init();
   return tmc::async_main([]() -> tmc::task<int> {
     co_await skynet<8>(); // warmup
     co_await loop_skynet<8>();

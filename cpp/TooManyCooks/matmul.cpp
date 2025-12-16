@@ -96,7 +96,10 @@ int main(int argc, char* argv[]) {
   }
   int n = atoi(argv[1]);
   std::printf("threads: %zu\n", thread_count);
-  tmc::cpu_executor().set_thread_count(thread_count).init();
+  tmc::cpu_executor()
+    .set_thread_count(thread_count)
+    .set_thread_pinning_level(tmc::topology::ThreadPinningLevel::CORE)
+    .init();
 
   run_matmul(n); // warmup
 
