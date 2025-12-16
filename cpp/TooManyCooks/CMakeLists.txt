@@ -20,6 +20,8 @@ add_definitions(
     # "-DTMC_WORK_ITEM=CORO" # one of: CORO, FUNC, FUNCORO, FUNCORO32
 )
 
+add_compile_options("-mcx16")
+
 include(../1CMake/CPM.cmake)
 
 include_directories("../2common")
@@ -61,35 +63,19 @@ if(TMC_USE_HWLOC)
     endif()
 endif()
 
-# Since each new coroutine requires an allocation,
-# they are sensitive to allocator performance.
-# Any of tcmalloc, mimalloc, or jemalloc provide
-# greatly superior performance to the default glibc malloc.
-# Try to find any of these 3 before falling back to default.
-find_package(libtcmalloc)
+# Get snmalloc per https://github.com/microsoft/snmalloc/blob/main/docs/BUILDING.md
+set(SNMALLOC_HEADER_ONLY_LIBRARY ON)
+CPMAddPackage(
+    NAME snmalloc
+    GIT_REPOSITORY https://github.com/microsoft/snmalloc.git
+    GIT_TAG 0.7.3
+    DOWNLOAD_ONLY)
 
-if(LIBTCMALLOC_FOUND)
-    set(MALLOC_LIB "${LIBTCMALLOC_LIBRARY}")
-    message(STATUS "Using malloc: ${MALLOC_LIB}")
-else()
-    find_package(libmimalloc)
+include_directories(
+    ${snmalloc_SOURCE_DIR}/src
+)
 
-    if(LIBMIMALLOC_FOUND)
-        set(MALLOC_LIB "${LIBMIMALLOC_LIBRARY}")
-        message(STATUS "Using malloc: ${MALLOC_LIB}")
-    else()
-        find_package(libjemalloc)
-
-        if(LIBJEMALLOC_FOUND)
-            set(MALLOC_LIB "${LIBJEMALLOC_LIBRARY}")
-            message(STATUS "Using malloc: ${MALLOC_LIB}")
-        else()
-            message(STATUS "Using malloc: default")
-        endif()
-    endif()
-endif()
-
-link_libraries(${MALLOC_LIB})
+add_compile_definitions(SNMALLOC_USE_WAIT_ON_ADDRESS=0)
 
 add_executable(fib fib.cpp)
 
