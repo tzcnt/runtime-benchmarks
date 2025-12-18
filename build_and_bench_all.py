@@ -51,7 +51,7 @@ collect_results = {
     "matmul": [{"params": "2048"}]
 }
 
-threads_sweep = [1,2,4,8,16,32,48,64]
+threads_sweep = [1,2,4,8,16,32,48,64,96,128]
 
 def get_nproc():
     try:
@@ -64,11 +64,7 @@ def get_threads_sweep():
     proc = get_nproc()
     if len(sys.argv) == 1:
         return [proc]
-    result = []
-    for t in threads_sweep:
-        if t <= proc:
-            result.append(t)
-    return result
+    return threads_sweep
 
 def get_dur_in_us(dur_string):
     dur, unit = dur_string.split(" ")

@@ -38,7 +38,7 @@ else()
     CPMAddPackage(
         NAME TooManyCooks
         GIT_REPOSITORY https://github.com/tzcnt/TooManyCooks.git
-        GIT_TAG v1.1.0
+        GIT_TAG 5fcbb9f5484dbf1aaca96af7eaba640a1be88cc0
         DOWNLOAD_ONLY)
     include_directories(
         ${TooManyCooks_SOURCE_DIR}/include
@@ -46,19 +46,15 @@ else()
 endif()
 
 # HWLOC support
-option(TMC_USE_HWLOC "libhwloc" ON)
+message(STATUS "TMC_USE_HWLOC: running find_package(libhwloc)...")
+find_package(libhwloc)
 
-if(TMC_USE_HWLOC)
-    message(STATUS "TMC_USE_HWLOC: running find_package(libhwloc)...")
-    find_package(libhwloc)
-
-    if(NOT LIBHWLOC_FOUND)
-        message(WARNING "TMC_USE_HWLOC: WARNING - libhwloc was not found. Building without it... this may affect performance.")
-    else()
-        message(STATUS "TMC_USE_HWLOC: using ${LIBHWLOC_LIBRARY}")
-        add_compile_definitions(TMC_USE_HWLOC)
-        link_libraries(${LIBHWLOC_LIBRARY})
-    endif()
+if(NOT LIBHWLOC_FOUND)
+    message(FATAL_ERROR "TMC_USE_HWLOC: libhwloc was not found.")
+else()
+    message(STATUS "TMC_USE_HWLOC: using ${LIBHWLOC_LIBRARY}")
+    add_compile_definitions(TMC_USE_HWLOC)
+    link_libraries(${LIBHWLOC_LIBRARY})
 endif()
 
 # Since each new coroutine requires an allocation,
@@ -72,21 +68,7 @@ if(LIBTCMALLOC_FOUND)
     set(MALLOC_LIB "${LIBTCMALLOC_LIBRARY}")
     message(STATUS "Using malloc: ${MALLOC_LIB}")
 else()
-    find_package(libmimalloc)
-
-    if(LIBMIMALLOC_FOUND)
-        set(MALLOC_LIB "${LIBMIMALLOC_LIBRARY}")
-        message(STATUS "Using malloc: ${MALLOC_LIB}")
-    else()
-        find_package(libjemalloc)
-
-        if(LIBJEMALLOC_FOUND)
-            set(MALLOC_LIB "${LIBJEMALLOC_LIBRARY}")
-            message(STATUS "Using malloc: ${MALLOC_LIB}")
-        else()
-            message(STATUS "Using malloc: default")
-        endif()
-    endif()
+    message(FATAL_ERROR "tcmalloc was not found.")
 endif()
 
 link_libraries(${MALLOC_LIB})
