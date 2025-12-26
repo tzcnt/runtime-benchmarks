@@ -45,7 +45,7 @@ Benchmark problem sizes were chosen to balance between making the total runtime 
 - TBB benchmarks depend on system installed TBB - see the [installation guide here for the newest version](https://www.intel.com/content/www/us/en/docs/oneapi/installation-guide-linux/2024-2/apt.html) or you may be able to find the old version 'libtbb-dev' in your system package manager
 - A high performance allocator (tcmalloc, jemalloc, or mimalloc) is also recommended. The build script will dynamically link to any of these if they are available.
 
-`apt-get install cmake libhwloc-dev intel-oneapi-tbb-devel libtcmalloc-minimal4`
+`apt-get install cmake hwloc libhwloc-dev intel-oneapi-tbb-devel libtcmalloc-minimal4`
 
 #### Get Quick Results (uses threads = #CPUs):
 
