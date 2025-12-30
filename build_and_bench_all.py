@@ -10,6 +10,7 @@ import os
 import subprocess
 import yaml
 import sys
+import ast
 
 runtimes = {
     "cpp": ["libfork", "TooManyCooks", "tbb", "taskflow", "cppcoro", "coros", "concurrencpp", "HPX", "libcoro"]
@@ -51,24 +52,12 @@ collect_results = {
     "matmul": [{"params": "2048"}]
 }
 
-threads_sweep = [1,2,4,8,16,32,48,64]
-
-def get_nproc():
-    try:
-        #return int(subprocess.run(args=f"getconf _NPROCESSORS_ONLN 2>/dev/null || sysctl -n hw.ncpu", shell=True, capture_output=True, text=True).stdout)
-        return int(subprocess.run(args=f"./get_nproc.sh", shell=True, capture_output=True, text=True).stdout)
-    except:
-        return 8
-    
 def get_threads_sweep():
-    proc = get_nproc()
-    if len(sys.argv) == 1:
-        return [proc]
-    result = []
-    for t in threads_sweep:
-        if t <= proc:
-            result.append(t)
-    return result
+    try:
+        s = subprocess.run(args=f"./cpp/TooManyCooks/build/threads_sweep", shell=True, capture_output=True, text=True).stdout
+        return ast.literal_eval(s)
+    except:
+        return [1,2,4,8]
 
 def get_dur_in_us(dur_string):
     dur, unit = dur_string.split(" ")
