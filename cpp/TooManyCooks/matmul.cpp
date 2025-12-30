@@ -98,7 +98,7 @@ int main(int argc, char* argv[]) {
   std::printf("threads: %zu\n", thread_count);
   tmc::cpu_executor()
     .set_thread_count(thread_count)
-    .set_thread_pinning_level(tmc::topology::ThreadPinningLevel::CORE)
+    .set_thread_pinning_level(tmc::topology::thread_pinning_level::CORE)
     .init();
 
   run_matmul(n); // warmup

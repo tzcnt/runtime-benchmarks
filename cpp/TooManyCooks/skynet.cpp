@@ -105,7 +105,7 @@ int main(int argc, char* argv[]) {
   std::printf("threads: %" PRIu64 "\n", thread_count);
   tmc::cpu_executor()
     .set_thread_count(thread_count)
-    .set_thread_pinning_level(tmc::topology::ThreadPinningLevel::CORE)
+    .set_thread_pinning_level(tmc::topology::thread_pinning_level::CORE)
     .init();
   return tmc::async_main([]() -> tmc::task<int> {
     co_await skynet<8>(); // warmup
