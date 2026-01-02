@@ -17,9 +17,11 @@
 #include <cstdio>
 #include <cstdlib>
 #include <ranges>
+#include <optional>
 
 static size_t thread_count = std::thread::hardware_concurrency() / 2;
 static const size_t iter_count = 1;
+std::optional<tf::Executor> executor;
 
 inline constexpr int nqueens_work = 14;
 
@@ -36,7 +38,7 @@ void check_answer(int result) {
 }
 
 template <size_t N>
-void nqueens(tf::Runtime& rt, int xMax, std::array<char, N> buf, int& out) {
+void nqueens(int xMax, std::array<char, N> buf, int& out) {
   if (N == xMax) {
     out = 1;
     return;
@@ -60,15 +62,18 @@ void nqueens(tf::Runtime& rt, int xMax, std::array<char, N> buf, int& out) {
       buf[xMax] = y;
       size_t idx = taskCount;
       ++taskCount;
-      return [xMax, buf, idx, &results](tf::Runtime& s) {
-        nqueens(s, xMax + 1, buf, results[idx]);
+      return [xMax, buf, idx, &results]() {
+        nqueens(xMax + 1, buf, results[idx]);
       };
     });
 
+
+  tf::TaskGroup tg = executor->task_group();
+
   for (auto&& t : tasks) {
-    rt.silent_async(t);
+    tg.silent_async(t);
   }
-  rt.corun_all();
+  tg.corun();
 
   int ret = 0;
   for (size_t i = 0; i < taskCount; ++i) {
@@ -83,14 +88,12 @@ int main(int argc, char* argv[]) {
     thread_count = static_cast<size_t>(atoi(argv[1]));
   }
   std::printf("threads: %zu\n", thread_count);
-  tf::Executor executor(thread_count);
-  tf::Taskflow taskflow;
+  executor.emplace(thread_count);
 
   {
     std::array<char, nqueens_work> buf{};
     int result;
-    taskflow.emplace([&](tf::Runtime& rt) { nqueens(rt, 0, buf, result); });
-    executor.run(taskflow).wait();
+    executor->async([&]() { nqueens( 0, buf, result); }).get();
     check_answer(result);
   }
 
@@ -99,8 +102,7 @@ int main(int argc, char* argv[]) {
   for (size_t i = 0; i < iter_count; ++i) {
     std::array<char, nqueens_work> buf{};
     int result;
-    taskflow.emplace([&](tf::Runtime& rt) { nqueens(rt, 0, buf, result); });
-    executor.run(taskflow).wait();
+    executor->async([&]() { nqueens( 0, buf, result); }).get();
     check_answer(result);
     std::printf("output: %d\n", result);
   }

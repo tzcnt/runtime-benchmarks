@@ -17,7 +17,7 @@ include(../1CMake/CPM.cmake)
 CPMAddPackage(
     NAME taskflow
     GIT_REPOSITORY https://github.com/taskflow/taskflow.git
-    GIT_TAG v3.10.0
+    GIT_TAG v4.0.0
     DOWNLOAD_ONLY)
 
 include_directories(
