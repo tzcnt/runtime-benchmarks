@@ -106,6 +106,9 @@ int main(int argc, char* argv[]) {
   tmc::cpu_executor()
     .set_thread_count(thread_count)
     .set_thread_pinning_level(tmc::topology::thread_pinning_level::CORE)
+    // This workload performs better with LATTICE_MATRIX due to its high degree
+    // of nested parallelism
+    .set_work_stealing_strategy(tmc::work_stealing_strategy::LATTICE_MATRIX)
     .init();
   return tmc::async_main([]() -> tmc::task<int> {
     co_await skynet<8>(); // warmup
