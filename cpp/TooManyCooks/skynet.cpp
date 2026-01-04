@@ -31,6 +31,7 @@
 #define TMC_IMPL
 
 #include "tmc/ex_cpu.hpp"
+#include "tmc/spawn_group.hpp"
 #include "tmc/spawn_many.hpp"
 #include "tmc/task.hpp"
 
@@ -42,6 +43,58 @@
 
 static size_t thread_count = std::thread::hardware_concurrency() / 2;
 static const size_t iter_count = 1;
+
+template <size_t DepthMax>
+tmc::task<size_t> skynet_leaf(size_t BaseNum, size_t Depth) {
+  co_return BaseNum;
+}
+
+template <size_t DepthMax>
+tmc::task<size_t> skynet_branch(size_t BaseNum, size_t Depth) {
+  size_t depthOffset = 1;
+  for (size_t i = 0; i < DepthMax - Depth - 1; ++i) {
+    depthOffset *= 10;
+  }
+  auto sg = tmc::spawn_group<10, tmc::task<size_t>>();
+  co_await sg.add_clang(
+    skynet_leaf<DepthMax>(BaseNum + depthOffset * 0, Depth + 1)
+  );
+  co_await sg.add_clang(
+    skynet_leaf<DepthMax>(BaseNum + depthOffset * 1, Depth + 1)
+  );
+  co_await sg.add_clang(
+    skynet_leaf<DepthMax>(BaseNum + depthOffset * 2, Depth + 1)
+  );
+  co_await sg.add_clang(
+    skynet_leaf<DepthMax>(BaseNum + depthOffset * 3, Depth + 1)
+  );
+  co_await sg.add_clang(
+    skynet_leaf<DepthMax>(BaseNum + depthOffset * 4, Depth + 1)
+  );
+  co_await sg.add_clang(
+    skynet_leaf<DepthMax>(BaseNum + depthOffset * 5, Depth + 1)
+  );
+  co_await sg.add_clang(
+    skynet_leaf<DepthMax>(BaseNum + depthOffset * 6, Depth + 1)
+  );
+  co_await sg.add_clang(
+    skynet_leaf<DepthMax>(BaseNum + depthOffset * 7, Depth + 1)
+  );
+  co_await sg.add_clang(
+    skynet_leaf<DepthMax>(BaseNum + depthOffset * 8, Depth + 1)
+  );
+  co_await sg.add_clang(
+    skynet_leaf<DepthMax>(BaseNum + depthOffset * 9, Depth + 1)
+  );
+
+  std::array<size_t, 10> results = co_await std::move(sg);
+
+  size_t count = 0;
+  for (size_t idx = 0; idx < 10; ++idx) {
+    count += results[idx];
+  }
+  co_return count;
+}
 
 template <size_t DepthMax>
 tmc::task<size_t> skynet_one(size_t BaseNum, size_t Depth) {
@@ -63,14 +116,25 @@ tmc::task<size_t> skynet_one(size_t BaseNum, size_t Depth) {
   // tmc::spawn_many<10>(children.data());
 
   /// Concise and slightly faster way to run subtasks
-  std::array<size_t, 10> results = co_await tmc::spawn_many<10>(
-    (
-      std::ranges::views::iota(0UL) |
-      std::ranges::views::transform([=](size_t idx) {
-        return skynet_one<DepthMax>(BaseNum + depthOffset * idx, Depth + 1);
-      })
-    ).begin()
-  );
+  std::array<size_t, 10> results;
+  if (Depth == DepthMax - 2) {
+    results = co_await tmc::spawn_many<10>(
+      (std::ranges::views::iota(0UL) |
+       std::ranges::views::transform([=](size_t idx) {
+         return skynet_branch<DepthMax>(BaseNum + depthOffset * idx, Depth + 1);
+       }))
+        .begin()
+    );
+  } else {
+    results = co_await tmc::spawn_many<10>(
+      (
+        std::ranges::views::iota(0UL) |
+        std::ranges::views::transform([=](size_t idx) {
+          return skynet_one<DepthMax>(BaseNum + depthOffset * idx, Depth + 1);
+        })
+      ).begin()
+    );
+  }
 
   size_t count = 0;
   for (size_t idx = 0; idx < 10; ++idx) {
@@ -78,6 +142,7 @@ tmc::task<size_t> skynet_one(size_t BaseNum, size_t Depth) {
   }
   co_return count;
 }
+
 template <size_t DepthMax> tmc::task<void> skynet() {
   size_t count = co_await skynet_one<DepthMax>(0, 0);
   if (count != 4999999950000000) {
