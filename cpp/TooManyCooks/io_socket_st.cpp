@@ -18,19 +18,31 @@
 #include "tmc/task.hpp"
 
 #ifdef TMC_USE_BOOST_ASIO
+#include <boost/asio/basic_socket_acceptor.hpp>
+#include <boost/asio/basic_stream_socket.hpp>
 #include <boost/asio/buffer.hpp>
+#include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/write.hpp>
 
 namespace asio = boost::asio;
 using boost::system::error_code;
 #else
+#include <asio/basic_socket_acceptor.hpp>
+#include <asio/basic_stream_socket.hpp>
 #include <asio/buffer.hpp>
+#include <asio/io_context.hpp>
 #include <asio/ip/tcp.hpp>
 #include <asio/write.hpp>
 
 using asio::error_code;
 #endif
+
+using acceptor_t =
+  asio::basic_socket_acceptor<asio::ip::tcp, asio::io_context::executor_type>;
+
+using socket_t =
+  asio::basic_stream_socket<asio::ip::tcp, asio::io_context::executor_type>;
 
 #include <cstdint>
 #include <cstdio>
@@ -90,7 +102,7 @@ server_handler(auto Socket, size_t Count, tmc::chan_tok<result> Results) {
 static tmc::task<void> server(tmc::ex_asio& ex, uint16_t Port) {
   // TODO Replace this with async barrier
   auto finished_chan = tmc::make_channel<result>();
-  tcp::acceptor acceptor(ex, {tcp::v4(), Port});
+  acceptor_t acceptor(ex, {tcp::v4(), Port});
 
   for (size_t i = 0; i < CONNECTION_COUNT; ++i) {
     auto [error, sock] = co_await acceptor.async_accept(tmc::aw_asio);
@@ -121,7 +133,7 @@ static tmc::task<void> server(tmc::ex_asio& ex, uint16_t Port) {
 
 static tmc::task<void>
 client_handler(tmc::ex_asio& ex, uint16_t Port, size_t Count) {
-  tcp::socket s(ex);
+  socket_t s(ex);
   co_await s.async_connect({tcp::v4(), Port}, tmc::aw_asio);
 
   auto d = asio::buffer(static_request);
