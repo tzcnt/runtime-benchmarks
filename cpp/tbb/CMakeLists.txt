@@ -63,4 +63,8 @@ add_executable(skynet skynet.cpp)
 
 add_executable(nqueens nqueens.cpp)
 
+# nqueens is particularly sensitive to misaligned loops,
+# which could cause minor library changes to cause big performance variations
+target_compile_options(nqueens PRIVATE "-falign-loops=64")
+
 add_executable(matmul matmul.cpp)
