@@ -38,7 +38,7 @@ else()
     CPMAddPackage(
         NAME TooManyCooks
         GIT_REPOSITORY https://github.com/tzcnt/TooManyCooks.git
-        GIT_TAG v1.1.0
+        GIT_TAG v1.3.0
         DOWNLOAD_ONLY)
     include_directories(
         ${TooManyCooks_SOURCE_DIR}/include
@@ -97,4 +97,10 @@ add_executable(skynet skynet.cpp)
 
 add_executable(nqueens nqueens.cpp)
 
+# nqueens is particularly sensitive to misaligned loops,
+# which could cause minor library changes to cause big performance variations
+target_compile_options(nqueens PRIVATE "-falign-loops=64")
+
 add_executable(matmul matmul.cpp)
+
+add_executable(threads_sweep threads_sweep.cpp)

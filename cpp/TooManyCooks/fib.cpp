@@ -70,7 +70,10 @@ int main(int argc, char* argv[]) {
   size_t n = static_cast<size_t>(atoi(argv[1]));
 
   std::printf("threads: %" PRIu64 "\n", thread_count);
-  tmc::cpu_executor().set_thread_count(thread_count).init();
+  tmc::cpu_executor()
+    .set_thread_count(thread_count)
+    .set_thread_pinning_level(tmc::topology::thread_pinning_level::CORE)
+    .init();
 
   return tmc::async_main([](size_t N) -> tmc::task<int> {
     auto result = co_await fib(30); // warmup
