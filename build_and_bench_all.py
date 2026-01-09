@@ -1,8 +1,8 @@
+#!/usr/bin/env python3
+
 # build and execute every benchmark in every runtime
 # collate the results and sort them according to Mean Ratio to Best
 # update the README with the table of results
-
-# this script is a total hack job... but it works.
 
 import datetime
 import json
