@@ -15,12 +15,14 @@
 #include <cstdio>
 #include <cstdlib>
 #include <exception>
+#include <optional>
 #include <vector>
 
 static size_t thread_count = std::thread::hardware_concurrency() / 2;
 static const size_t iter_count = 1;
+std::optional<tf::Executor> executor;
 
-void matmul(tf::Runtime& rt, int* a, int* b, int* c, int n, int N) {
+void matmul(int* a, int* b, int* c, int n, int N) {
   if (n <= 32) {
     // Base case: Use simple triple-loop multiplication for small matrices
     matmul_small(a, b, c, n, N);
@@ -28,31 +30,24 @@ void matmul(tf::Runtime& rt, int* a, int* b, int* c, int n, int N) {
     // Recursive case: Divide the matrices into 4 submatrices and multiply them
     int k = n / 2;
 
+    tf::TaskGroup tg = executor->task_group();
     // Split the execution into 2 sections to ensure output locations are not
     // written in parallel
-    rt.silent_async([=](tf::Runtime& s) { matmul(s, a, b, c, k, N); });
-    rt.silent_async([=](tf::Runtime& s) { matmul(s, a, b + k, c + k, k, N); });
-    rt.silent_async([=](tf::Runtime& s) {
-      matmul(s, a + k * N, b, c + k * N, k, N);
-    });
-    rt.silent_async([=](tf::Runtime& s) {
-      matmul(s, a + k * N, b + k, c + k * N + k, k, N);
-    });
-    rt.corun_all();
+    tg.silent_async([=]() { matmul(a, b, c, k, N); });
+    tg.silent_async([=]() { matmul(a, b + k, c + k, k, N); });
+    tg.silent_async([=]() { matmul(a + k * N, b, c + k * N, k, N); });
+    // Compute one branch synchronously
+    matmul(a + k * N, b + k, c + k * N + k, k, N);
+    tg.corun();
 
-    rt.silent_async([=](tf::Runtime& s) {
-      matmul(s, a + k, b + k * N, c, k, N);
+    tg.silent_async([=]() { matmul(a + k, b + k * N, c, k, N); });
+    tg.silent_async([=]() { matmul(a + k, b + k * N + k, c + k, k, N); });
+    tg.silent_async([=]() {
+      matmul(a + k * N + k, b + k * N, c + k * N, k, N);
     });
-    rt.silent_async([=](tf::Runtime& s) {
-      matmul(s, a + k, b + k * N + k, c + k, k, N);
-    });
-    rt.silent_async([=](tf::Runtime& s) {
-      matmul(s, a + k * N + k, b + k * N, c + k * N, k, N);
-    });
-    rt.silent_async([=](tf::Runtime& s) {
-      matmul(s, a + k * N + k, b + k * N + k, c + k * N + k, k, N);
-    });
-    rt.corun_all();
+    // Compute one branch synchronously
+    matmul(a + k * N + k, b + k * N + k, c + k * N + k, k, N);
+    tg.corun();
   }
 }
 
@@ -73,9 +68,7 @@ std::vector<int> run_matmul(tf::Executor& executor, int N) {
     }
   }
 
-  tf::Taskflow taskflow;
-  taskflow.emplace([=](tf::Runtime& rt) { matmul(rt, a, b, c, N, N); });
-  executor.run(taskflow).wait();
+  executor.async([=]() { matmul(a, b, c, N, N); }).get();
   return C;
 }
 
@@ -117,11 +110,11 @@ int main(int argc, char* argv[]) {
   }
   int n = atoi(argv[1]);
   std::printf("threads: %zu\n", thread_count);
-  tf::Executor executor(thread_count);
+  executor.emplace(thread_count);
 
-  run_matmul(executor, n); // warmup
+  run_matmul(*executor, n); // warmup
 
   std::printf("runs:\n");
 
-  run_one(executor, n);
+  run_one(*executor, n);
 }

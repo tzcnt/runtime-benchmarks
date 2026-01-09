@@ -10,20 +10,26 @@
 #include <cinttypes>
 #include <cstdio>
 #include <cstdlib>
+#include <optional>
 #include <thread>
 
 static size_t thread_count = std::thread::hardware_concurrency() / 2;
 static const size_t iter_count = 1;
+std::optional<tf::Executor> executor;
 
-size_t fib(size_t n, tf::Runtime& rt) {
+size_t fib(size_t n) {
   if (n < 2) {
     return n;
   }
-  size_t x, y;
-  rt.silent_async([&x, n](tf::Runtime& s) { x = fib(n - 1, s); });
-  rt.silent_async([&y, n](tf::Runtime& s) { y = fib(n - 2, s); });
 
-  rt.corun_all();
+  tf::TaskGroup tg = executor->task_group();
+
+  size_t x, y;
+
+  tg.silent_async([n, &x]() { x = fib(n - 1); });
+  y = fib(n - 2); // compute one branch synchronously
+
+  tg.corun();
   return x + y;
 }
 
@@ -37,21 +43,19 @@ int main(int argc, char* argv[]) {
   }
   size_t n = static_cast<size_t>(atoi(argv[1]));
 
-  tf::Executor executor(thread_count);
-  tf::Taskflow taskflow("fibonacci");
+  executor.emplace(thread_count);
 
   std::printf("threads: %zu\n", thread_count);
 
   size_t result = 0;
 
-  taskflow.emplace([&result, n](tf::Runtime& rt) { result = fib(n, rt); });
-  executor.run(taskflow).wait();
+  executor->async([&result, n]() { result = fib(n); }).get();
 
   auto startTime = std::chrono::high_resolution_clock::now();
 
   for (size_t i = 0; i < iter_count; ++i) {
     result = 0;
-    executor.run(taskflow).wait();
+    executor->async([&result, n]() { result = fib(n); }).get();
     std::printf("output: %zu\n", result);
   }
 
