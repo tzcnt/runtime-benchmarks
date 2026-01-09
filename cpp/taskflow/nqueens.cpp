@@ -18,7 +18,6 @@
 #include <cstdlib>
 #include <optional>
 #include <ranges>
-#include <optional>
 
 static size_t thread_count = std::thread::hardware_concurrency() / 2;
 static const size_t iter_count = 1;
