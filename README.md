@@ -1,19 +1,19 @@
 # runtime-benchmarks
 Benchmarks to compare the performance of async runtimes / executors.
 
-[<img src="https://fleetcode.com/runtime-benchmarks/splash.png?">](https://fleetcode.com/runtime-benchmarks/)
+[<img src="https://fleetcode.com/runtime-benchmarks/splash-1.png">](https://fleetcode.com/runtime-benchmarks/)
 
 An interactive view of the full results dataset is available at: https://fleetcode.com/runtime-benchmarks/
 
 Results summary table of a single configuration:
 
-| Runtime | [libfork](https://github.com/ConorWilliams/libfork) | [TooManyCooks](https://github.com/tzcnt/TooManyCooks) | [tbb](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onetbb.html) | [cppcoro](https://github.com/andreasbuhr/cppcoro) | [taskflow](https://github.com/taskflow/taskflow) | [coros](https://github.com/mtmucha/coros) | [HPX](https://github.com/STEllAR-GROUP/hpx) | [concurrencpp](https://github.com/David-Haim/concurrencpp) | [libcoro](https://github.com/jbaldwin/libcoro) |
+| Runtime | [libfork](https://github.com/ConorWilliams/libfork) | [TooManyCooks](https://github.com/tzcnt/TooManyCooks) | [tbb](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onetbb.html) | [taskflow](https://github.com/taskflow/taskflow) | [cppcoro](https://github.com/andreasbuhr/cppcoro) | [coros](https://github.com/mtmucha/coros) | [HPX](https://github.com/STEllAR-GROUP/hpx) | [concurrencpp](https://github.com/David-Haim/concurrencpp) | [libcoro](https://github.com/jbaldwin/libcoro) |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Mean Ratio to Best<br>(lower is better) | 1.00x | 1.18x | 2.77x | 2.85x | 3.43x | 4.31x | 161.07x | 171.82x | 2246.25x |
-| skynet | 39909 us | 47183 us | 139988 us | 145840 us | 201392 us | 102525 us | 15548196 us | 12333520 us | 156037584 us |
-| nqueens | 80369 us | 82674 us | 165430 us | 183119 us | 258068 us | 863669 us | 3170738 us | 8256568 us | 42238496 us |
-| fib(39) | 67544 us | 98931 us | 269527 us | 277267 us | 263881 us | 182708 us | 14420956 us | 18497745 us | 306545929 us |
-| matmul(2048) | 41013 us | 42837 us | 62564 us | 55103 us | 63544 us | 50453 us | 71603 us | 66590 us | 456916 us |
+| Mean Ratio to Best<br>(lower is better) | 1.00x | 1.11x | 2.79x | 2.95x | 3.00x | 4.41x | 164.68x | 172.02x | 2247.44x |
+| skynet(8) | 39509 us | 46285 us | 141389 us | 205437 us | 171084 us | 104557 us | 15275347 us | 12211548 us | 155806778 us |
+| fib(39) | 67773 us | 82517 us | 269588 us | 200510 us | 264781 us | 172050 us | 14422928 us | 18555453 us | 304651430 us |
+| nqueens(14) | 78595 us | 83610 us | 163150 us | 166061 us | 173162 us | 883629 us | 4522909 us | 8142602 us | 42437681 us |
+| matmul(2048) | 41751 us | 41608 us | 64036 us | 63297 us | 64771 us | 50476 us | 72353 us | 67167 us | 459776 us |
 
 <details>
 <summary>Click to view the machine configuration used in the summary table</summary>
@@ -21,7 +21,7 @@ Results summary table of a single configuration:
 - Processor: EPYC 7742 64-core processor
 - Worker Thread Count: 64 (no SMT)
 - OS: Debian 13 Server
-- Compiler: Clang 21.1.3 Release (-O3 -march=native)
+- Compiler: Clang 21.1.7 Release (-O3 -march=native)
 - CPU boost enabled / schedutil governor
 - Linked against libtcmalloc_minimal.so.4
 
