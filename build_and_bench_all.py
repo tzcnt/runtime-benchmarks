@@ -52,14 +52,37 @@ collect_results = {
     "matmul": [{"params": "2048"}]
 }
 
+# Fallback to a shell script for hardware core count detection if the user didn't build TMC
+def get_nproc_fallback():
+    try:
+        return int(subprocess.run(args=f"./get_nproc.sh", shell=True, capture_output=True, text=True).stdout)
+    except:
+        return 8
+    
+def get_threads_sweep_fallback():
+    proc = get_nproc_fallback()
+    if len(sys.argv) == 1:
+        return [proc] # Only test at max cores if user didn't pass "full" arg
+    result = []
+    for t in [1,2,4,8,16,32,64]:
+        if t < proc:
+            result.append(t)
+        if t >= proc:
+            result.append(proc)
+            break
+    return result
+
 # This executable produces a sweep from 1 to NCORES, but inserts breakpoints at any relevant breakpoints,
 # e.g. at the number of P-cores. It uses TooManyCooks's hardware detection capabilities but isn't part of the benchmark suite.
 def get_threads_sweep():
     try:
         s = subprocess.run(args=f"./cpp/TooManyCooks/build/threads_sweep", shell=True, capture_output=True, text=True).stdout
-        return ast.literal_eval(s)
+        sweep = ast.literal_eval(s)
+        if len(sys.argv) == 1:
+            return [sweep[-1]] # Only test at max cores if user didn't pass "full" arg
+        return sweep
     except:
-        return [1,2,4,8]
+        return get_threads_sweep_fallback()
 
 def get_dur_in_us(dur_string):
     dur, unit = dur_string.split(" ")
@@ -93,6 +116,7 @@ for language, runtime_names in runtimes.items():
 
 # Run sweep runtime -> benchmark -> threads
 threads = get_threads_sweep()
+print(f"Threads sweep: {threads}")
 for language, runtime_names in runtimes.items():
     for runtime in runtime_names:
         for bench_name in benchmarks_order:
