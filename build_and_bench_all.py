@@ -13,7 +13,7 @@ import sys
 import ast
 
 runtimes = {
-    "cpp": ["libfork", "TooManyCooks", "tbb", "taskflow", "cppcoro", "coros", "concurrencpp", "HPX", "libcoro"]
+    "cpp": ["libfork", "TooManyCooks", "tbb", "taskflow", "cppcoro", "concurrencpp"]
 }
 
 runtime_links = {
@@ -88,18 +88,17 @@ def get_dur_in_us(dur_string):
     dur, unit = dur_string.split(" ")
     dur = int(dur)
     # convert all units to microseconds for comparison
-    match unit:
-        case "us":
-            return dur
-        case "ms":
-            return dur * 1000
-        case "s":
-            return dur * 1000000
-        case "sec":
-            return dur * 1000000
-        case _:
-            print(f"Unknown unit: {unit}")
-            exit(1)
+    if unit == "us":
+        return dur
+    elif unit == "ms":
+        return dur * 1000
+    elif unit == "s":
+        return dur * 1000000
+    elif unit == "sec":
+        return dur * 1000000
+    else:
+        print(f"Unknown unit: {unit}")
+        exit(1)
 
 root_dir = os.path.abspath(os.path.dirname(__file__))
 
