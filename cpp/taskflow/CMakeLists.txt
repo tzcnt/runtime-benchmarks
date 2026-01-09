@@ -10,6 +10,7 @@ set(CMAKE_CXX_STANDARD 20)
 
 add_definitions(
     "-march=native"
+    "-DTF_ENABLE_ATOMIC_NOTIFIER"
 )
 
 include(../1CMake/CPM.cmake)
