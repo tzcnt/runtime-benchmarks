@@ -16,8 +16,8 @@
 #include <cinttypes>
 #include <cstdio>
 #include <cstdlib>
-#include <ranges>
 #include <optional>
+#include <ranges>
 
 static size_t thread_count = std::thread::hardware_concurrency() / 2;
 static const size_t iter_count = 1;
@@ -37,8 +37,7 @@ void check_answer(int result) {
   }
 }
 
-template <size_t N>
-void nqueens(int xMax, std::array<char, N> buf, int& out) {
+template <size_t N> void nqueens(int xMax, std::array<char, N> buf, int& out) {
   if (N == xMax) {
     out = 1;
     return;
@@ -62,11 +61,9 @@ void nqueens(int xMax, std::array<char, N> buf, int& out) {
       buf[xMax] = y;
       size_t idx = taskCount;
       ++taskCount;
-      return [xMax, buf, idx, &results]() {
-        nqueens(xMax + 1, buf, results[idx]);
-      };
+      return
+        [xMax, buf, idx, &results]() { nqueens(xMax + 1, buf, results[idx]); };
     });
-
 
   tf::TaskGroup tg = executor->task_group();
 
@@ -93,7 +90,7 @@ int main(int argc, char* argv[]) {
   {
     std::array<char, nqueens_work> buf{};
     int result;
-    executor->async([&]() { nqueens( 0, buf, result); }).get();
+    executor->async([&]() { nqueens(0, buf, result); }).get();
     check_answer(result);
   }
 
@@ -102,7 +99,7 @@ int main(int argc, char* argv[]) {
   for (size_t i = 0; i < iter_count; ++i) {
     std::array<char, nqueens_work> buf{};
     int result;
-    executor->async([&]() { nqueens( 0, buf, result); }).get();
+    executor->async([&]() { nqueens(0, buf, result); }).get();
     check_answer(result);
     std::printf("output: %d\n", result);
   }

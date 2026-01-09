@@ -40,8 +40,7 @@ static size_t thread_count = std::thread::hardware_concurrency() / 2;
 static const size_t iter_count = 1;
 std::optional<tf::Executor> executor;
 
-template <size_t DepthMax>
-size_t skynet_one(size_t BaseNum, size_t Depth) {
+template <size_t DepthMax> size_t skynet_one(size_t BaseNum, size_t Depth) {
   if (Depth == DepthMax) {
     return BaseNum;
   }
@@ -72,9 +71,7 @@ size_t skynet_one(size_t BaseNum, size_t Depth) {
 }
 template <size_t DepthMax> void skynet(tf::Executor& executor) {
   size_t count;
-  executor.async([&]() {
-    count = skynet_one<DepthMax>(0, 0);
-  }).get();
+  executor.async([&]() { count = skynet_one<DepthMax>(0, 0); }).get();
   if (count != 4999999950000000) {
     std::printf("ERROR: wrong result - %" PRIu64 "\n", count);
   }

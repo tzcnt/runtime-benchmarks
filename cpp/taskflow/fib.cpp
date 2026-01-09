@@ -10,8 +10,8 @@
 #include <cinttypes>
 #include <cstdio>
 #include <cstdlib>
-#include <thread>
 #include <optional>
+#include <thread>
 
 static size_t thread_count = std::thread::hardware_concurrency() / 2;
 static const size_t iter_count = 1;
@@ -23,11 +23,11 @@ size_t fib(size_t n) {
   }
 
   tf::TaskGroup tg = executor->task_group();
-  
+
   size_t x, y;
 
-  tg.silent_async([n, &x](){ x = fib(n-1); });
-  y = fib(n-2);  // compute one branch synchronously
+  tg.silent_async([n, &x]() { x = fib(n - 1); });
+  y = fib(n - 2); // compute one branch synchronously
 
   tg.corun();
   return x + y;

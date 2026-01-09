@@ -35,19 +35,13 @@ void matmul(int* a, int* b, int* c, int n, int N) {
     // written in parallel
     tg.silent_async([=]() { matmul(a, b, c, k, N); });
     tg.silent_async([=]() { matmul(a, b + k, c + k, k, N); });
-    tg.silent_async([=]() {
-      matmul(a + k * N, b, c + k * N, k, N);
-    });
+    tg.silent_async([=]() { matmul(a + k * N, b, c + k * N, k, N); });
     // Compute one branch synchronously
     matmul(a + k * N, b + k, c + k * N + k, k, N);
     tg.corun();
 
-    tg.silent_async([=]() {
-      matmul(a + k, b + k * N, c, k, N);
-    });
-    tg.silent_async([=]() {
-      matmul(a + k, b + k * N + k, c + k, k, N);
-    });
+    tg.silent_async([=]() { matmul(a + k, b + k * N, c, k, N); });
+    tg.silent_async([=]() { matmul(a + k, b + k * N + k, c + k, k, N); });
     tg.silent_async([=]() {
       matmul(a + k * N + k, b + k * N, c + k * N, k, N);
     });
