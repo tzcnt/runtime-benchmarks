@@ -14,7 +14,7 @@ import ast
 import platform
 
 runtimes = {
-    "cpp": ["libfork", "TooManyCooks", "tbb", "taskflow", "cppcoro", "concurrencpp"]
+    "cpp": ["libfork", "TooManyCooks", "tbb", "taskflow", "cppcoro", "coros", "concurrencpp", "HPX", "libcoro"]
 }
 
 runtime_links = {
