@@ -11,6 +11,7 @@ import subprocess
 import yaml
 import sys
 import ast
+import platform
 
 runtimes = {
     "cpp": ["libfork", "TooManyCooks", "tbb", "taskflow", "cppcoro", "concurrencpp"]
@@ -111,6 +112,11 @@ for language, runtime_names in runtimes.items():
         runtime_root_dir = os.path.join(root_dir, language, runtime)
         print(f"Building {runtime}")
         build_script = os.path.join(runtime_root_dir, "build_all.sh")
+        if platform.system() == "Darwin":
+            build_script += " clang-macos-release"
+        elif platform.system() == "Windows":
+            build_script += " clang-win-release"
+        #else Linux is the default
         subprocess.run(args=build_script, shell=True, cwd=runtime_root_dir)
 
 # Run sweep runtime -> benchmark -> threads
