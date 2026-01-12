@@ -12,9 +12,6 @@ add_definitions(
 
     # Performance tuning options
     "-march=native"
-
-    # Instructs libfork to use hwloc.
-    "-DLF_USE_HWLOC"
 )
 
 include(../1CMake/CPM.cmake)
@@ -28,6 +25,28 @@ include_directories(
     ${libfork_SOURCE_DIR}/include
     "../2common"
 )
+
+
+option(LF_USE_HWLOC "libhwloc" ON)
+
+if(LF_USE_HWLOC)
+    if(APPLE)
+        message(STATUS "LF_USE_HWLOC: disabled on MacOS")
+    else()
+        message(STATUS "LF_USE_HWLOC: running find_package(libhwloc)...")
+        find_package(libhwloc)
+
+        if(NOT LIBHWLOC_FOUND)
+            message(WARNING "LF_USE_HWLOC: WARNING - libhwloc was not found. Building without it... this may affect performance.")
+        else()
+            message(STATUS "LF_USE_HWLOC: found library ${LIBHWLOC_LIBRARY}")
+            message(STATUS "LF_USE_HWLOC: found include ${LIBHWLOC_INCLUDE_DIR}/hwloc.h")
+            link_libraries(${LIBHWLOC_LIBRARY})
+            include_directories(${LIBHWLOC_INCLUDE_DIR})
+            add_compile_definitions(LF_USE_HWLOC)
+        endif()
+    endif()
+endif()
 
 # Since each new coroutine requires an allocation,
 # they are sensitive to allocator performance.
@@ -57,7 +76,7 @@ else()
     endif()
 endif()
 
-link_libraries(${MALLOC_LIB} libfork::libfork hwloc)
+link_libraries(${MALLOC_LIB} libfork::libfork)
 
 add_executable(fib fib.cpp)
 

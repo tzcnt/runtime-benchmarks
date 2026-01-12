@@ -11,6 +11,7 @@ import subprocess
 import yaml
 import sys
 import ast
+import platform
 
 runtimes = {
     "cpp": ["libfork", "TooManyCooks", "tbb", "taskflow", "cppcoro", "coros", "concurrencpp", "HPX", "libcoro"]
@@ -88,18 +89,17 @@ def get_dur_in_us(dur_string):
     dur, unit = dur_string.split(" ")
     dur = int(dur)
     # convert all units to microseconds for comparison
-    match unit:
-        case "us":
-            return dur
-        case "ms":
-            return dur * 1000
-        case "s":
-            return dur * 1000000
-        case "sec":
-            return dur * 1000000
-        case _:
-            print(f"Unknown unit: {unit}")
-            exit(1)
+    if unit == "us":
+        return dur
+    elif unit == "ms":
+        return dur * 1000
+    elif unit == "s":
+        return dur * 1000000
+    elif unit == "sec":
+        return dur * 1000000
+    else:
+        print(f"Unknown unit: {unit}")
+        exit(1)
 
 root_dir = os.path.abspath(os.path.dirname(__file__))
 
@@ -112,6 +112,11 @@ for language, runtime_names in runtimes.items():
         runtime_root_dir = os.path.join(root_dir, language, runtime)
         print(f"Building {runtime}")
         build_script = os.path.join(runtime_root_dir, "build_all.sh")
+        if platform.system() == "Darwin":
+            build_script += " clang-macos-release"
+        elif platform.system() == "Windows":
+            build_script += " clang-win-release"
+        #else Linux is the default
         subprocess.run(args=build_script, shell=True, cwd=runtime_root_dir)
 
 # Run sweep runtime -> benchmark -> threads
@@ -194,17 +199,27 @@ for runtime, runtime_results in full_results.items():
 if len(sys.argv) != 1:
     print("Generating RESULTS.json...")
     try:
+        # Linux
         model_name_raw = subprocess.run(args=f"lscpu | grep \"Model name:\"", shell=True, capture_output=True, text=True)
         model_name = model_name_raw.stdout.split(":")[1].strip()
         md["cpu"] = model_name
     except:
-        md["cpu"] = "unknown"
+        try:
+            # MacOS
+            md["cpu"] = subprocess.run(args=f"sysctl -n machdep.cpu.brand_string", shell=True, capture_output=True, text=True).stdout
+        except:
+            md["cpu"] = "unknown"
     try:
+        # Linux
         model_name_raw = subprocess.run(args=f"lscpu | grep \"per socket:\"", shell=True, capture_output=True, text=True)
         model_name = model_name_raw.stdout.split(":")[1].strip()
         md["cores"] = model_name
     except:
-        md["cores"] = "unknown"
+        try:
+            # MacOS
+            md["cores"] = subprocess.run(args=f"sysctl -n machdep.cpu.core_count", shell=True, capture_output=True, text=True).stdout
+        except:
+            md["cores"] = "unknown"
     try:
         kernel_raw = subprocess.run(args=f"uname -v", shell=True, capture_output=True, text=True)
         kernel = kernel_raw.stdout.strip()

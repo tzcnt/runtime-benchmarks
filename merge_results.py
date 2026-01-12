@@ -9,18 +9,18 @@ import sys
 def get_dur_in_us(dur_string):
     dur, unit = dur_string.split(" ")
     dur = int(dur)
-    match unit:
-        case "us":
-            return dur
-        case "ms":
-            return dur * 1000
-        case "s":
-            return dur * 1000000
-        case "sec":
-            return dur * 1000000
-        case _:
-            print(f"Unknown unit: {unit}")
-            exit(1)
+    # convert all units to microseconds for comparison
+    if unit == "us":
+        return dur
+    elif unit == "ms":
+        return dur * 1000
+    elif unit == "s":
+        return dur * 1000000
+    elif unit == "sec":
+        return dur * 1000000
+    else:
+        print(f"Unknown unit: {unit}")
+        exit(1)
 
 def merge_results(dest_file, source_file):
     with open(source_file, 'r') as f:
