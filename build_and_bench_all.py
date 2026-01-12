@@ -193,17 +193,27 @@ for runtime, runtime_results in full_results.items():
 if len(sys.argv) != 1:
     print("Generating RESULTS.json...")
     try:
+        # Linux
         model_name_raw = subprocess.run(args=f"lscpu | grep \"Model name:\"", shell=True, capture_output=True, text=True)
         model_name = model_name_raw.stdout.split(":")[1].strip()
         md["cpu"] = model_name
     except:
-        md["cpu"] = "unknown"
+        try:
+            # MacOS
+            md["cpu"] = subprocess.run(args=f"sysctl -n machdep.cpu.brand_string", shell=True, capture_output=True, text=True).stdout
+        except:
+            md["cpu"] = "unknown"
     try:
+        # Linux
         model_name_raw = subprocess.run(args=f"lscpu | grep \"per socket:\"", shell=True, capture_output=True, text=True)
         model_name = model_name_raw.stdout.split(":")[1].strip()
         md["cores"] = model_name
     except:
-        md["cores"] = "unknown"
+        try:
+            # MacOS
+            md["cores"] = subprocess.run(args=f"sysctl -n machdep.cpu.core_count", shell=True, capture_output=True, text=True).stdout
+        except:
+            md["cores"] = "unknown"
     try:
         kernel_raw = subprocess.run(args=f"uname -v", shell=True, capture_output=True, text=True)
         kernel = kernel_raw.stdout.strip()
