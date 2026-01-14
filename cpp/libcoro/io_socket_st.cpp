@@ -2,7 +2,6 @@
 // Listens on http://localhost:55550/
 
 #include "coro/coro.hpp"
-#include "coro/net/connect.hpp"
 
 #include <cstddef>
 #include <cstdint>

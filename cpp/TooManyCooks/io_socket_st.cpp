@@ -1,8 +1,6 @@
 // A simple "Hello, World!" HTTP response server
 // Listens on http://localhost:55550/
 
-#include <cstddef>
-#include <thread>
 #ifdef _WIN32
 #include <SDKDDKVer.h>
 #endif
@@ -11,8 +9,7 @@
 
 #include "tmc/asio/aw_asio.hpp"
 #include "tmc/asio/ex_asio.hpp"
-#include "tmc/channel.hpp"
-#include "tmc/spawn.hpp"
+#include "tmc/fork_group.hpp"
 #include "tmc/spawn_many.hpp"
 #include "tmc/sync.hpp"
 #include "tmc/task.hpp"
@@ -46,9 +43,11 @@ using acceptor_t =
 using socket_t =
   asio::basic_stream_socket<asio::ip::tcp, asio::io_context::executor_type>;
 
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -74,63 +73,55 @@ struct result {
 
 // not safe to accept rvalue reference
 // have to accept value so that it gets moved when the coro is constructed
-tmc::task<void>
-server_handler(auto Socket, size_t Count, tmc::chan_tok<result> Results) {
+tmc::task<result> server_handler(auto Socket, size_t Count) {
   char data[4096];
   size_t i = 0;
   for (; i < Count; ++i) {
     auto d = asio::buffer(data);
     auto [error, n] = co_await Socket.async_read_some(d, tmc::aw_asio);
     if (error) {
-      Results.post(result{error, i});
       Socket.close();
-      co_return;
+      co_return result{error, i};
     }
 
     auto d2 = asio::buffer(static_response);
     std::tie(error, n) = co_await asio::async_write(Socket, d2, tmc::aw_asio);
     if (error) {
-      Results.post(result{error, i});
       Socket.close();
-      co_return;
+      co_return result{error, i};
     }
   }
 
   Socket.shutdown(tcp::socket::shutdown_both);
   Socket.close();
-  Results.post(result{error_code{}, i});
+  co_return result{error_code{}, i};
 }
 
 static tmc::task<void> server(tmc::ex_asio& ex, uint16_t Port) {
-  // TODO Replace this with async barrier
-  auto finished_chan = tmc::make_channel<result>();
   acceptor_t acceptor(ex, {tcp::v4(), Port});
 
+  auto handlers = tmc::fork_group<result>(CONNECTION_COUNT);
   for (size_t i = 0; i < CONNECTION_COUNT; ++i) {
     auto [error, sock] = co_await acceptor.async_accept(tmc::aw_asio);
     if (error) {
+      std::printf("FAIL in accept: %s", error.message().c_str());
       std::terminate();
     }
-    // TODO Replace this with async barrier
-    tmc::spawn(server_handler(std::move(sock), REQUEST_COUNT, finished_chan))
-      .detach();
+    handlers.fork(server_handler(std::move(sock), REQUEST_COUNT));
   }
+  auto results = co_await std::move(handlers);
 
   auto eof = asio::error::make_error_code(asio::error::misc_errors::eof);
-
   size_t total = 0;
   for (size_t i = 0; i < CONNECTION_COUNT; ++i) {
-    auto result = co_await finished_chan.pull();
-    if (!result.has_value()) {
-      std::terminate();
-    }
+    auto& result = results[i];
     // EOF is the expected error on the server side, since clients close the
     // connection.
-    if (result.value().ec != eof) {
-      auto msg = result.value().ec.message();
+    if (result.ec != eof) {
+      auto msg = result.ec.message();
       std::printf("FAIL in server: %s\n", msg.c_str());
     }
-    total += result.value().recv_count;
+    total += result.recv_count;
   }
   if (total != REQUEST_COUNT) {
     std::printf(
@@ -165,7 +156,7 @@ client_handler(tmc::ex_asio& ex, uint16_t Port, size_t Count) {
     }
   }
   if (!s.is_open()) {
-    std::printf("client finished early\n");
+    std::printf("FAIL in client: finished early\n");
     std::terminate();
   }
 
@@ -180,9 +171,8 @@ static tmc::task<void> client(tmc::ex_asio& ex, uint16_t Port) {
   for (size_t i = 0; i < CONNECTION_COUNT; ++i) {
     size_t count = i < rem ? per_task + 1 : per_task;
     clients[i] = client_handler(ex, Port, count);
-    // co_await client_handler(ex, Port, count);
   }
-  co_await tmc::spawn_many(clients.begin(), clients.end());
+  co_await tmc::spawn_many(clients);
 }
 
 int main(int argc, char* argv[]) {
