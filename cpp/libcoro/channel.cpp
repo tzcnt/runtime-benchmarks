@@ -50,24 +50,25 @@ struct result {
 
 coro::task<result> producer(
   coro::queue<size_t>& chan, size_t count, size_t base,
-  std::atomic<size_t>& countDown, coro::thread_pool& tp
+  std::atomic<size_t>& countDown, std::unique_ptr<coro::thread_pool>& tp
 ) {
-  co_await tp.schedule();
+  co_await tp->schedule();
   for (size_t i = 0; i < count; ++i) {
-    auto result = co_await chan.push(base + i);
+    [[maybe_unused]] auto result = co_await chan.push(base + i);
     assert(result == coro::queue_produce_result::produced);
   }
 
   // Since we can't fork and await them separately in the main task, one of the
   // producers has to handle shutting down the channel.
   if (countDown.fetch_sub(1) == 1) {
-    co_await chan.shutdown_notify_waiters_drain(tp);
+    co_await chan.shutdown_drain(tp);
   }
   co_return {};
 }
 
-coro::task<result> consumer(coro::queue<size_t>& chan, coro::thread_pool& tp) {
-  co_await tp.schedule();
+coro::task<result>
+consumer(coro::queue<size_t>& chan, std::unique_ptr<coro::thread_pool>& tp) {
+  co_await tp->schedule();
   size_t count = 0;
   size_t sum = 0;
   auto data = co_await chan.pop();
@@ -79,7 +80,7 @@ coro::task<result> consumer(coro::queue<size_t>& chan, coro::thread_pool& tp) {
   co_return result{count, sum};
 }
 
-static coro::task<size_t> do_bench(coro::thread_pool& tp) {
+static coro::task<size_t> do_bench(std::unique_ptr<coro::thread_pool>& tp) {
   auto chan = coro::queue<size_t>();
   size_t per_task = element_count / producer_count;
   size_t rem = element_count % producer_count;
@@ -138,38 +139,41 @@ int main(int argc, char* argv[]) {
 
   std::printf("threads: %zu\n", thread_count);
   std::printf("producers: %zu\n", producer_count);
-  std::printf("threads: %zu\n", consumer_count);
-  coro::thread_pool tp{coro::thread_pool::options{
-    .thread_count = static_cast<uint32_t>(thread_count)
-  }};
+  std::printf("consumers: %zu\n", consumer_count);
+  std::unique_ptr<coro::thread_pool> tp = coro::thread_pool::make_unique(
+    coro::thread_pool::options{.thread_count = static_cast<uint32_t>(8)}
+  );
 
-  return coro::sync_wait([](coro::thread_pool& tp) -> coro::task<int> {
-    co_await tp.schedule();
-    {
-      auto result = co_await do_bench(tp); // warmup
-      std::printf("output: %zu\n", result);
-    }
+  return coro::sync_wait(
+    [](std::unique_ptr<coro::thread_pool>& tp) -> coro::task<int> {
+      co_await tp->schedule();
+      {
+        auto result = co_await do_bench(tp); // warmup
+        std::printf("output: %zu\n", result);
+      }
 
-    auto startTime = std::chrono::high_resolution_clock::now();
+      auto startTime = std::chrono::high_resolution_clock::now();
 
-    for (size_t i = 0; i < iter_count; ++i) {
-      auto result = co_await do_bench(tp);
-    }
+      for (size_t i = 0; i < iter_count; ++i) {
+        [[maybe_unused]] auto result = co_await do_bench(tp);
+      }
 
-    auto endTime = std::chrono::high_resolution_clock::now();
-    auto totalTimeUs =
-      std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime)
-        .count();
+      auto endTime = std::chrono::high_resolution_clock::now();
+      auto totalTimeUs = std::chrono::duration_cast<std::chrono::microseconds>(
+                           endTime - startTime
+      )
+                           .count();
 
-    size_t elementsPerSec = static_cast<size_t>(
-      static_cast<float>(element_count) * 1000000.0f /
-      static_cast<float>(totalTimeUs)
-    );
-    std::printf("runs:\n");
-    std::printf("  - iteration_count: %zu\n", iter_count);
-    std::printf("    elements: %zu\n", element_count);
-    std::printf("    duration: %zu us\n", totalTimeUs);
-    std::printf("    elements/sec: %zu\n", elementsPerSec);
-    co_return 0;
-  }(tp));
+      size_t elementsPerSec = static_cast<size_t>(
+        static_cast<float>(element_count) * 1000000.0f /
+        static_cast<float>(totalTimeUs)
+      );
+      std::printf("runs:\n");
+      std::printf("  - iteration_count: %zu\n", iter_count);
+      std::printf("    elements: %zu\n", element_count);
+      std::printf("    duration: %zu us\n", totalTimeUs);
+      std::printf("    elements/sec: %zu\n", elementsPerSec);
+      co_return 0;
+    }(tp)
+  );
 }

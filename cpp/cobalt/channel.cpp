@@ -36,7 +36,7 @@
 
 namespace cobalt = boost::cobalt;
 
-static size_t producer_count = 4;
+static size_t producer_count = 1;
 static size_t consumer_count = 1;
 static const size_t iter_count = 1;
 
