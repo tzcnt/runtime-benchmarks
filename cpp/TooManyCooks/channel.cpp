@@ -31,14 +31,14 @@
 #include "tmc/asio/ex_asio.hpp"
 
 #include <chrono>
-#include <cinttypes>
+#include <cstddef>
 #include <cstdio>
 #include <cstdlib>
 #include <thread>
 
 static size_t thread_count = std::thread::hardware_concurrency() / 2;
 static size_t producer_count = 4;
-static size_t consumer_count = 1;
+static size_t consumer_count = 4;
 static const size_t iter_count = 1;
 
 static constexpr size_t element_count = 10000000;
@@ -49,7 +49,7 @@ using token = tmc::chan_tok<size_t>;
 
 tmc::task<void> producer(token chan, size_t count, size_t base) {
   for (size_t i = 0; i < count; ++i) {
-    bool ok = chan.post(base + i);
+    bool ok = co_await chan.push(base + i);
     assert(ok);
   }
   co_return;
@@ -63,32 +63,35 @@ struct result {
 tmc::task<result> consumer(token chan) {
   size_t count = 0;
   size_t sum = 0;
-  auto data = co_await chan.pull();
-  while (data.has_value()) {
+  while (auto data = co_await chan.pull()) {
     ++count;
     sum += data.value();
-    data = co_await chan.pull();
   }
   co_return result{count, sum};
 }
 
 static tmc::task<size_t> do_bench() {
   auto chan = tmc::make_channel<size_t>();
+
+  // Yeah it's a benchmark, let's spin a bit.
+  // The other libraries don't let you configure this. Too bad ;)
+  chan.set_consumer_spins(10);
+
   size_t per_task = element_count / producer_count;
   size_t rem = element_count % producer_count;
-  std::vector<tmc::task<void>> prod(producer_count);
+  std::vector<tmc::task<void>> producers(producer_count);
   size_t base = 0;
   for (size_t i = 0; i < producer_count; ++i) {
     size_t count = i < rem ? per_task + 1 : per_task;
-    prod[i] = producer(chan, count, base);
+    producers[i] = producer(chan, count, base);
     base += count;
   }
-  std::vector<tmc::task<result>> cons(consumer_count);
+  std::vector<tmc::task<result>> consumers(consumer_count);
   for (size_t i = 0; i < consumer_count; ++i) {
-    cons[i] = consumer(chan);
+    consumers[i] = consumer(chan);
   }
-  auto c = tmc::spawn_many(cons.data(), cons.size()).fork();
-  co_await tmc::spawn_many(prod.data(), prod.size());
+  auto c = tmc::spawn_many(consumers).fork();
+  co_await tmc::spawn_many(producers);
 
   co_await chan.drain();
   auto consResults = co_await std::move(c);
@@ -130,7 +133,14 @@ int main(int argc, char* argv[]) {
     consumer_count = static_cast<size_t>(atoi(argv[3]));
   }
 
-  // TODO implement ex_asio / ex_cpu executor switch based on command line
+  // Allow switching between asio executor and ex_cpu so that we can compare
+  // just the channel performance against boost::cobalt which also uses Asio.
+  bool use_asio = false;
+  if (argc > 4) {
+    if (std::string(argv[4]) == "asio") {
+      use_asio = true;
+    }
+  }
 
   expected_sum = 0;
   for (size_t i = 0; i < element_count; ++i) {
@@ -143,8 +153,8 @@ int main(int argc, char* argv[]) {
   tmc::cpu_executor().set_thread_count(thread_count).init();
   tmc::asio_executor().init();
 
-  tmc::ex_any* exec = false ? tmc::cpu_executor().type_erased()
-                            : tmc::asio_executor().type_erased();
+  tmc::ex_any* exec = use_asio ? tmc::asio_executor().type_erased()
+                               : tmc::cpu_executor().type_erased();
 
   {
     auto result = tmc::post_waitable(exec, do_bench()).get(); // warmup
