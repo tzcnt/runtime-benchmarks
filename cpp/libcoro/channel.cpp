@@ -119,7 +119,16 @@ static coro::task<size_t> do_bench(std::unique_ptr<coro::thread_pool>& tp) {
 int main(int argc, char* argv[]) {
   if (argc > 1) {
     thread_count = static_cast<size_t>(atoi(argv[1]));
+    auto c = thread_count / 2;
+    if (c == 0) {
+      c = 1;
+    }
+    producer_count = c;
+    consumer_count = c;
   }
+
+  // Allow configuring producer and consumer counts separately for testing
+  // This isn't used by the bench script
   if (argc > 2) {
     producer_count = static_cast<size_t>(atoi(argv[2]));
     consumer_count = static_cast<size_t>(atoi(argv[2]));

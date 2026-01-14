@@ -35,8 +35,8 @@
 
 namespace cobalt = boost::cobalt;
 
-static size_t producer_count = 1;
-static size_t consumer_count = 1;
+static size_t producer_count = 4;
+static size_t consumer_count = 4;
 static const size_t iter_count = 1;
 
 static constexpr size_t element_count = 10000000;
@@ -110,10 +110,8 @@ static cobalt::task<size_t> do_bench() {
 cobalt::main co_main(int argc, char* argv[]) {
   if (argc > 1) {
     auto thread_count = static_cast<size_t>(atoi(argv[1]));
-    if (thread_count != 1) {
-      std::printf("boost::cobalt channel benchmark only supports 1 thread.\n");
-      co_return -1;
-    }
+    // cobalt doesn't actually support multiple threads but we can still scale
+    // the number of producers and consumers on a single thread
     auto c = thread_count / 2;
     if (c == 0) {
       c = 1;
@@ -121,6 +119,9 @@ cobalt::main co_main(int argc, char* argv[]) {
     producer_count = c;
     consumer_count = c;
   }
+
+  // Allow configuring producer and consumer counts separately for testing
+  // This isn't used by the bench script
   if (argc > 2) {
     producer_count = static_cast<size_t>(atoi(argv[2]));
     consumer_count = static_cast<size_t>(atoi(argv[2]));

@@ -49,7 +49,7 @@ using token = tmc::chan_tok<size_t>;
 
 tmc::task<void> producer(token chan, size_t count, size_t base) {
   for (size_t i = 0; i < count; ++i) {
-    bool ok = co_await chan.push(base + i);
+    bool ok = chan.post(base + i);
     assert(ok);
   }
   co_return;
@@ -125,21 +125,27 @@ int main(int argc, char* argv[]) {
     producer_count = c;
     consumer_count = c;
   }
-  if (argc > 2) {
-    producer_count = static_cast<size_t>(atoi(argv[2]));
-    consumer_count = static_cast<size_t>(atoi(argv[2]));
-  }
-  if (argc > 3) {
-    consumer_count = static_cast<size_t>(atoi(argv[3]));
-  }
 
   // Allow switching between asio executor and ex_cpu so that we can compare
   // just the channel performance against boost::cobalt which also uses Asio.
+  // If asio is specified, the number of threads doesn't actually apply (same
+  // as cobalt, it's single-threaded), but we can scale the number of
+  // consumers and producers.
   bool use_asio = false;
-  if (argc > 4) {
+  if (argc > 2) {
     if (std::string(argv[4]) == "asio") {
       use_asio = true;
     }
+  }
+
+  // Allow configuring producer and consumer counts separately for testing
+  // This isn't used by the bench script
+  if (argc > 3) {
+    producer_count = static_cast<size_t>(atoi(argv[3]));
+    consumer_count = static_cast<size_t>(atoi(argv[3]));
+  }
+  if (argc > 4) {
+    consumer_count = static_cast<size_t>(atoi(argv[4]));
   }
 
   expected_sum = 0;
