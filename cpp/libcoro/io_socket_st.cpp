@@ -9,9 +9,7 @@
 #include <cstdio>
 #include <memory>
 #include <string>
-#include <thread>
 #include <utility>
-#include <vector>
 
 const uint16_t PORT = 55550;
 static size_t REQUEST_COUNT = 100000;
