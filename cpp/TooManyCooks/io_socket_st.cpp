@@ -24,6 +24,7 @@
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/write.hpp>
+#include <boost/system/error_code.hpp>
 
 namespace asio = boost::asio;
 using boost::system::error_code;
@@ -31,6 +32,7 @@ using boost::system::error_code;
 #include <asio/basic_socket_acceptor.hpp>
 #include <asio/basic_stream_socket.hpp>
 #include <asio/buffer.hpp>
+#include <asio/error_code.hpp>
 #include <asio/io_context.hpp>
 #include <asio/ip/tcp.hpp>
 #include <asio/write.hpp>
@@ -109,19 +111,25 @@ static tmc::task<void> server(tmc::ex_asio& ex, uint16_t Port) {
     if (error) {
       std::terminate();
     }
+    // TODO Replace this with async barrier
     tmc::spawn(server_handler(std::move(sock), REQUEST_COUNT, finished_chan))
       .detach();
   }
+
+  auto eof = asio::error::make_error_code(asio::error::misc_errors::eof);
+
   size_t total = 0;
   for (size_t i = 0; i < CONNECTION_COUNT; ++i) {
     auto result = co_await finished_chan.pull();
     if (!result.has_value()) {
       std::terminate();
     }
-    // if (result.value().ec) {
-    //   auto msg = result.value().ec.message();
-    //   std::printf("FAIL in server: %s\n", msg.c_str());
-    // }
+    // EOF is the expected error on the server side, since clients close the
+    // connection.
+    if (result.value().ec != eof) {
+      auto msg = result.value().ec.message();
+      std::printf("FAIL in server: %s\n", msg.c_str());
+    }
     total += result.value().recv_count;
   }
   if (total != REQUEST_COUNT) {
