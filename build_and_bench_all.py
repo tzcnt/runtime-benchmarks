@@ -14,8 +14,10 @@ import ast
 import platform
 
 runtimes = {
-    "cpp": ["libfork", "TooManyCooks", "tbb", "taskflow", "cppcoro", "coros", "concurrencpp", "HPX", "libcoro"]
+    "cpp": ["libfork", "TooManyCooks",  "cobalt"]# "libcoro",
 }
+
+#"tbb", "taskflow", "cppcoro", "coros", "concurrencpp", "HPX", 
 
 runtime_links = {
     "libfork": "https://github.com/ConorWilliams/libfork",
@@ -29,7 +31,7 @@ runtime_links = {
     "libcoro": "https://github.com/jbaldwin/libcoro"
 }
 
-benchmarks_order = ["skynet", "nqueens", "fib", "matmul"]
+benchmarks_order = ["skynet", "channel"]#, "nqueens", "fib", "matmul", 
 
 benchmarks={
     "skynet": {
@@ -44,13 +46,27 @@ benchmarks={
     "matmul": {
         "params": ["2048"]
     },
+    "channel": {
+
+    }
+}
+
+# Defines which runtime+benchmark combos support multi-config execution
+# If a runtime+benchmark is listed, each config will be appended as a command argument
+# The runtime name will be suffixed with "_<config>" in output (e.g., "TooManyCooks_asio")
+# Format: { "runtime": { "benchmark": ["config1", "config2", ...], ... }, ... }
+benchmark_configs = {
+    "TooManyCooks": {
+        "channel": ["asio", "cpu"]
+    }
 }
 
 collect_results = {
     "fib": [{"params": "39"}],
     "skynet": [{"params": ""}],
     "nqueens": [{"params": ""}],
-    "matmul": [{"params": "2048"}]
+    "matmul": [{"params": "2048"}],
+    "channel": [{"params": ""}]
 }
 
 # Fallback to a shell script for hardware core count detection if the user didn't build TMC
@@ -117,7 +133,11 @@ for language, runtime_names in runtimes.items():
         elif platform.system() == "Windows":
             build_script += " clang-win-release"
         #else Linux is the default
-        subprocess.run(args=build_script, shell=True, cwd=runtime_root_dir)
+        result = subprocess.run(args=build_script, shell=True, cwd=runtime_root_dir, capture_output=True, text=True)
+        if result.returncode != 0:
+            print(f"Build failed for {runtime}:")
+            print(result.stdout)
+            print(result.stderr)
 
 # Run sweep runtime -> benchmark -> threads
 threads = get_threads_sweep()
@@ -129,30 +149,50 @@ for language, runtime_names in runtimes.items():
             bench_args = benchmarks[bench_name]
             runtime_root_dir = os.path.join(root_dir, language, runtime)
             bench_exe = os.path.join(runtime_root_dir, "build", bench_name)
-            for params in bench_args.setdefault("params",[""]):
-                for thread_count in threads:
-                    one_run = {
-                        "params": params,
-                        "threads": thread_count,
-                    }
-                    print(f"Running {bench_exe} {params} {thread_count}")
-                    output_array = subprocess.run(args=f"{bench_exe} {params} {thread_count}", shell=True, capture_output=True, text=True)
-                    try:
-                        print(output_array.stdout)
-                        raw = yaml.safe_load(output_array.stdout)
-                        result = {
-                            "duration": raw["runs"][0]["duration"]
-                        }
-                        one_run["result"] = result
-                        full_results.setdefault(runtime, {}).setdefault(bench_name, []).append(one_run)
-                    except yaml.YAMLError as exc:
-                        print(exc)
+            
+            # Get configs for this runtime+benchmark combo, or use a single empty config
+            configs = benchmark_configs.get(runtime, {}).get(bench_name, [""])
+            
+            # Skip if benchmark executable doesn't exist
+            if not os.path.exists(bench_exe):
+                continue
+            
+            for config in configs:
+                 for params in bench_args.setdefault("params",[""]):
+                     for thread_count in threads:
+                         one_run = {
+                             "params": params,
+                             "threads": thread_count,
+                             "config": config,
+                         }
+                         # Build command: exe params threads [config]
+                         cmd = f"{bench_exe} {params} {thread_count}"
+                         if config:
+                             cmd += f" {config}"
+                         
+                         print(f"Running {cmd}")
+                         output_array = subprocess.run(args=cmd, shell=True, capture_output=True, text=True)
+                         try:
+                             print(output_array.stdout)
+                             raw = yaml.safe_load(output_array.stdout)
+                             result = {
+                                 "duration": raw["runs"][0]["duration"]
+                             }
+                             one_run["result"] = result
+                             # Use config-suffixed runtime name if config is specified
+                             result_runtime = runtime if not config else f"{runtime}_{config}"
+                             full_results.setdefault(result_runtime, {}).setdefault(bench_name, []).append(one_run)
+                         except (yaml.YAMLError, Exception) as exc:
+                             print(f"Skipping result: {exc}")
+                             continue
 
 
 for bench_name in benchmarks_order:
     lowest_dur = sys.maxsize
     for language, runtime_names in runtimes.items():
         for runtime in runtime_names:
+            if bench_name not in full_results[runtime]:
+                continue
             bench_args = benchmarks[bench_name]
             for params in bench_args["params"]:
                 for i, thread_count in enumerate(threads):
@@ -161,6 +201,8 @@ for bench_name in benchmarks_order:
                         lowest_dur = dur
     for language, runtime_names in runtimes.items():
         for runtime in runtime_names:
+            if bench_name not in full_results[runtime]:
+                continue
             bench_args = benchmarks[bench_name]
             for params in bench_args["params"]:
                 for i, thread_count in enumerate(threads):
@@ -180,6 +222,8 @@ collated_results = {}
 bench_names = []
 for runtime, runtime_results in full_results.items():
     for bench_name in benchmarks_order:
+        if bench_name not in runtime_results:
+            continue
         collect = collect_results[bench_name]
         for collect_item in collect:
             which_run = 0
@@ -293,8 +337,10 @@ output_array = [["Runtime", "Mean Ratio to Best<br>(lower is better)"] + bench_n
 for runtime in sorted:
     runtime_name = runtime["runtime"]
     runtime_mean = runtime["mean"]
+    # Extract base runtime name (without _config suffix) for link lookup
+    base_runtime = runtime_name.split("_")[0]
     runtime_output = [
-        f"[{runtime_name}]({runtime_links.get(runtime_name, '')})",
+        f"[{runtime_name}]({runtime_links.get(base_runtime, '')})",
         "{:.2f}x".format(runtime_mean)
     ]
     runtime_results = collated_results[runtime_name]
