@@ -40,3 +40,4 @@ Makefile
 .vs
 .vscode
 scratch/
+AGENTS.md
