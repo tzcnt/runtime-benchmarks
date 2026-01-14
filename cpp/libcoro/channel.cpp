@@ -26,10 +26,8 @@
 // OTHER DEALINGS IN THE SOFTWARE.
 
 #include "coro/coro.hpp"
-#include "coro/thread_pool.hpp"
 
 #include <chrono>
-#include <cinttypes>
 #include <cstdio>
 #include <cstdlib>
 #include <thread>
@@ -71,11 +69,9 @@ consumer(coro::queue<size_t>& chan, std::unique_ptr<coro::thread_pool>& tp) {
   co_await tp->schedule();
   size_t count = 0;
   size_t sum = 0;
-  auto data = co_await chan.pop();
-  while (data) {
+  while (auto data = co_await chan.pop()) {
     ++count;
     sum += data.value();
-    data = co_await chan.pop();
   }
   co_return result{count, sum};
 }
@@ -141,7 +137,9 @@ int main(int argc, char* argv[]) {
   std::printf("producers: %zu\n", producer_count);
   std::printf("consumers: %zu\n", consumer_count);
   std::unique_ptr<coro::thread_pool> tp = coro::thread_pool::make_unique(
-    coro::thread_pool::options{.thread_count = static_cast<uint32_t>(8)}
+    coro::thread_pool::options{
+      .thread_count = static_cast<uint32_t>(thread_count)
+    }
   );
 
   return coro::sync_wait(

@@ -29,10 +29,9 @@
 #include <boost/cobalt.hpp>
 
 #include <chrono>
-#include <cinttypes>
+#include <cstddef>
 #include <cstdio>
 #include <cstdlib>
-#include <thread>
 
 namespace cobalt = boost::cobalt;
 
@@ -72,22 +71,22 @@ static cobalt::task<size_t> do_bench() {
   cobalt::channel<size_t> chan;
   size_t per_task = element_count / producer_count;
   size_t rem = element_count % producer_count;
-  std::vector<cobalt::promise<void>> prod;
-  prod.reserve(producer_count);
+  std::vector<cobalt::promise<void>> producers;
+  producers.reserve(producer_count);
   size_t base = 0;
   for (size_t i = 0; i < producer_count; ++i) {
     size_t count = i < rem ? per_task + 1 : per_task;
-    prod.emplace_back(producer(chan, count, base));
+    producers.emplace_back(producer(chan, count, base));
     base += count;
   }
-  std::vector<cobalt::promise<result>> cons;
-  cons.reserve(consumer_count);
+  std::vector<cobalt::promise<result>> consumers;
+  consumers.reserve(consumer_count);
   for (size_t i = 0; i < consumer_count; ++i) {
-    cons.emplace_back(consumer(chan));
+    consumers.emplace_back(consumer(chan));
   }
-  co_await cobalt::join(prod);
+  co_await cobalt::join(producers);
   chan.close();
-  auto consResults = co_await cobalt::join(cons);
+  auto consResults = co_await cobalt::join(consumers);
 
   size_t count = 0;
   size_t sum = 0;
