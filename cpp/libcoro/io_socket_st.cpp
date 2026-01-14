@@ -1,7 +1,7 @@
 // A simple "Hello, World!" HTTP response server
 // Listens on http://localhost:55550/
 
-#include "coro/coro.hpp"
+#include "coro/coro.hpp" // IWYU pragma: keep
 
 #include <cstddef>
 #include <cstdint>

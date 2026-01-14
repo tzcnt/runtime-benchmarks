@@ -28,8 +28,7 @@
 // ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 // OTHER DEALINGS IN THE SOFTWARE.
 
-#include "coro/coro.hpp"
-#include "coro/thread_pool.hpp"
+#include "coro/coro.hpp" // IWYU pragma: keep
 
 #include <chrono>
 #include <cinttypes>
@@ -96,7 +95,7 @@ int main(int argc, char* argv[]) {
 
   coro::thread_pool::options opts;
   opts.thread_count = static_cast<uint32_t>(thread_count);
-  auto tp = coro::thread_pool::make_shared(opts);
+  auto tp = coro::thread_pool::make_unique(opts);
 
   return coro::sync_wait([](coro::thread_pool& tp) -> coro::task<int> {
     co_await tp.schedule();

@@ -8,8 +8,7 @@
 // file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #include "matmul.hpp"
-#include "coro/coro.hpp"
-#include "coro/thread_pool.hpp"
+#include "coro/coro.hpp" // IWYU pragma: keep
 
 #include <chrono>
 #include <cstdio>
@@ -101,7 +100,7 @@ int main(int argc, char* argv[]) {
 
   coro::thread_pool::options opts;
   opts.thread_count = static_cast<uint32_t>(thread_count);
-  auto tp = coro::thread_pool::make_shared(opts);
+  auto tp = coro::thread_pool::make_unique(opts);
   run_matmul(*tp, n); // warmup
 
   std::printf("runs:\n");
