@@ -25,7 +25,7 @@ SET(LIBCORO_FEATURE_TLS OFF CACHE BOOL "libcoro TLS (networking)" FORCE)
 CPMAddPackage(
     NAME libcoro
     GIT_REPOSITORY https://github.com/jbaldwin/libcoro.git
-    GIT_TAG v0.15.0
+    GIT_TAG 44d12235a218a93cf6ce462f67c06a1287901c54
     DOWNLOAD_ONLY)
 
 include_directories(${libcoro_SOURCE_DIR}/include)
