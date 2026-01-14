@@ -46,8 +46,6 @@ struct result {
 
 using token = cobalt::channel<result>;
 
-// not safe to accept rvalue reference
-// have to accept value so that it gets moved when the coro is constructed
 cobalt::detached server_handler(auto Socket, size_t Count, token& Results) {
   char data[4096];
   result r;
@@ -86,13 +84,21 @@ cobalt::thread server(uint16_t Port) {
   size_t total = 0;
   for (size_t i = 0; i < CONNECTION_COUNT; ++i) {
     auto result = co_await finished_chan.read();
-    // if (result.ec) {
-    //   try {
-    //     std::rethrow_exception(result.ec);
-    //   } catch (const std::exception& e) {
-    //     std::printf("FAIL in server: %s\n", e.what());
-    //   }
-    // }
+    if (result.ec) {
+      try {
+        std::rethrow_exception(result.ec);
+      } catch (const boost::system::system_error& e) {
+        // EOF is the expected error on the server side, since clients close the
+        // connection.
+        if (e.code() != boost::asio::error::make_error_code(
+                          boost::asio::error::misc_errors::eof
+                        )) {
+          std::printf("FAIL in server: %s\n", e.what());
+        }
+      } catch (const std::exception& e) {
+        std::printf("FAIL in server: %s\n", e.what());
+      }
+    }
     total += result.recv_count;
   }
   if (total != REQUEST_COUNT) {
@@ -123,7 +129,7 @@ static cobalt::promise<void> client_handler(uint16_t Port, size_t Count) {
     s.close();
   }
   if (!s.is_open()) {
-    std::printf("client finished early\n");
+    std::printf("FAIL in client: finished early\n");
     std::terminate();
   }
 
@@ -138,7 +144,6 @@ cobalt::thread client(uint16_t Port) {
   for (size_t i = 0; i < CONNECTION_COUNT; ++i) {
     size_t count = i < rem ? per_task + 1 : per_task;
     clients.push_back(client_handler(Port, count));
-    // co_await client_handler(ex, Port, count);
   }
   co_await clients.wait();
 }

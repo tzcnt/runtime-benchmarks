@@ -71,8 +71,6 @@ struct result {
   size_t recv_count;
 };
 
-// not safe to accept rvalue reference
-// have to accept value so that it gets moved when the coro is constructed
 tmc::task<result> server_handler(auto Socket, size_t Count) {
   char data[4096];
   size_t i = 0;

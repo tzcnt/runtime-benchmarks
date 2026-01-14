@@ -29,8 +29,6 @@ struct result {
   size_t recv_count;
 };
 
-// not safe to accept rvalue reference
-// have to accept value so that it gets moved when the coro is constructed
 coro::task<void> server_handler(
   coro::net::tcp::client client, size_t Count, coro::queue<result>& Results
 ) {
