@@ -1,5 +1,9 @@
-// A simple "Hello, World!" HTTP response server
+// 2 threads with separate event loops:
+// Thread 1: A simple "Hello, World!" HTTP response server
 // Listens on http://localhost:55550/
+// Thread 2: A client that sends a static request to the server
+// and reads back data
+// Thread 2 may initiate multiple parallel connections to the server
 
 #ifdef _WIN32
 #include <SDKDDKVer.h>

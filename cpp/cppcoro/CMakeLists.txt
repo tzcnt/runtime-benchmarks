@@ -78,3 +78,5 @@ add_executable(nqueens nqueens.cpp)
 target_compile_options(nqueens PRIVATE "-falign-loops=64")
 
 add_executable(matmul matmul.cpp)
+
+add_executable(io_socket_st io_socket_st.cpp)
