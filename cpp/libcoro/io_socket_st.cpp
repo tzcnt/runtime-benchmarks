@@ -115,8 +115,9 @@ server(std::unique_ptr<coro::io_scheduler>& executor, uint16_t Port) {
       std::printf("FAIL in server send. error code: %d\n", err);
       std::terminate();
     }
-    // Expect closed status from server, since client closes the connection
-    if (result.value().rc != coro::net::recv_status::closed) {
+    // Expect ok (completed all requests) or closed (client disconnected first)
+    if (result.value().rc != coro::net::recv_status::ok &&
+        result.value().rc != coro::net::recv_status::closed) {
       auto err = result.value().rc;
       std::printf("FAIL in server recv. error code: %d\n", err);
       std::terminate();
@@ -195,10 +196,10 @@ client(std::unique_ptr<coro::io_scheduler>& executor, uint16_t Port) {
 
 int main(int argc, char* argv[]) {
   if (argc > 1) {
-    REQUEST_COUNT = static_cast<size_t>(atoi(argv[1]));
+    CONNECTION_COUNT = static_cast<size_t>(atoi(argv[1]));
   }
   if (argc > 2) {
-    CONNECTION_COUNT = static_cast<size_t>(atoi(argv[1]));
+    REQUEST_COUNT = static_cast<size_t>(atoi(argv[2]));
   }
 
   auto server_executor = coro::io_scheduler::make_unique(
@@ -215,8 +216,6 @@ int main(int argc, char* argv[]) {
     }
   );
 
-  std::printf("serving on http://localhost:%d/\n", PORT);
-
   auto startTime = std::chrono::high_resolution_clock::now();
   coro::sync_wait(
     coro::when_all(server(server_executor, PORT), client(client_executor, PORT))
@@ -224,6 +223,10 @@ int main(int argc, char* argv[]) {
   auto endTime = std::chrono::high_resolution_clock::now();
   auto totalTimeUs =
     std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime);
+  std::printf("connections: %zu\n", CONNECTION_COUNT);
+  std::printf("runs:\n");
+  std::printf("  - iteration_count: 1\n");
+  std::printf("    requests: %zu\n", REQUEST_COUNT);
   std::printf("    duration: %zu us\n", totalTimeUs.count());
   std::printf(
     "    requests/sec: %zu\n", REQUEST_COUNT * 1000000 / totalTimeUs.count()

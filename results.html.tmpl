@@ -29,6 +29,8 @@
       <option value="fib">fib</option>
       <option value="nqueens">nqueens</option>
       <option value="matmul">matmul</option>
+      <option value="channel">channel</option>
+      <option value="io_socket_st">io_socket_st</option>
     </select>
     Run: <select id="selectMachine">
       <option value="latest">Latest</option>
@@ -37,6 +39,7 @@
       <option value="duration">Duration (raw)</option>
       <option value="speedup">Speedup (vs. self)</option>
       <option value="scaled">Normalized (vs. fastest)</option>
+      <option value="throughput">Throughput (per second)</option>
     </select>
     Y-Axis: <select id="selectScale">
       <option value="logarithmic">Logarithmic</option>
@@ -64,6 +67,7 @@
       await loadDataIfNeeded(currentMachine);
       document.getElementById('rawDataLink').href = machineToFileMap[currentMachine];
       myChart.data.datasets = all_data[currentMachine][currentBench];
+      updateXAxisLabel();
       myChart.update();
     }
 
@@ -74,7 +78,35 @@
     function switchBench() {
       currentBench = selectBench.value;
       myChart.data.datasets = all_data[currentMachine][currentBench];
+      updateXAxisLabel();
+      updateYAxisLabel();
       myChart.update();
+    }
+
+    function updateYAxisLabel() {
+      if (currentTransform === 'throughput') {
+        if (currentBench === 'io_socket_st') {
+          myChart.options.scales.y.title.text = 'Requests per second';
+          myChart.options.plugins.tooltip.callbacks.label = (item) =>
+            " " + item.dataset.label + ": " + item.raw.toLocaleString() + " requests/sec";
+        } else if (currentBench === 'channel') {
+          myChart.options.scales.y.title.text = 'Elements per second';
+          myChart.options.plugins.tooltip.callbacks.label = (item) =>
+            " " + item.dataset.label + ": " + item.raw.toLocaleString() + " elements/sec";
+        } else {
+          myChart.options.scales.y.title.text = 'This transform is not valid for this benchmark';
+          myChart.options.plugins.tooltip.callbacks.label = (item) =>
+            " " + item.dataset.label + ": " + item.raw.toLocaleString() + "/sec";
+        }
+      }
+    }
+
+    function updateXAxisLabel() {
+      if (currentBench === 'channel') {
+        myChart.options.scales.x.title.text = ['"mt" executor: # of threads (producers = consumers = threads / 2)', '"st" executors: same number of producers and consumer tasks, but all running on a single thread'];
+      } else {
+        myChart.options.scales.x.title.text = '# of threads';
+      }
     }
 
     const selectTransform = document.getElementById('selectTransform');
@@ -104,6 +136,9 @@
           myChart.options.scales.y.title.text = 'normalized (relative to fastest runtime w/ max threads)';
           myChart.options.plugins.tooltip.callbacks.label = (item) =>
             " " + item.dataset.label + ": " + item.raw.toFixed(2) + "x";
+          break;
+        case 'throughput':
+          updateYAxisLabel();
           break;
       }
       myChart.update();
@@ -195,6 +230,7 @@
             run.threads = bdata[i].threads;
             run.scaled = bdata[i].result.scaled;
             run.speedup = bdata[i].result.speedup;
+            run.throughput = bdata[i].result.throughput;
 
             const subValues = bdata[i].result.duration.split(' ');
             var numeric = subValues[0].replace(/[^0-9.]/g, '');
@@ -221,10 +257,11 @@
           }
           dataset.label = runtime;
 
-          // Make all 3 data series available to switch in the dropdown
+          // Make all 4 data series available to switch in the dropdown
           dataset.duration = rdata.map(row => row.duration);
           dataset.scaled = rdata.map(row => row.scaled);
           dataset.speedup = rdata.map(row => row.speedup);
+          dataset.throughput = rdata.map(row => row.throughput);
 
           // Display the duration by default
           dataset.data = dataset[currentTransform];
@@ -282,9 +319,11 @@
           }
         }
       });
+      updateXAxisLabel();
     }
 
     loadDataAndCreateChart();
   </script>
 </body>
+
 </html>

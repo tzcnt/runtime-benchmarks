@@ -145,16 +145,15 @@ static tmc::task<void> client(tmc::ex_asio& ex, uint16_t Port) {
 
 int main(int argc, char* argv[]) {
   if (argc > 1) {
-    REQUEST_COUNT = static_cast<size_t>(atoi(argv[1]));
+    CONNECTION_COUNT = static_cast<size_t>(atoi(argv[1]));
   }
   if (argc > 2) {
-    CONNECTION_COUNT = static_cast<size_t>(atoi(argv[1]));
+    REQUEST_COUNT = static_cast<size_t>(atoi(argv[2]));
   }
   tmc::ex_asio server_executor;
   server_executor.init();
   tmc::ex_asio client_executor;
   client_executor.init();
-  std::printf("serving on http://localhost:%d/\n", PORT);
   auto server_future =
     tmc::post_waitable(server_executor, server(server_executor, PORT));
   // Ensure that the socket is actually open before sending traffic,
@@ -169,6 +168,10 @@ int main(int argc, char* argv[]) {
   auto endTime = std::chrono::high_resolution_clock::now();
   auto totalTimeUs =
     std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime);
+  std::printf("connections: %zu\n", CONNECTION_COUNT);
+  std::printf("runs:\n");
+  std::printf("  - iteration_count: 1\n");
+  std::printf("    requests: %zu\n", REQUEST_COUNT);
   std::printf("    duration: %zu us\n", totalTimeUs.count());
   std::printf(
     "    requests/sec: %zu\n", REQUEST_COUNT * 1000000 / totalTimeUs.count()

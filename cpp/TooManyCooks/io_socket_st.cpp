@@ -37,11 +37,10 @@ using boost::system::error_code;
 using asio::error_code;
 #endif
 
-using acceptor_t =
-  asio::basic_socket_acceptor<asio::ip::tcp, asio::io_context::executor_type>;
-
-using socket_t =
-  asio::basic_stream_socket<asio::ip::tcp, asio::io_context::executor_type>;
+using asio::ip::tcp;
+using executor_t = asio::io_context::executor_type;
+using acceptor_t = asio::basic_socket_acceptor<tcp, executor_t>;
+using socket_t = asio::basic_stream_socket<tcp, executor_t>;
 
 #include <cstddef>
 #include <cstdint>
@@ -50,8 +49,6 @@ using socket_t =
 #include <thread>
 #include <utility>
 #include <vector>
-
-using asio::ip::tcp;
 
 const uint16_t PORT = 55550;
 static size_t REQUEST_COUNT = 100000;
@@ -71,7 +68,7 @@ struct result {
   size_t recv_count;
 };
 
-tmc::task<result> server_handler(auto Socket, size_t Count) {
+tmc::task<result> server_handler(socket_t Socket, size_t Count) {
   char data[4096];
   size_t i = 0;
   for (; i < Count; ++i) {
@@ -113,9 +110,9 @@ static tmc::task<void> server(tmc::ex_asio& ex, uint16_t Port) {
   size_t total = 0;
   for (size_t i = 0; i < CONNECTION_COUNT; ++i) {
     auto& result = results[i];
-    // EOF is the expected error on the server side, since clients close the
-    // connection.
-    if (result.ec != eof) {
+    // Expect success (completed all requests) or EOF (client disconnected
+    // first)
+    if (result.ec && result.ec != eof) {
       auto msg = result.ec.message();
       std::printf("FAIL in server: %s\n", msg.c_str());
     }
@@ -175,16 +172,16 @@ static tmc::task<void> client(tmc::ex_asio& ex, uint16_t Port) {
 
 int main(int argc, char* argv[]) {
   if (argc > 1) {
-    REQUEST_COUNT = static_cast<size_t>(atoi(argv[1]));
-  }
-  if (argc > 2) {
     CONNECTION_COUNT = static_cast<size_t>(atoi(argv[1]));
   }
+  if (argc > 2) {
+    REQUEST_COUNT = static_cast<size_t>(atoi(argv[2]));
+  }
+
   tmc::ex_asio server_executor;
   server_executor.init();
   tmc::ex_asio client_executor;
   client_executor.init();
-  std::printf("serving on http://localhost:%d/\n", PORT);
   auto server_future =
     tmc::post_waitable(server_executor, server(server_executor, PORT));
   // Ensure that the socket is actually open before sending traffic,
@@ -199,6 +196,10 @@ int main(int argc, char* argv[]) {
   auto endTime = std::chrono::high_resolution_clock::now();
   auto totalTimeUs =
     std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime);
+  std::printf("connections: %zu\n", CONNECTION_COUNT);
+  std::printf("runs:\n");
+  std::printf("  - iteration_count: 1\n");
+  std::printf("    requests: %zu\n", REQUEST_COUNT);
   std::printf("    duration: %zu us\n", totalTimeUs.count());
   std::printf(
     "    requests/sec: %zu\n", REQUEST_COUNT * 1000000 / totalTimeUs.count()

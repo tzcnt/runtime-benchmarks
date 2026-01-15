@@ -1,7 +1,5 @@
 // A simple "Hello, World!" HTTP response server
 // Listens on http://localhost:55550/
-#include "boost/asio/this_coro.hpp"
-#include "boost/cobalt/wait_group.hpp"
 #include <cstddef>
 #include <thread>
 #ifdef _WIN32
@@ -12,6 +10,8 @@
 
 #include <boost/cobalt.hpp>
 #include <boost/cobalt/main.hpp>
+#include <boost/cobalt/this_coro.hpp>
+#include <boost/cobalt/wait_group.hpp>
 
 #include <boost/asio/buffer.hpp>
 #include <boost/asio/ip/tcp.hpp>
@@ -84,12 +84,11 @@ cobalt::thread server(uint16_t Port) {
   size_t total = 0;
   for (size_t i = 0; i < CONNECTION_COUNT; ++i) {
     auto result = co_await finished_chan.read();
+    // Expect success (no exception) or EOF (client disconnected first)
     if (result.ec) {
       try {
         std::rethrow_exception(result.ec);
       } catch (const boost::system::system_error& e) {
-        // EOF is the expected error on the server side, since clients close the
-        // connection.
         if (e.code() != boost::asio::error::make_error_code(
                           boost::asio::error::misc_errors::eof
                         )) {
@@ -150,12 +149,11 @@ cobalt::thread client(uint16_t Port) {
 
 int main(int argc, char* argv[]) {
   if (argc > 1) {
-    REQUEST_COUNT = static_cast<size_t>(atoi(argv[1]));
-  }
-  if (argc > 2) {
     CONNECTION_COUNT = static_cast<size_t>(atoi(argv[1]));
   }
-  std::printf("serving on http://localhost:%d/\n", PORT);
+  if (argc > 2) {
+    REQUEST_COUNT = static_cast<size_t>(atoi(argv[2]));
+  }
   auto server_future = server(PORT);
   // Ensure that the socket is actually open before sending traffic,
   // or the client will fail immediately.
@@ -168,6 +166,10 @@ int main(int argc, char* argv[]) {
   auto endTime = std::chrono::high_resolution_clock::now();
   auto totalTimeUs =
     std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime);
+  std::printf("connections: %zu\n", CONNECTION_COUNT);
+  std::printf("runs:\n");
+  std::printf("  - iteration_count: 1\n");
+  std::printf("    requests: %zu\n", REQUEST_COUNT);
   std::printf("    duration: %zu us\n", totalTimeUs.count());
   std::printf(
     "    requests/sec: %zu\n", REQUEST_COUNT * 1000000 / totalTimeUs.count()

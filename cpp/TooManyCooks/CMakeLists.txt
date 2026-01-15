@@ -87,7 +87,7 @@ endif()
 CPMAddPackage(
     NAME tmc_asio
     GIT_REPOSITORY https://github.com/tzcnt/tmc-asio.git
-    GIT_TAG c634784057d4fdf07b2ed128e7046cd529abfcad
+    GIT_TAG v1.3.0
     DOWNLOAD_ONLY)
 include_directories(
     ${tmc_asio_SOURCE_DIR}/include

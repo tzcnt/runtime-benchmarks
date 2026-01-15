@@ -138,15 +138,14 @@ int main(int argc, char* argv[]) {
     }
   }
 
-  // Allow configuring producer and consumer counts separately for testing
-  // This isn't used by the bench script
-  if (argc > 3) {
-    producer_count = static_cast<size_t>(atoi(argv[3]));
-    consumer_count = static_cast<size_t>(atoi(argv[3]));
-  }
-  if (argc > 4) {
-    consumer_count = static_cast<size_t>(atoi(argv[4]));
-  }
+  // // Allow configuring producer and consumer counts separately for testing
+  // if (argc > 3) {
+  //   producer_count = static_cast<size_t>(atoi(argv[3]));
+  //   consumer_count = static_cast<size_t>(atoi(argv[3]));
+  // }
+  // if (argc > 4) {
+  //   consumer_count = static_cast<size_t>(atoi(argv[4]));
+  // }
 
   expected_sum = 0;
   for (size_t i = 0; i < element_count; ++i) {
