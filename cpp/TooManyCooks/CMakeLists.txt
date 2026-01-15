@@ -74,8 +74,8 @@ else()
     CPMAddPackage(
         NAME asio
         GIT_REPOSITORY https://github.com/chriskohlhoff/asio.git
-        VERSION 1.28.1
-        GIT_TAG asio-1-28-1
+        VERSION 1.36.1
+        GIT_TAG asio-1-36-0
         DOWNLOAD_ONLY)
 
     # mark Asio headers as SYSTEM to ignore warnings
