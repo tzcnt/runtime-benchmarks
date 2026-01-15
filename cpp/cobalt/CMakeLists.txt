@@ -1,35 +1,43 @@
 cmake_minimum_required(VERSION 3.16)
-project(runtime_benchmarks_libcoro)
+project(runtime_benchmarks_cobalt)
 
 set(CMAKE_MODULE_PATH
-    ${runtime_benchmarks_libcoro_SOURCE_DIR}/../1CMake
+    ${runtime_benchmarks_cobalt_SOURCE_DIR}/../1CMake
     ${CMAKE_MODULE_PATH})
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS "1")
-set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD 20)
 
 add_definitions(
     "-march=native"
 )
 
-# SET(GIT_SUBMODULES_RECURSE ON CACHE BOOL "Download git submodules" FORCE)
 include(../1CMake/CPM.cmake)
 
 include_directories("../2common")
 
-SET(LIBCORO_BUILD_TESTS OFF CACHE BOOL "Build libcoro tests" FORCE)
-SET(LIBCORO_BUILD_EXAMPLES OFF CACHE BOOL "Build libcoro examples" FORCE)
-SET(LIBCORO_FEATURE_NETWORKING ON CACHE BOOL "libcoro networking" FORCE)
-SET(LIBCORO_FEATURE_TLS OFF CACHE BOOL "libcoro TLS (networking)" FORCE)
+# Tell cmake to use the target Boost cmake file instead of the built-in
+cmake_policy(SET CMP0167 NEW)
+set(Boost_USE_STATIC_LIBS ON)
+set(Boost_USE_RELEASE_LIBS ON)
 
-CPMAddPackage(
-    NAME libcoro
-    GIT_REPOSITORY https://github.com/jbaldwin/libcoro.git
-    GIT_TAG 44d12235a218a93cf6ce462f67c06a1287901c54
-    DOWNLOAD_ONLY)
+# set(ENV{BOOST_CMAKE_ROOT} "/home/tzcnt/pkg-src/boost-1.88-src/boost_1_88_0/stage/lib/cmake/")
 
-include_directories(${libcoro_SOURCE_DIR}/include)
-link_libraries(libcoro)
+# By default this will will look for your system boost.
+# However, on my distro the system boost does not include boost::cobalt, so I'm using a local build.
+# I've set the system environment variable BOOST_CMAKE_ROOT=/home/tzcnt/pkg-src/boost-1.88-src/boost_1_88_0/stage/lib/cmake/
+# with the /stage/lib/cmake directory being where boost places the CMake files after building with b2.
+if(DEFINED ENV{BOOST_CMAKE_ROOT})
+    find_package(
+        Boost 1.82.0 REQUIRED CONFIG
+        PATHS $ENV{BOOST_CMAKE_ROOT} NO_DEFAULT_PATH
+        COMPONENTS cobalt
+    )
+else()
+    find_package(Boost 1.82.0 REQUIRED COMPONENTS cobalt)
+endif()
+
+link_libraries(Boost::cobalt)
 
 # Since each new coroutine requires an allocation,
 # they are sensitive to allocator performance.
@@ -60,17 +68,6 @@ else()
 endif()
 
 link_libraries(${MALLOC_LIB})
-add_executable(fib fib.cpp)
-
-add_executable(skynet skynet.cpp)
-
-add_executable(nqueens nqueens.cpp)
-
-# nqueens is particularly sensitive to misaligned loops,
-# which could cause minor library changes to cause big performance variations
-target_compile_options(nqueens PRIVATE "-falign-loops=64")
-
-add_executable(matmul matmul.cpp)
 
 add_executable(channel channel.cpp)
 

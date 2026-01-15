@@ -38,12 +38,58 @@ else()
     CPMAddPackage(
         NAME TooManyCooks
         GIT_REPOSITORY https://github.com/tzcnt/TooManyCooks.git
-        GIT_TAG v1.3.0
+        GIT_TAG v1.3.1
         DOWNLOAD_ONLY)
+
     include_directories(
         ${TooManyCooks_SOURCE_DIR}/include
     )
 endif()
+
+option(TMC_USE_BOOST_ASIO "Use boost::asio instead of standalone asio" OFF)
+
+if(TMC_USE_BOOST_ASIO)
+    add_compile_definitions(TMC_USE_BOOST_ASIO)
+
+    # Tell cmake to use the target Boost cmake file instead of the built-in
+    cmake_policy(SET CMP0167 NEW)
+    set(Boost_USE_STATIC_LIBS ON)
+    set(Boost_USE_RELEASE_LIBS ON)
+
+    # set(ENV{BOOST_CMAKE_ROOT} "/home/tzcnt/pkg-src/boost-1.88-src/boost_1_88_0/stage/lib/cmake/")
+
+    # By default this will will look for your system boost.
+    # Or you can set BOOST_CMAKE_ROOT to tell it where to look.
+    if(DEFINED ENV{BOOST_CMAKE_ROOT})
+        find_package(
+            Boost 1.82.0 REQUIRED CONFIG
+            PATHS $ENV{BOOST_CMAKE_ROOT} NO_DEFAULT_PATH
+        )
+    else()
+        find_package(Boost 1.82.0 REQUIRED)
+    endif()
+else()
+    CPMAddPackage(
+        NAME asio
+        GIT_REPOSITORY https://github.com/chriskohlhoff/asio.git
+        VERSION 1.36.1
+        GIT_TAG asio-1-36-0
+        DOWNLOAD_ONLY)
+
+    # mark Asio headers as SYSTEM to ignore warnings
+    include_directories(SYSTEM
+        ${asio_SOURCE_DIR}/asio/include
+    )
+endif()
+
+CPMAddPackage(
+    NAME tmc_asio
+    GIT_REPOSITORY https://github.com/tzcnt/tmc-asio.git
+    GIT_TAG v1.3.0
+    DOWNLOAD_ONLY)
+include_directories(
+    ${tmc_asio_SOURCE_DIR}/include
+)
 
 # HWLOC support
 option(TMC_USE_HWLOC "libhwloc" ON)
@@ -106,3 +152,7 @@ target_compile_options(nqueens PRIVATE "-falign-loops=64")
 add_executable(matmul matmul.cpp)
 
 add_executable(threads_sweep threads_sweep.cpp)
+
+add_executable(channel channel.cpp)
+
+add_executable(io_socket_st io_socket_st.cpp)

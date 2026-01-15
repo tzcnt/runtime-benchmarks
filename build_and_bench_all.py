@@ -14,7 +14,7 @@ import ast
 import platform
 
 runtimes = {
-    "cpp": ["libfork", "TooManyCooks", "tbb", "taskflow", "cppcoro", "coros", "concurrencpp", "HPX", "libcoro"]
+    "cpp": ["libfork", "TooManyCooks", "tbb", "taskflow", "cppcoro", "coros", "concurrencpp", "HPX", "libcoro", "cobalt"]
 }
 
 runtime_links = {
@@ -26,10 +26,11 @@ runtime_links = {
     "coros": "https://github.com/mtmucha/coros",
     "concurrencpp": "https://github.com/David-Haim/concurrencpp",
     "HPX": "https://github.com/STEllAR-GROUP/hpx",
-    "libcoro": "https://github.com/jbaldwin/libcoro"
+    "libcoro": "https://github.com/jbaldwin/libcoro",
+    "cobalt": "https://github.com/boostorg/cobalt"
 }
 
-benchmarks_order = ["skynet", "nqueens", "fib", "matmul"]
+benchmarks_order = ["skynet", "nqueens", "fib", "matmul", "channel", "io_socket_st"]
 
 benchmarks={
     "skynet": {
@@ -44,13 +45,37 @@ benchmarks={
     "matmul": {
         "params": ["2048"]
     },
+    "channel": {
+
+    },
+    "io_socket_st": {
+
+    }
+}
+
+# Defines which runtime+benchmark combos support multi-config execution
+# If a runtime+benchmark is listed, each config will be appended as a command argument
+# The runtime name will be suffixed with "_<config>" in output (e.g., "cobalt_st_asio")
+# Format: { "runtime": { "benchmark": ["config1", "config2", ...], ... }, ... }
+benchmark_configs = {
+    "cobalt": {
+        "channel": ["st_asio"]
+    },
+    "libcoro": {
+        "channel": ["mt"]
+    },
+    "TooManyCooks": {
+        "channel": ["st_asio", "mt"]
+    },
 }
 
 collect_results = {
     "fib": [{"params": "39"}],
     "skynet": [{"params": ""}],
     "nqueens": [{"params": ""}],
-    "matmul": [{"params": "2048"}]
+    "matmul": [{"params": "2048"}],
+    "channel": [{"params": ""}],
+    "io_socket_st": [{"params": ""}]
 }
 
 # Fallback to a shell script for hardware core count detection if the user didn't build TMC
@@ -117,7 +142,11 @@ for language, runtime_names in runtimes.items():
         elif platform.system() == "Windows":
             build_script += " clang-win-release"
         #else Linux is the default
-        subprocess.run(args=build_script, shell=True, cwd=runtime_root_dir)
+        result = subprocess.run(args=build_script, shell=True, cwd=runtime_root_dir, capture_output=True, text=True)
+        if result.returncode != 0:
+            print(f"Build failed for {runtime}:")
+            print(result.stdout)
+            print(result.stderr)
 
 # Run sweep runtime -> benchmark -> threads
 threads = get_threads_sweep()
@@ -129,50 +158,74 @@ for language, runtime_names in runtimes.items():
             bench_args = benchmarks[bench_name]
             runtime_root_dir = os.path.join(root_dir, language, runtime)
             bench_exe = os.path.join(runtime_root_dir, "build", bench_name)
-            for params in bench_args.setdefault("params",[""]):
-                for thread_count in threads:
-                    one_run = {
-                        "params": params,
-                        "threads": thread_count,
-                    }
-                    print(f"Running {bench_exe} {params} {thread_count}")
-                    output_array = subprocess.run(args=f"{bench_exe} {params} {thread_count}", shell=True, capture_output=True, text=True)
-                    try:
-                        print(output_array.stdout)
-                        raw = yaml.safe_load(output_array.stdout)
-                        result = {
-                            "duration": raw["runs"][0]["duration"]
-                        }
-                        one_run["result"] = result
-                        full_results.setdefault(runtime, {}).setdefault(bench_name, []).append(one_run)
-                    except yaml.YAMLError as exc:
-                        print(exc)
+            
+            # Get configs for this runtime+benchmark combo, or use a single empty config
+            configs = benchmark_configs.get(runtime, {}).get(bench_name, [""])
+            
+            # Skip if benchmark executable doesn't exist
+            if not os.path.exists(bench_exe):
+                continue
+            
+            for config in configs:
+                 for params in bench_args.setdefault("params",[""]):
+                     for thread_count in threads:
+                         one_run = {
+                             "params": params,
+                             "threads": thread_count,
+                             "config": config,
+                         }
+                         # Build command: exe params threads [config]
+                         cmd = f"{bench_exe} {params} {thread_count}"
+                         if config:
+                             cmd += f" {config}"
+                         
+                         print(f"Running {cmd}")
+                         output_array = subprocess.run(args=cmd, shell=True, capture_output=True, text=True)
+                         try:
+                             print(output_array.stdout)
+                             raw = yaml.safe_load(output_array.stdout)
+                             result = {
+                                 "duration": raw["runs"][0]["duration"]
+                             }
+                             # Extract throughput (any field ending in /sec)
+                             for key, value in raw["runs"][0].items():
+                                 if key.endswith("/sec"):
+                                     result["throughput"] = value
+                                     break
+                             one_run["result"] = result
+                             # Use config-suffixed runtime name if config is specified
+                             result_runtime = runtime if not config else f"{runtime}_{config}"
+                             full_results.setdefault(result_runtime, {}).setdefault(bench_name, []).append(one_run)
+                         except (yaml.YAMLError, Exception) as exc:
+                             print(f"Skipping result: {exc}")
+                             continue
 
 
 for bench_name in benchmarks_order:
     lowest_dur = sys.maxsize
     for language, runtime_names in runtimes.items():
         for runtime in runtime_names:
-            bench_args = benchmarks[bench_name]
-            for params in bench_args["params"]:
-                for i, thread_count in enumerate(threads):
-                    dur = get_dur_in_us(full_results[runtime][bench_name][i]["result"]["duration"])
-                    if (dur < lowest_dur):
-                        lowest_dur = dur
+            if runtime not in full_results or bench_name not in full_results[runtime]:
+                continue
+            for run in full_results[runtime][bench_name]:
+                dur = get_dur_in_us(run["result"]["duration"])
+                if (dur < lowest_dur):
+                    lowest_dur = dur
     for language, runtime_names in runtimes.items():
         for runtime in runtime_names:
-            bench_args = benchmarks[bench_name]
-            for params in bench_args["params"]:
-                for i, thread_count in enumerate(threads):
-                    dur = get_dur_in_us(full_results[runtime][bench_name][i]["result"]["duration"])
-                    scaled = float(dur) / float(lowest_dur)
-                    scaled = round(scaled, 2)
-                    full_results[runtime][bench_name][i]["result"]["scaled"] = scaled
-                    if i == 0:
-                        firstDur = dur
-                    speedup = float(firstDur) / float(dur)
-                    speedup = round(speedup, 2)
-                    full_results[runtime][bench_name][i]["result"]["speedup"] = speedup
+            if runtime not in full_results or bench_name not in full_results[runtime]:
+                continue
+            firstDur = None
+            for i, run in enumerate(full_results[runtime][bench_name]):
+                dur = get_dur_in_us(run["result"]["duration"])
+                scaled = float(dur) / float(lowest_dur)
+                scaled = round(scaled, 2)
+                run["result"]["scaled"] = scaled
+                if i == 0:
+                    firstDur = dur
+                speedup = float(firstDur) / float(dur)
+                speedup = round(speedup, 2)
+                run["result"]["speedup"] = speedup
     
 # full_results is used to produce the .json for charting
 # collated_results is used to produce the .md summary for the README
@@ -180,6 +233,8 @@ collated_results = {}
 bench_names = []
 for runtime, runtime_results in full_results.items():
     for bench_name in benchmarks_order:
+        if bench_name not in runtime_results:
+            continue
         collect = collect_results[bench_name]
         for collect_item in collect:
             which_run = 0
@@ -262,76 +317,93 @@ if len(sys.argv) != 1:
     print("View benchmark charts in your browser at: file:///"+os.path.abspath("RESULTS.html").replace("\\", "/"))
 
 
-# For each benchmark, find the fastest runtime and calculate the runtime ratio of the other runtimes against that
-lowest_results = {}
-for runtime, runtime_results in collated_results.items():
-    for bench_name, result in runtime_results.items():
-        curr_lowest = lowest_results.setdefault(bench_name, int(sys.maxsize))
-        us = result["us"]
-        if us < curr_lowest:
-            lowest_results[bench_name] = us
+# Group benchmarks by which runtimes have results for them
+# Key: frozenset of runtime names, Value: list of benchmark names
+bench_to_runtimes = {}
+for bench_name in bench_names:
+    runtimes_with_bench = frozenset(
+        runtime for runtime, runtime_results in collated_results.items()
+        if bench_name in runtime_results
+    )
+    bench_to_runtimes[bench_name] = runtimes_with_bench
 
-for runtime, runtime_results in collated_results.items():
-    for bench_name, result in runtime_results.items():
-        us = result["us"]
-        ratio = float(us) / float(lowest_results[bench_name])
-        runtime_results[bench_name]["ratio"] = ratio
-        # if us == lowest_results[bench_name]:
-        #     print(f"{bench_name}: {runtime} is the fastest with {us} us")
+# Invert: group benchmarks by their runtime sets
+runtime_set_to_benchmarks = {}
+for bench_name, runtime_set in bench_to_runtimes.items():
+    runtime_set_to_benchmarks.setdefault(runtime_set, []).append(bench_name)
 
-sorted = []
-for runtime, runtime_results in collated_results.items():
-    count = len(runtime_results)
-    sum = float(0)
-    for bench in runtime_results.values():
-        sum += bench["ratio"]
-    mean = sum / count
-    sorted.append({"runtime": runtime, "mean": mean})
-
-sorted.sort(key=lambda x: x["mean"])
-output_array = [["Runtime", "Mean Ratio to Best<br>(lower is better)"] + bench_names]
-for runtime in sorted:
-    runtime_name = runtime["runtime"]
-    runtime_mean = runtime["mean"]
-    runtime_output = [
-        f"[{runtime_name}]({runtime_links.get(runtime_name, '')})",
-        "{:.2f}x".format(runtime_mean)
-    ]
-    runtime_results = collated_results[runtime_name]
-    for bench in bench_names:
-        runtime_output.append(runtime_results.setdefault(bench, {"raw": "N/A"})["raw"])
-    output_array.append(runtime_output)
-
-print("Generating RESULTS.md and RESULTS.csv ...", end=" ")
-
-len_y = len(output_array[0])
-len_x = len(output_array)
-
+print("Generating RESULTS.md...", end=" ")
 outMD = ""
-outCSV = ""
 
-# Create header row
-for x in range(len_x):
-    outMD +=f"| {output_array[x][0]} "
-    outCSV +=f"{output_array[x][0]},"
-outMD += "|\n"
-outCSV = outCSV.rstrip(",") + "\n"
-# Create markdown table header row
-for x in range(len_x):
-    outMD += "| --- "
-outMD += "|\n"
-# Create data rows
-for y in range(1,len_y):
+# Process each group separately
+for runtime_set, group_bench_names in runtime_set_to_benchmarks.items():
+    group_runtimes = list(runtime_set)
+    
+    # Calculate lowest results for this group's benchmarks
+    lowest_results = {}
+    for runtime in group_runtimes:
+        runtime_results = collated_results[runtime]
+        for bench_name in group_bench_names:
+            if bench_name in runtime_results:
+                us = runtime_results[bench_name]["us"]
+                curr_lowest = lowest_results.get(bench_name, sys.maxsize)
+                if us < curr_lowest:
+                    lowest_results[bench_name] = us
+    
+    # Calculate ratios for this group
+    for runtime in group_runtimes:
+        runtime_results = collated_results[runtime]
+        for bench_name in group_bench_names:
+            if bench_name in runtime_results:
+                us = runtime_results[bench_name]["us"]
+                ratio = float(us) / float(lowest_results[bench_name])
+                runtime_results[bench_name]["ratio"] = ratio
+    
+    # Sort runtimes by mean ratio within this group
+    sorted_runtimes = []
+    for runtime in group_runtimes:
+        runtime_results = collated_results[runtime]
+        count = len(group_bench_names)
+        total = sum(runtime_results[b]["ratio"] for b in group_bench_names if b in runtime_results)
+        mean = total / count
+        sorted_runtimes.append({"runtime": runtime, "mean": mean})
+    sorted_runtimes.sort(key=lambda x: x["mean"])
+    
+    # Build output array for this group
+    output_array = [["Runtime", "Mean Ratio to Best<br>(lower is better)"] + group_bench_names]
+    for runtime in sorted_runtimes:
+        runtime_name = runtime["runtime"]
+        runtime_mean = runtime["mean"]
+        base_runtime = runtime_name.split("_")[0]
+        runtime_output = [
+            f"[{runtime_name}]({runtime_links.get(base_runtime, '')})",
+            "{:.2f}x".format(runtime_mean)
+        ]
+        runtime_results = collated_results[runtime_name]
+        for bench in group_bench_names:
+            runtime_output.append(runtime_results[bench]["raw"])
+        output_array.append(runtime_output)
+    
+    # Generate table for this group
+    len_y = len(output_array[0])
+    len_x = len(output_array)
+    
+    # Create header row
     for x in range(len_x):
-        outMD += f"| {output_array[x][y]} "
-        outCSV += f"{output_array[x][y]},"
+        outMD += f"| {output_array[x][0]} "
     outMD += "|\n"
-    outCSV = outCSV.rstrip(",") + "\n"
+    # Create markdown table header row
+    for x in range(len_x):
+        outMD += "| --- "
+    outMD += "|\n"
+    # Create data rows
+    for y in range(1, len_y):
+        for x in range(len_x):
+            outMD += f"| {output_array[x][y]} "
+        outMD += "|\n"
+    outMD += "\n"
 
 with open("RESULTS.md", "w") as resultsMD:
-    resultsMD.write(outMD)
-
-with open("RESULTS.csv", "w") as resultsCSV:
-    resultsCSV.write(outCSV)
+    resultsMD.write(outMD.strip() + "\n")
 
 print("done.")
