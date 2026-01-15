@@ -41,3 +41,4 @@ Makefile
 .vscode
 scratch/
 AGENTS.md
+__pycache__
