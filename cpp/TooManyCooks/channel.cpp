@@ -126,11 +126,13 @@ int main(int argc, char* argv[]) {
     consumer_count = c;
   }
 
-  // Allow switching between asio executor and ex_cpu so that we can compare
-  // just the channel performance against boost::cobalt which also uses Asio.
-  // If asio is specified, the number of threads doesn't actually apply (same
-  // as cobalt, it's single-threaded), but we can scale the number of
-  // consumers and producers.
+  // When "asio" is specified, use the single-threaded Asio executor so we can
+  // compare directly against boost::cobalt. Otherwise, use the multi-threaded
+  // executor.
+  //
+  // If asio is specified, the number of threads doesn't apply (same as cobalt,
+  // it's single-threaded), but we can scale the number of consumers and
+  // producers.
   bool use_asio = false;
   if (argc > 2) {
     if (std::string(argv[4]) == "asio") {

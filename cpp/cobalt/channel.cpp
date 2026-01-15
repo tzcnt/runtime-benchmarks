@@ -1,6 +1,5 @@
-// An implementation of the recursive fork fibonacci parallelism test.
+// Test performance of the channel / async queue primitive
 
-// Adapted from https://github.com/tzcnt/tmc-examples/blob/main/examples/fib.cpp
 // Original author: tzcnt
 // Unlicense License
 // This is free and unencumbered software released into the public domain.
