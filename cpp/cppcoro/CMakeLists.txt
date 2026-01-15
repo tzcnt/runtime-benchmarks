@@ -23,7 +23,7 @@ CPMAddPackage(
     NAME cppcoro
     GIT_REPOSITORY https://github.com/andreasbuhr/cppcoro.git
     GIT_TAG f05170fbc71aaae06dc31e32812f1caba9525377
-    DOWNLOAD_ONLY)
+)
 
 include_directories(${cppcoro_SOURCE_DIR}/include)
 link_libraries(cppcoro)

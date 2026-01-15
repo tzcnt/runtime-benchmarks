@@ -20,7 +20,7 @@ CPMAddPackage(
     NAME concurrencpp
     GIT_REPOSITORY https://github.com/David-Haim/concurrencpp.git
     GIT_TAG v.0.1.7
-    DOWNLOAD_ONLY)
+)
 include_directories(
     ${concurrencpp_SOURCE_DIR}/include
     "../2common"

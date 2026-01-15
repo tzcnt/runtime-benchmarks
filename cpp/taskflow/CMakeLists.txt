@@ -19,7 +19,7 @@ CPMAddPackage(
     NAME taskflow
     GIT_REPOSITORY https://github.com/taskflow/taskflow.git
     GIT_TAG 1ac5852c5a1679face4a4755eaab5dbcc558128e # basically v4.0.0 with a minor fix for -DTF_ENABLE_ATOMIC_NOTIFIER
-    DOWNLOAD_ONLY)
+)
 
 include_directories(
     ${taskflow_SOURCE_DIR}

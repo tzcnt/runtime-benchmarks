@@ -20,7 +20,7 @@ CPMAddPackage(
     NAME libfork
     GIT_REPOSITORY https://github.com/ConorWilliams/libfork.git
     GIT_TAG v3.8.0
-    DOWNLOAD_ONLY)
+)
 include_directories(
     ${libfork_SOURCE_DIR}/include
     "../2common"

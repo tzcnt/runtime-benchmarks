@@ -18,7 +18,7 @@ CPMAddPackage(
     NAME coros
     GIT_REPOSITORY https://github.com/mtmucha/coros.git
     GIT_TAG v0.8.0
-    DOWNLOAD_ONLY)
+)
 include_directories(
     ${coros_SOURCE_DIR}/include
     "../2common"
