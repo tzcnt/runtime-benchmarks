@@ -56,7 +56,7 @@ cobalt::detached server_handler(auto Socket, size_t Count, token& Results) {
   result r;
   size_t i = 0;
   try {
-    for (; i < Count; ++i) {
+    for (;; ++i) {
       auto d = boost::asio::buffer(data);
       auto n = co_await Socket.async_read_some(d, cobalt::use_op);
 
@@ -123,7 +123,7 @@ static cobalt::promise<void> client_handler(uint16_t Port, size_t Count) {
     for (; i < Count; ++i) {
       auto r = boost::asio::buffer(response_buf);
       {
-        auto n2 = co_await boost::asio::async_write(s, d, cobalt::use_op);
+        auto n = co_await boost::asio::async_write(s, d, cobalt::use_op);
       }
       {
         auto n = co_await s.async_read_some(r, cobalt::use_op);

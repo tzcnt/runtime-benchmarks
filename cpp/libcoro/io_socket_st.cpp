@@ -33,13 +33,11 @@ struct result {
   size_t recv_count;
 };
 
-coro::task<void> server_handler(
-  coro::net::tcp::client client, size_t Count, coro::queue<result>& Results
-) {
+coro::task<void>
+server_handler(coro::net::tcp::client client, coro::queue<result>& Results) {
   // Why a string? IDK but this is what libcoro's examples prefer
   std::string data(4096, '\0');
-  size_t i = 0;
-  for (; i < Count; ++i) {
+  for (size_t i = 0;; ++i) {
     while (true) {
       // Wait for data to be available to read.
       co_await client.poll(coro::poll_op::read);
@@ -67,12 +65,6 @@ coro::task<void> server_handler(
       }
     } while (!sspan.empty());
   }
-
-  client.socket().shutdown();
-  client.socket().close();
-  co_await Results.emplace(
-    coro::net::send_status::ok, coro::net::recv_status::ok, i
-  );
 }
 
 static coro::task<void>
@@ -91,7 +83,7 @@ server(std::unique_ptr<coro::io_scheduler>& executor, uint16_t Port) {
       auto client = server.accept();
       if (client.socket().is_valid()) {
         executor->spawn_detached(
-          server_handler(std::move(client), REQUEST_COUNT, finished_chan)
+          server_handler(std::move(client), finished_chan)
         );
       } else {
         std::printf("server acceptor socket was invalid!\n");

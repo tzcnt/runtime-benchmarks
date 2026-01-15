@@ -47,22 +47,19 @@ const std::string static_request =
   "HEAD / HTTP/1.1\r\nHost: host:port\r\nConnection: close\r\n\r\n";
 
 struct result {
-  bool success;
   size_t recv_count;
 };
 
-task<result>
-server_handler(io_service& ioSvc, net::socket listeningSocket, size_t Count) {
+task<result> server_handler(io_service& ioSvc, net::socket listeningSocket) {
   auto sock = net::socket::create_tcpv4(ioSvc);
   co_await listeningSocket.accept(sock);
 
   char data[4096];
-  size_t i = 0;
-  for (; i < Count; ++i) {
+  for (size_t i = 0;; ++i) {
     auto n = co_await sock.recv(data, sizeof(data));
     if (n == 0) {
       sock.close();
-      co_return result{false, i};
+      co_return result{i};
     }
 
     size_t bytesSent = 0;
@@ -72,11 +69,6 @@ server_handler(io_service& ioSvc, net::socket listeningSocket, size_t Count) {
       );
     }
   }
-
-  sock.close_recv();
-  sock.close_send();
-  sock.close();
-  co_return result{true, i};
 }
 
 task<void> server(io_service& ioSvc, net::socket listeningSocket) {
@@ -87,19 +79,14 @@ task<void> server(io_service& ioSvc, net::socket listeningSocket) {
   handlers.reserve(CONNECTION_COUNT);
   for (size_t i = 0; i < CONNECTION_COUNT; ++i) {
     size_t count = i < rem ? per_handler + 1 : per_handler;
-    handlers.push_back(server_handler(ioSvc, listeningSocket, count));
+    handlers.push_back(server_handler(ioSvc, listeningSocket));
   }
 
   auto results = co_await when_all(std::move(handlers));
 
   size_t total = 0;
   for (size_t i = 0; i < CONNECTION_COUNT; ++i) {
-    auto& r = results[i];
-    if (!r.success &&
-        r.recv_count != (i < rem ? per_handler + 1 : per_handler)) {
-      std::printf("FAIL in server: incomplete handler %zu\n", i);
-    }
-    total += r.recv_count;
+    total += results[i].recv_count;
   }
   if (total != REQUEST_COUNT) {
     std::printf(

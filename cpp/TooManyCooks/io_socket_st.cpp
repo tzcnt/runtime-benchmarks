@@ -72,10 +72,9 @@ struct result {
   size_t recv_count;
 };
 
-tmc::task<result> server_handler(socket_t Socket, size_t Count) {
+tmc::task<result> server_handler(socket_t Socket) {
   char data[4096];
-  size_t i = 0;
-  for (; i < Count; ++i) {
+  for (size_t i = 0;; ++i) {
     auto d = asio::buffer(data);
     auto [error, n] = co_await Socket.async_read_some(d, tmc::aw_asio);
     if (error) {
@@ -90,10 +89,6 @@ tmc::task<result> server_handler(socket_t Socket, size_t Count) {
       co_return result{error, i};
     }
   }
-
-  Socket.shutdown(tcp::socket::shutdown_both);
-  Socket.close();
-  co_return result{error_code{}, i};
 }
 
 static tmc::task<void> server(tmc::ex_asio& ex, uint16_t Port) {
@@ -106,7 +101,7 @@ static tmc::task<void> server(tmc::ex_asio& ex, uint16_t Port) {
       std::printf("FAIL in accept: %s", error.message().c_str());
       std::terminate();
     }
-    handlers.fork(server_handler(std::move(sock), REQUEST_COUNT));
+    handlers.fork(server_handler(std::move(sock)));
   }
   auto results = co_await std::move(handlers);
 
