@@ -46,7 +46,7 @@ else()
     )
 endif()
 
-option(TMC_USE_BOOST_ASIO "Use boost::asio instead of standalone asio" ON)
+option(TMC_USE_BOOST_ASIO "Use boost::asio instead of standalone asio" OFF)
 
 if(TMC_USE_BOOST_ASIO)
     add_compile_definitions(TMC_USE_BOOST_ASIO)
@@ -59,9 +59,7 @@ if(TMC_USE_BOOST_ASIO)
     # set(ENV{BOOST_CMAKE_ROOT} "/home/tzcnt/pkg-src/boost-1.88-src/boost_1_88_0/stage/lib/cmake/")
 
     # By default this will will look for your system boost.
-    # However, on my distro the system boost does not include boost::cobalt, so I'm using a local build.
-    # I've set the system environment variable BOOST_CMAKE_ROOT=/home/tzcnt/pkg-src/boost-1.88-src/boost_1_88_0/stage/lib/cmake/
-    # with the /stage/lib/cmake directory being where boost places the CMake files after building with b2.
+    # Or you can set BOOST_CMAKE_ROOT to tell it where to look.
     if(DEFINED ENV{BOOST_CMAKE_ROOT})
         find_package(
             Boost 1.82.0 REQUIRED CONFIG
