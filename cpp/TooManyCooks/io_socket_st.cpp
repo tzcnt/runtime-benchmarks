@@ -94,6 +94,7 @@ tmc::task<result> server_handler(socket_t Socket) {
 static tmc::task<void> server(tmc::ex_asio& ex, uint16_t Port) {
   acceptor_t acceptor(ex, {tcp::v4(), Port});
 
+  // Wait for CONNECTION_COUNT connections to be opened
   auto handlers = tmc::fork_group<result>(CONNECTION_COUNT);
   for (size_t i = 0; i < CONNECTION_COUNT; ++i) {
     auto [error, sock] = co_await acceptor.async_accept(tmc::aw_asio);
@@ -103,6 +104,7 @@ static tmc::task<void> server(tmc::ex_asio& ex, uint16_t Port) {
     }
     handlers.fork(server_handler(std::move(sock)));
   }
+  // Wait for all handlers to complete and then count the results
   auto results = co_await std::move(handlers);
 
   auto eof = asio::error::make_error_code(asio::error::misc_errors::eof);

@@ -75,6 +75,7 @@ server(std::unique_ptr<coro::io_scheduler>& executor, uint16_t Port) {
     executor, coro::net::tcp::server::options{.port = Port}
   };
 
+  // Wait for CONNECTION_COUNT connections to be opened
   for (size_t i = 0; i < CONNECTION_COUNT; ++i) {
     // Wait for a new connection.
     auto pstatus = co_await server.poll();
@@ -99,6 +100,8 @@ server(std::unique_ptr<coro::io_scheduler>& executor, uint16_t Port) {
       std::terminate();
     }
   }
+
+  // Wait for all handlers to complete and then count the results
   size_t total = 0;
   for (size_t i = 0; i < CONNECTION_COUNT; ++i) {
     auto result = co_await finished_chan.pop();

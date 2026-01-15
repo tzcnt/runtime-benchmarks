@@ -82,10 +82,13 @@ cobalt::thread server(uint16_t Port) {
     co_await boost::cobalt::this_coro::executor, {tcp::v4(), Port}
   );
 
+  // Wait for CONNECTION_COUNT connections to be opened
   for (size_t i = 0; i < CONNECTION_COUNT; ++i) {
     auto sock = co_await acceptor.async_accept(cobalt::use_op);
     server_handler(std::move(sock), REQUEST_COUNT, finished_chan);
   }
+
+  // Wait for all handlers to complete and then count the results
   size_t total = 0;
   for (size_t i = 0; i < CONNECTION_COUNT; ++i) {
     auto result = co_await finished_chan.read();

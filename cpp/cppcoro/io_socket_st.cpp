@@ -72,16 +72,13 @@ task<result> server_handler(io_service& ioSvc, net::socket listeningSocket) {
 }
 
 task<void> server(io_service& ioSvc, net::socket listeningSocket) {
-  size_t per_handler = REQUEST_COUNT / CONNECTION_COUNT;
-  size_t rem = REQUEST_COUNT % CONNECTION_COUNT;
-
+  // Wait for CONNECTION_COUNT connections to be opened
   std::vector<task<result>> handlers;
   handlers.reserve(CONNECTION_COUNT);
   for (size_t i = 0; i < CONNECTION_COUNT; ++i) {
-    size_t count = i < rem ? per_handler + 1 : per_handler;
     handlers.push_back(server_handler(ioSvc, listeningSocket));
   }
-
+  // Wait for all handlers to complete and then count the results
   auto results = co_await when_all(std::move(handlers));
 
   size_t total = 0;
