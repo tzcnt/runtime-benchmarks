@@ -152,7 +152,17 @@ target_compile_options(nqueens PRIVATE "-falign-loops=64")
 add_executable(matmul matmul.cpp)
 
 add_executable(threads_sweep threads_sweep.cpp)
-
 add_executable(channel channel.cpp)
 
 add_executable(io_socket_st io_socket_st.cpp)
+
+# Library compilation benchmark targets
+add_library(library_compile OBJECT library_compile.cpp)
+
+if(BENCHMARK_COMPILE_TIME)
+    add_compile_definitions("BENCHMARK_COMPILE_TIME")
+    target_link_libraries(fib PRIVATE library_compile)
+    target_link_libraries(skynet PRIVATE library_compile)
+    target_link_libraries(nqueens PRIVATE library_compile)
+    target_link_libraries(matmul PRIVATE library_compile)
+endif()

@@ -10,7 +10,9 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+#ifndef BENCHMARK_COMPILE_TIME
 #define TMC_IMPL
+#endif
 
 #include "tmc/ex_cpu.hpp"
 #include "tmc/spawn_many.hpp"

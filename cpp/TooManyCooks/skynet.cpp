@@ -28,7 +28,9 @@
 // ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 // OTHER DEALINGS IN THE SOFTWARE.
 
+#ifndef BENCHMARK_COMPILE_TIME
 #define TMC_IMPL
+#endif
 
 #include "tmc/ex_cpu.hpp"
 #include "tmc/spawn_many.hpp"
