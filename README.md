@@ -9,11 +9,21 @@ Results summary table of a single configuration:
 
 | Runtime | [libfork](https://github.com/ConorWilliams/libfork) | [TooManyCooks](https://github.com/tzcnt/TooManyCooks) | [tbb](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onetbb.html) | [taskflow](https://github.com/taskflow/taskflow) | [cppcoro](https://github.com/andreasbuhr/cppcoro) | [coros](https://github.com/mtmucha/coros) | [HPX](https://github.com/STEllAR-GROUP/hpx) | [concurrencpp](https://github.com/David-Haim/concurrencpp) | [libcoro](https://github.com/jbaldwin/libcoro) |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Mean Ratio to Best<br>(lower is better) | 1.00x | 1.11x | 2.79x | 2.95x | 3.00x | 4.41x | 164.68x | 172.02x | 2247.44x |
-| skynet(8) | 39509 us | 46285 us | 141389 us | 205437 us | 171084 us | 104557 us | 15275347 us | 12211548 us | 155806778 us |
-| fib(39) | 67773 us | 82517 us | 269588 us | 200510 us | 264781 us | 172050 us | 14422928 us | 18555453 us | 304651430 us |
-| nqueens(14) | 78595 us | 83610 us | 163150 us | 166061 us | 173162 us | 883629 us | 4522909 us | 8142602 us | 42437681 us |
-| matmul(2048) | 41751 us | 41608 us | 64036 us | 63297 us | 64771 us | 50476 us | 72353 us | 67167 us | 459776 us |
+| Mean Ratio to Best<br>(lower is better) | 1.00x | 1.11x | 2.82x | 2.98x | 3.53x | 4.45x | 160.93x | 170.80x | 2238.69x |
+| skynet | 39639 us | 42512 us | 146884 us | 200196 us | 156739 us | 110734 us | 14654199 us | 12085877 us | 153184034 us |
+| nqueens | 78579 us | 83539 us | 161880 us | 183805 us | 186797 us | 883579 us | 4498900 us | 8252158 us | 43830994 us |
+| fib(39) | 67668 us | 84565 us | 272178 us | 203514 us | 438185 us | 171781 us | 14550913 us | 18381070 us | 305949459 us |
+| matmul(2048) | 41733 us | 43626 us | 62264 us | 62783 us | 54275 us | 50580 us | 72222 us | 68116 us | 465260 us |
+
+| Runtime | [TooManyCooks_st_asio](https://github.com/tzcnt/TooManyCooks) | [TooManyCooks_mt](https://github.com/tzcnt/TooManyCooks) | [libcoro_mt](https://github.com/jbaldwin/libcoro) | [cobalt_st_asio](https://github.com/boostorg/cobalt) |
+| --- | --- | --- | --- | --- |
+| Mean Ratio to Best<br>(lower is better) | 1.00x | 1.02x | 1.55x | 3.77x |
+| channel | 365842 us | 374115 us | 565826 us | 1379967 us |
+
+| Runtime | [TooManyCooks](https://github.com/tzcnt/TooManyCooks) | [cobalt](https://github.com/boostorg/cobalt) | [cppcoro](https://github.com/andreasbuhr/cppcoro) | [libcoro](https://github.com/jbaldwin/libcoro) |
+| --- | --- | --- | --- | --- |
+| Mean Ratio to Best<br>(lower is better) | 1.00x | 1.12x | 1.45x | 1.48x |
+| io_socket_st | 393705 us | 441244 us | 569703 us | 582490 us |
 
 <details>
 <summary>Click to view the machine configuration used in the summary table</summary>
@@ -33,6 +43,10 @@ Currently only includes C++ frameworks, and several recursive fork-join benchmar
 - skynet ([original link](https://github.com/atemerev/skynet)) but increased to 100M tasks (forks x10)
 - nqueens (forks up to x14)
 - matmul (forks x4)
+
+As well as some miscellaneous benchmarks:
+- channel - tests the performance of the library's async MPMC queue
+- io_socket_st - tests TCP ping-pong between a single-threaded client and single-threaded server
 
 Benchmark problem sizes were chosen to balance between making the total runtime of a full sweep tolerable (especially on weaker hardware with slower runtimes), and being sufficiently large to show meaningful differentiation between faster runtimes.
 
@@ -76,4 +90,4 @@ Frameworks to come:
 - PhotonLibOS https://github.com/alibaba/PhotonLibOS
 
 Benchmarks to come:
-- Lots of good inspiration [here](https://github.com/ConorWilliams/libfork/tree/main/bench/source)
+- Some inspiration [here](https://github.com/ConorWilliams/libfork/tree/main/bench/source)
