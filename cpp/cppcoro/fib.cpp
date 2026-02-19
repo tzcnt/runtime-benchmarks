@@ -26,6 +26,7 @@
 // ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 // OTHER DEALINGS IN THE SOFTWARE.
 
+#include "memusage.hpp"
 #include <cppcoro/schedule_on.hpp>
 #include <cppcoro/shared_task.hpp>
 #include <cppcoro/static_thread_pool.hpp>
@@ -93,6 +94,7 @@ int main(int argc, char* argv[]) {
       std::printf("runs:\n");
       std::printf("  - iteration_count: %" PRIu64 "\n", iter_count);
       std::printf("    duration: %" PRIu64 " us\n", totalTimeUs.count());
+      std::printf("    max_rss: %ld KiB\n", peak_memory_usage());
       co_return 0;
     }(tp, n)
   );

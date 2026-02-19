@@ -38,6 +38,7 @@
 
 #define TMC_IMPL
 
+#include "memusage.hpp"
 #include <boost/cobalt.hpp>
 #include <boost/cobalt/main.hpp>
 #include <boost/cobalt/this_coro.hpp>
@@ -207,4 +208,5 @@ int main(int argc, char* argv[]) {
   std::printf(
     "    requests/sec: %zu\n", REQUEST_COUNT * 1000000 / totalTimeUs.count()
   );
+  std::printf("    max_rss: %ld KiB\n", peak_memory_usage());
 }

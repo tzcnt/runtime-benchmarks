@@ -4,6 +4,7 @@
 // https://github.com/taskflow/taskflow/blob/v3.9.0/examples/fibonacci.cpp
 // Original author: taskflow
 
+#include "memusage.hpp"
 #include <taskflow/taskflow.hpp>
 
 #include <chrono>
@@ -65,4 +66,5 @@ int main(int argc, char* argv[]) {
   std::printf("runs:\n");
   std::printf("  - iteration_count: %" PRIu64 "\n", iter_count);
   std::printf("    duration: %" PRIu64 " us\n", totalTimeUs.count());
+  std::printf("    max_rss: %ld KiB\n", peak_memory_usage());
 }

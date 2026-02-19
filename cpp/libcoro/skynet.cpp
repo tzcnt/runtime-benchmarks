@@ -28,6 +28,7 @@
 // ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 // OTHER DEALINGS IN THE SOFTWARE.
 
+#include "memusage.hpp"
 #include "coro/coro.hpp" // IWYU pragma: keep
 
 #include <chrono>
@@ -85,6 +86,7 @@ coro::task<void> loop_skynet(coro::thread_pool& tp) {
     std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime);
   std::printf("  - iteration_count: %" PRIu64 "\n", iter_count);
   std::printf("    duration: %" PRIu64 " us\n", totalTimeUs.count());
+  std::printf("    max_rss: %ld KiB\n", peak_memory_usage());
 }
 
 int main(int argc, char* argv[]) {

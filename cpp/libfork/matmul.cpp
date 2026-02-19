@@ -8,6 +8,7 @@
 // file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #include "matmul.hpp"
+#include "memusage.hpp"
 #include <libfork.hpp>
 
 #include <chrono>
@@ -92,6 +93,7 @@ void run_one(lf::lazy_pool& executor, int N) {
     std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime);
   std::printf("  - matrix_size: %d\n", N);
   std::printf("    duration: %zu us\n", totalTimeUs.count());
+  std::printf("    max_rss: %ld KiB\n", peak_memory_usage());
 }
 
 int main(int argc, char* argv[]) {

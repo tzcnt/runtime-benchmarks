@@ -12,6 +12,7 @@
 
 #define TMC_IMPL
 
+#include "memusage.hpp"
 #include "tmc/ex_cpu.hpp"
 #include "tmc/spawn_many.hpp"
 #include "tmc/task.hpp"
@@ -107,6 +108,7 @@ int main(int argc, char* argv[]) {
     std::printf("runs:\n");
     std::printf("  - iteration_count: %" PRIu64 "\n", iter_count);
     std::printf("    duration: %" PRIu64 " us\n", totalTimeUs.count());
+    std::printf("    max_rss: %ld KiB\n", peak_memory_usage());
     co_return 0;
   }());
 }
