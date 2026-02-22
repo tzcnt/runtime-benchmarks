@@ -26,6 +26,7 @@
 // ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 // OTHER DEALINGS IN THE SOFTWARE.
 
+#include "memusage.hpp"
 #include <hpx/future.hpp>
 #include <hpx/init.hpp>
 
@@ -105,6 +106,7 @@ int hpx_main(hpx::program_options::variables_map&) {
   std::printf("runs:\n");
   std::printf("  - iteration_count: %" PRIu64 "\n", iter_count);
   std::printf("    duration: %" PRIu64 " us\n", totalTimeUs.count());
+  std::printf("    max_rss: %ld KiB\n", peak_memory_usage());
 
   return hpx::local::finalize();
 }

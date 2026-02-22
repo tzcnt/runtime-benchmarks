@@ -30,6 +30,7 @@
 // ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 // OTHER DEALINGS IN THE SOFTWARE.
 
+#include "memusage.hpp"
 #include "coro/coro.hpp" // IWYU pragma: keep
 
 #include <cstddef>
@@ -255,4 +256,5 @@ int main(int argc, char* argv[]) {
   std::printf(
     "    requests/sec: %zu\n", REQUEST_COUNT * 1000000 / totalTimeUs.count()
   );
+  std::printf("    max_rss: %ld KiB\n", peak_memory_usage());
 }

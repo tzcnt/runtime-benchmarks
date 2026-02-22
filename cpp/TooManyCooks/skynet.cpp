@@ -30,6 +30,7 @@
 
 #define TMC_IMPL
 
+#include "memusage.hpp"
 #include "tmc/ex_cpu.hpp"
 #include "tmc/spawn_many.hpp"
 #include "tmc/task.hpp"
@@ -96,6 +97,7 @@ template <size_t Depth = 6> tmc::task<void> loop_skynet() {
     std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime);
   std::printf("  - iteration_count: %" PRIu64 "\n", iter_count);
   std::printf("    duration: %" PRIu64 " us\n", totalTimeUs.count());
+  std::printf("    max_rss: %ld KiB\n", peak_memory_usage());
 }
 
 int main(int argc, char* argv[]) {
