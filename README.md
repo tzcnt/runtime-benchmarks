@@ -5,7 +5,7 @@ Benchmarks to compare the performance of async runtimes / executors.
 
 An interactive view of the full results dataset is available at: https://fleetcode.com/runtime-benchmarks/
 
-Results summary table of a single configuration:
+### Results summary table (64 cores / 64 threads):
 
 | Runtime | [libfork](https://github.com/ConorWilliams/libfork) | [TooManyCooks](https://github.com/tzcnt/TooManyCooks) | [tbb](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onetbb.html) | [taskflow](https://github.com/taskflow/taskflow) | [cppcoro](https://github.com/andreasbuhr/cppcoro) | [coros](https://github.com/mtmucha/coros) | [HPX](https://github.com/STEllAR-GROUP/hpx) | [concurrencpp](https://github.com/David-Haim/concurrencpp) | [libcoro](https://github.com/jbaldwin/libcoro) |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -25,8 +25,19 @@ Results summary table of a single configuration:
 | Mean Ratio to Best<br>(lower is better) | 1.00x | 1.12x | 1.45x | 1.48x |
 | io_socket_st | 393705 us | 441244 us | 569703 us | 582490 us |
 
+### Peak Memory Usage (Max RSS) (64 cores / 64 threads):
+
+| Runtime | libfork | TooManyCooks | tbb | taskflow | cppcoro | coros | concurrencpp | HPX | libcoro | cobalt |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| skynet | 10.14 MB | 11.4 MB | 12.66 MB | 7.62 MB | 134.03 MB | 9.43 MB | 11.03 MB | 24.81 GB | 16.19 GB | N/A |
+| nqueens | 13.15 MB | 14.11 MB | 11.08 MB | 8.44 MB | 134.07 MB | 9.31 MB | 11.02 MB | 11.18 GB | 4.98 GB | N/A |
+| fib(39) | 10.02 MB | 11.49 MB | 11.13 MB | 11.93 MB | 134.07 MB | 11.02 MB | 11.32 MB | 16.27 GB | 16.47 GB| N/A |
+| matmul(2048) | 60.88 MB | 63.63 MB | 58.52 MB | 59.4 MB | 186.33 MB | 58.47 MB | 61.1 MB | 109.14 MB | 56.14 MB | N/A |
+| io_socket_st | N/A | 13.14 MB | N/A | N/A | 9.3 MB | N/A | N/A | N/A | 7.8 MB | 9.06 MB |
+| channel | N/A | 33.0 MB | N/A | N/A | N/A | N/A | N/A | N/A | 11.01 MB | 10.92 MB |
+
 <details>
-<summary>Click to view the machine configuration used in the summary table</summary>
+<summary>Click to view the machine configuration used in the summary tables</summary>
 
 - Processor: EPYC 7742 64-core processor
 - Worker Thread Count: 64 (no SMT)
