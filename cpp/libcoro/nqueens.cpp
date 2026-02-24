@@ -10,6 +10,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+#include "memusage.hpp"
 #include "coro/coro.hpp" // IWYU pragma: keep
 
 #include <array>
@@ -105,6 +106,7 @@ int main(int argc, char* argv[]) {
     std::printf("runs:\n");
     std::printf("  - iteration_count: %" PRIu64 "\n", iter_count);
     std::printf("    duration: %" PRIu64 " us\n", totalTimeUs.count());
+    std::printf("    max_rss: %ld KiB\n", peak_memory_usage());
     co_return 0;
   }(*tp));
 }

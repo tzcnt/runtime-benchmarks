@@ -25,6 +25,7 @@
 // ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 // OTHER DEALINGS IN THE SOFTWARE.
 
+#include "memusage.hpp"
 #include <boost/cobalt.hpp>
 
 #include <chrono>
@@ -163,5 +164,6 @@ cobalt::main co_main(int argc, char* argv[]) {
   std::printf("    elements: %zu\n", element_count);
   std::printf("    duration: %zu us\n", totalTimeUs);
   std::printf("    elements/sec: %zu\n", elementsPerSec);
+  std::printf("    max_rss: %ld KiB\n", peak_memory_usage());
   co_return 0;
 }

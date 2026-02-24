@@ -10,6 +10,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+#include "memusage.hpp"
 #include "hpx/async_combinators/when_all.hpp"
 #include <hpx/config.hpp>
 #include <hpx/experimental/task_group.hpp>
@@ -152,6 +153,7 @@ int hpx_main(hpx::program_options::variables_map& vm) {
   std::printf("runs:\n");
   std::printf("  - iteration_count: %" PRIu64 "\n", iter_count);
   std::printf("    duration: %" PRIu64 " us\n", totalTimeUs.count());
+  std::printf("    max_rss: %ld KiB\n", peak_memory_usage());
 
   return hpx::local::finalize();
 }

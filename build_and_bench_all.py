@@ -84,7 +84,7 @@ def get_nproc_fallback():
         return int(subprocess.run(args=f"./get_nproc.sh", shell=True, capture_output=True, text=True).stdout)
     except:
         return 8
-    
+
 def get_threads_sweep_fallback():
     proc = get_nproc_fallback()
     if len(sys.argv) == 1:
@@ -126,6 +126,15 @@ def get_dur_in_us(dur_string):
         print(f"Unknown unit: {unit}")
         exit(1)
 
+
+def format_mem(kib_string):
+    # kib_string looks like "1234 KiB"
+    ki = int(kib_string.split(" ")[0])
+    mi = ki / 1024
+    if mi >= 1024:
+        return f"{round(mi / 1024, 2)} GB"
+    return f"{round(mi, 2)} MB"
+
 root_dir = os.path.abspath(os.path.dirname(__file__))
 
 md = {"start_time": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
@@ -158,14 +167,14 @@ for language, runtime_names in runtimes.items():
             bench_args = benchmarks[bench_name]
             runtime_root_dir = os.path.join(root_dir, language, runtime)
             bench_exe = os.path.join(runtime_root_dir, "build", bench_name)
-            
+
             # Get configs for this runtime+benchmark combo, or use a single empty config
             configs = benchmark_configs.get(runtime, {}).get(bench_name, [""])
-            
+
             # Skip if benchmark executable doesn't exist
             if not os.path.exists(bench_exe):
                 continue
-            
+
             for config in configs:
                  for params in bench_args.setdefault("params",[""]):
                      for thread_count in threads:
@@ -178,17 +187,23 @@ for language, runtime_names in runtimes.items():
                          cmd = f"{bench_exe} {params} {thread_count}"
                          if config:
                              cmd += f" {config}"
-                         
+
                          print(f"Running {cmd}")
                          output_array = subprocess.run(args=cmd, shell=True, capture_output=True, text=True)
                          try:
                              print(output_array.stdout)
                              raw = yaml.safe_load(output_array.stdout)
+                             run_data = raw["runs"][0]
+
                              result = {
-                                 "duration": raw["runs"][0]["duration"]
+                                 "duration": run_data["duration"]
                              }
+                             # Extract max_rss
+                             if "max_rss" in run_data:
+                                 result["max_rss"] = format_mem(run_data["max_rss"])
+
                              # Extract throughput (any field ending in /sec)
-                             for key, value in raw["runs"][0].items():
+                             for key, value in run_data.items():
                                  if key.endswith("/sec"):
                                      result["throughput"] = value
                                      break
@@ -226,7 +241,7 @@ for bench_name in benchmarks_order:
                 speedup = float(firstDur) / float(dur)
                 speedup = round(speedup, 2)
                 run["result"]["speedup"] = speedup
-    
+
 # full_results is used to produce the .json for charting
 # collated_results is used to produce the .md summary for the README
 collated_results = {}
@@ -338,7 +353,7 @@ outMD = ""
 # Process each group separately
 for runtime_set, group_bench_names in runtime_set_to_benchmarks.items():
     group_runtimes = list(runtime_set)
-    
+
     # Calculate lowest results for this group's benchmarks
     lowest_results = {}
     for runtime in group_runtimes:
@@ -349,7 +364,7 @@ for runtime_set, group_bench_names in runtime_set_to_benchmarks.items():
                 curr_lowest = lowest_results.get(bench_name, sys.maxsize)
                 if us < curr_lowest:
                     lowest_results[bench_name] = us
-    
+
     # Calculate ratios for this group
     for runtime in group_runtimes:
         runtime_results = collated_results[runtime]
@@ -358,7 +373,7 @@ for runtime_set, group_bench_names in runtime_set_to_benchmarks.items():
                 us = runtime_results[bench_name]["us"]
                 ratio = float(us) / float(lowest_results[bench_name])
                 runtime_results[bench_name]["ratio"] = ratio
-    
+
     # Sort runtimes by mean ratio within this group
     sorted_runtimes = []
     for runtime in group_runtimes:
@@ -368,7 +383,7 @@ for runtime_set, group_bench_names in runtime_set_to_benchmarks.items():
         mean = total / count
         sorted_runtimes.append({"runtime": runtime, "mean": mean})
     sorted_runtimes.sort(key=lambda x: x["mean"])
-    
+
     # Build output array for this group
     output_array = [["Runtime", "Mean Ratio to Best<br>(lower is better)"] + group_bench_names]
     for runtime in sorted_runtimes:
@@ -383,11 +398,11 @@ for runtime_set, group_bench_names in runtime_set_to_benchmarks.items():
         for bench in group_bench_names:
             runtime_output.append(runtime_results[bench]["raw"])
         output_array.append(runtime_output)
-    
+
     # Generate table for this group
     len_y = len(output_array[0])
     len_x = len(output_array)
-    
+
     # Create header row
     for x in range(len_x):
         outMD += f"| {output_array[x][0]} "
@@ -402,6 +417,31 @@ for runtime_set, group_bench_names in runtime_set_to_benchmarks.items():
             outMD += f"| {output_array[x][y]} "
         outMD += "|\n"
     outMD += "\n"
+
+# --- Generate Memory Usage Table ---
+outMD += "\n\n### Peak Memory Usage (Max RSS)\n\n"
+mem_table = [["Runtime"] + bench_names]
+
+for runtime in collated_results.keys():
+    row = [runtime]
+    for bench_friendly in bench_names:
+        orig_name = bench_friendly.split("(")[0]
+        try:
+            last_run = full_results[runtime][orig_name][-1]
+            row.append(last_run["result"].get("max_rss", "N/A"))
+        except:
+            row.append("N/A")
+    mem_table.append(row)
+
+# Render it
+for y in range(len(mem_table[0])):
+    for x in range(len(mem_table)):
+        outMD += f"| {mem_table[x][y]} "
+    outMD += "|\n"
+    if y == 0: # Header separator
+        for _ in range(len(mem_table)):
+            outMD += "| --- "
+        outMD += "|\n"
 
 with open("RESULTS.md", "w") as resultsMD:
     resultsMD.write(outMD.strip() + "\n")

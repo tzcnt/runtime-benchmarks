@@ -9,6 +9,7 @@
 
 #include "matmul.hpp"
 
+#include "memusage.hpp"
 #include <hpx/experimental/task_group.hpp>
 #include <hpx/future.hpp>
 #include <hpx/init.hpp>
@@ -94,6 +95,7 @@ void run_one(int N) {
     std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime);
   std::printf("  - matrix_size: %d\n", N);
   std::printf("    duration: %zu us\n", totalTimeUs.count());
+  std::printf("    max_rss: %ld KiB\n", peak_memory_usage());
 }
 
 int hpx_main(hpx::program_options::variables_map&) {
