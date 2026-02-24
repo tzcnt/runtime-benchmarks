@@ -1,7 +1,8 @@
 #pragma once
 #ifdef _WIN32
-#include <psapi.h>
+#define NOMINMAX
 #include <windows.h>
+#include <psapi.h>
 #else
 #include <sys/resource.h>
 #include <sys/param.h>
