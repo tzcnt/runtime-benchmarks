@@ -1,0 +1,39 @@
+name: CodSpeed
+
+on:
+  push:
+    branches:
+      - "main"
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  codspeed:
+    name: Run benchmarks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Build CodSpeed benchmarks
+        run: |
+          cd cpp/codspeed
+          mkdir -p build && cd build
+          cmake -DCODSPEED_MODE=simulation -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
+          make -j$(nproc) bench_fib bench_skynet bench_nqueens bench_matmul
+
+      - name: Run CodSpeed benchmarks
+        uses: CodSpeedHQ/action@v4
+        with:
+          mode: simulation
+          run: |
+            cd cpp/codspeed/build
+            ./bench_fib
+            ./bench_skynet
+            ./bench_nqueens
+            ./bench_matmul

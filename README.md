@@ -1,6 +1,8 @@
 # runtime-benchmarks
 Benchmarks to compare the performance of async runtimes / executors.
 
+[![CodSpeed](https://img.shields.io/endpoint?url=https://codspeed.io/badge.json)](https://codspeed.io/tzcnt/runtime-benchmarks?utm_source=badge)
+
 [<img src="https://fleetcode.com/img/bench-splash.png">](https://fleetcode.com/runtime-benchmarks/)
 
 An interactive view of the full results dataset is available at: https://fleetcode.com/runtime-benchmarks/
