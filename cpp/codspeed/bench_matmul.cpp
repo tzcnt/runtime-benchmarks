@@ -2,6 +2,8 @@
 // using the taskflow runtime.
 
 // Adapted from cpp/taskflow/matmul.cpp
+// Uses 256x256 instead of larger sizes for reasonable CI runtimes
+// under simulation mode.
 
 #include "matmul.hpp"
 #include <taskflow/algorithm/for_each.hpp>
@@ -84,5 +86,5 @@ static void BM_Matmul(benchmark::State& state) {
     benchmark::ClobberMemory();
   }
 }
-BENCHMARK(BM_Matmul)->Arg(512);
+BENCHMARK(BM_Matmul)->Arg(256);
 BENCHMARK_MAIN();

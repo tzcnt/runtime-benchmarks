@@ -2,6 +2,8 @@
 // using the taskflow runtime.
 
 // Adapted from cpp/taskflow/nqueens.cpp
+// Uses N=10 instead of N=14 for reasonable CI runtimes
+// under simulation mode.
 
 #include <taskflow/taskflow.hpp>
 
@@ -15,7 +17,7 @@
 static size_t thread_count = std::thread::hardware_concurrency();
 std::optional<tf::Executor> executor;
 
-inline constexpr int nqueens_work = 14;
+inline constexpr int nqueens_work = 10;
 
 inline constexpr std::array<int, 28> answers = {
   0,       1,         0,          0,          2,           10,     4,

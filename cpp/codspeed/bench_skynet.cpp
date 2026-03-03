@@ -2,6 +2,8 @@
 // using the taskflow runtime.
 
 // Adapted from cpp/taskflow/skynet.cpp
+// Uses depth 6 (1M tasks) instead of depth 8 (100M tasks)
+// for reasonable CI runtimes under simulation mode.
 
 #include <taskflow/taskflow.hpp>
 
@@ -50,7 +52,13 @@ template <size_t DepthMax>
 void skynet(tf::Executor& exec) {
   size_t count;
   exec.async([&]() { count = skynet_one<DepthMax>(0, 0); }).get();
-  if (count != 4999999950000000) {
+  size_t expected = 0;
+  size_t max_val = 1;
+  for (size_t i = 0; i < DepthMax; ++i) {
+    max_val *= 10;
+  }
+  expected = (max_val - 1) * max_val / 2;
+  if (count != expected) {
     std::fprintf(
       stderr, "ERROR: wrong result - %" PRIu64 "\n", count
     );
@@ -63,10 +71,10 @@ static void BM_Skynet(benchmark::State& state) {
   }
 
   // warmup
-  skynet<8>(*executor);
+  skynet<6>(*executor);
 
   for (auto _ : state) {
-    skynet<8>(*executor);
+    skynet<6>(*executor);
   }
 }
 BENCHMARK(BM_Skynet);

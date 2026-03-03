@@ -45,5 +45,5 @@ static void BM_Fib(benchmark::State& state) {
     benchmark::DoNotOptimize(result);
   }
 }
-BENCHMARK(BM_Fib)->Arg(30);
+BENCHMARK(BM_Fib)->Arg(20);
 BENCHMARK_MAIN();
