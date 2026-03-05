@@ -28,6 +28,7 @@
 
 #define TMC_IMPL
 
+#include "memusage.hpp"
 #include "tmc/all_headers.hpp"
 
 #include <chrono>
@@ -92,6 +93,7 @@ int main(int argc, char* argv[]) {
     std::printf("runs:\n");
     std::printf("  - iteration_count: %" PRIu64 "\n", iter_count);
     std::printf("    duration: %" PRIu64 " us\n", totalTimeUs.count());
+    std::printf("    max_rss: %ld KiB\n", peak_memory_usage());
     co_return 0;
   }(n));
 }

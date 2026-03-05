@@ -28,6 +28,7 @@
 // ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 // OTHER DEALINGS IN THE SOFTWARE.
 
+#include "memusage.hpp"
 #include "hpx/async_combinators/when_all.hpp"
 #include <hpx/experimental/task_group.hpp>
 #include <hpx/future.hpp>
@@ -154,6 +155,7 @@ template <size_t Depth = 6> void loop_skynet() {
     std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime);
   std::printf("  - iteration_count: %" PRIu64 "\n", iter_count);
   std::printf("    duration: %" PRIu64 " us\n", totalTimeUs.count());
+  std::printf("    max_rss: %ld KiB\n", peak_memory_usage());
 }
 
 int hpx_main(hpx::program_options::variables_map&) {

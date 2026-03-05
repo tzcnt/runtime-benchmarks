@@ -7,6 +7,7 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
+#include "memusage.hpp"
 #include "matmul.hpp"
 #include <tbb/tbb.h>
 
@@ -91,6 +92,7 @@ void run_one(tbb::task_arena& executor, int N) {
     std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime);
   std::printf("  - matrix_size: %d\n", N);
   std::printf("    duration: %zu us\n", totalTimeUs.count());
+  std::printf("    max_rss: %ld KiB\n", peak_memory_usage());
 }
 
 int main(int argc, char* argv[]) {

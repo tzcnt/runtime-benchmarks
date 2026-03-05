@@ -13,6 +13,7 @@
 #include <cinttypes>
 #include <cstdio>
 #include <cstdlib>
+#include "memusage.hpp"
 #include <libfork.hpp>
 
 static size_t thread_count = std::thread::hardware_concurrency() / 2;
@@ -61,5 +62,6 @@ int main(int argc, char* argv[]) {
   std::printf("runs:\n");
   std::printf("  - iteration_count: %" PRIu64 "\n", iter_count);
   std::printf("    duration: %" PRIu64 " us\n", totalTimeUs.count());
+  std::printf("    max_rss: %ld KiB\n", peak_memory_usage());
   return 0;
 }

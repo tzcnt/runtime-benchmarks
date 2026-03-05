@@ -27,6 +27,7 @@
 
 #define TMC_IMPL
 
+#include "memusage.hpp"
 #include "tmc/all_headers.hpp"
 #include "tmc/asio/ex_asio.hpp"
 
@@ -188,4 +189,5 @@ int main(int argc, char* argv[]) {
   std::printf("    elements: %zu\n", element_count);
   std::printf("    duration: %zu us\n", totalTimeUs);
   std::printf("    elements/sec: %zu\n", elementsPerSec);
+  std::printf("    max_rss: %ld KiB\n", peak_memory_usage());
 }

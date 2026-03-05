@@ -9,6 +9,7 @@
 
 #define TMC_IMPL
 
+#include "memusage.hpp"
 #include "matmul.hpp"
 #include "tmc/all_headers.hpp"
 
@@ -84,6 +85,7 @@ void run_one(int N) {
     std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime);
   std::printf("  - matrix_size: %d\n", N);
   std::printf("    duration: %zu us\n", totalTimeUs.count());
+  std::printf("    max_rss: %ld KiB\n", peak_memory_usage());
 }
 
 int main(int argc, char* argv[]) {
