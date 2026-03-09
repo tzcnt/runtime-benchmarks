@@ -63,12 +63,14 @@ Benchmark problem sizes were chosen to balance between making the total runtime 
 
 ### How to build and run the benchmarks yourself
 
+Note: if you have issues with a particular runtime, you can simply remove it from line 17 of `build_and_bench_all.py` to skip it.
+
 #### Install Dependencies:
 - The build+bench script uses python3. The only Python dependency is libyaml.
 - CMake + Clang 18 or newer
 - libfork and TooManyCooks depend on the [hwloc](https://www.open-mpi.org/projects/hwloc/) library.
 - TBB benchmarks depend on system installed TBB - see the [installation guide here for the newest version](https://www.intel.com/content/www/us/en/docs/oneapi/installation-guide-linux/2024-2/apt.html) or you may be able to find the old version 'libtbb-dev' in your system package manager
-- boost::cobalt requires Boost 1.82 or newer. You may need to build Boost from source, since cobalt is currently not included in distro packages.
+- HPX and boost::cobalt requires Boost 1.82 or newer. You may need to build Boost from source, since cobalt is currently not included in distro packages.
 - A high performance allocator (tcmalloc, jemalloc, or mimalloc) is also recommended. The build script will dynamically link to any of these if they are available.
 
 On Debian/Ubuntu:
