@@ -36,8 +36,6 @@
 #include <SDKDDKVer.h>
 #endif
 
-#define TMC_IMPL
-
 #include "memusage.hpp"
 #include <boost/cobalt.hpp>
 #include <boost/cobalt/main.hpp>

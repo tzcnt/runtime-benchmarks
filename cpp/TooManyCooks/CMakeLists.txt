@@ -38,7 +38,7 @@ else()
     CPMAddPackage(
         NAME TooManyCooks
         GIT_REPOSITORY https://github.com/tzcnt/TooManyCooks.git
-        GIT_TAG v1.4
+        GIT_TAG v1.5
         DOWNLOAD_ONLY)
 
     include_directories(
@@ -82,15 +82,6 @@ else()
     )
 endif()
 
-CPMAddPackage(
-    NAME tmc_asio
-    GIT_REPOSITORY https://github.com/tzcnt/tmc-asio.git
-    GIT_TAG v1.4
-    DOWNLOAD_ONLY)
-include_directories(
-    ${tmc_asio_SOURCE_DIR}/include
-)
-
 # HWLOC support
 option(TMC_USE_HWLOC "libhwloc" ON)
 
@@ -100,6 +91,7 @@ if(TMC_USE_HWLOC)
 
     if(NOT LIBHWLOC_FOUND)
         message(WARNING "TMC_USE_HWLOC: WARNING - libhwloc was not found. Building without it... this may affect performance.")
+        set(TMC_USE_HWLOC OFF CACHE BOOL "libhwloc" FORCE)
     else()
         message(STATUS "TMC_USE_HWLOC: found library ${LIBHWLOC_LIBRARY}")
         message(STATUS "TMC_USE_HWLOC: found include ${LIBHWLOC_INCLUDE_DIR}/hwloc.h")

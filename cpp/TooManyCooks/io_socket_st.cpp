@@ -34,8 +34,6 @@
 #include <SDKDDKVer.h>
 #endif
 
-#define TMC_IMPL
-
 #include "memusage.hpp"
 #include "tmc/asio/aw_asio.hpp"
 #include "tmc/asio/ex_asio.hpp"
