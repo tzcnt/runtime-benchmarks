@@ -16,6 +16,10 @@ include(../1CMake/CPM.cmake)
 
 include_directories("../2common")
 
+if(DEFINED ENV{RUNTIME_BENCHMARKS_LIBRARY_REF})
+    message(FATAL_ERROR "RUNTIME_BENCHMARKS_LIBRARY_REF cannot be used for cobalt because this project uses find_package(Boost), not CPMAddPackage")
+endif()
+
 # Tell cmake to use the target Boost cmake file instead of the built-in
 cmake_policy(SET CMP0167 NEW)
 set(Boost_USE_STATIC_LIBS ON)

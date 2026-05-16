@@ -15,10 +15,15 @@ add_definitions(
 
 include(../1CMake/CPM.cmake)
 
+set(TASKFLOW_GIT_TAG 1ac5852c5a1679face4a4755eaab5dbcc558128e) # basically v4.0.0 with a minor fix for -DTF_ENABLE_ATOMIC_NOTIFIER
+if(DEFINED ENV{RUNTIME_BENCHMARKS_LIBRARY_REF})
+    set(TASKFLOW_GIT_TAG "$ENV{RUNTIME_BENCHMARKS_LIBRARY_REF}")
+endif()
+
 CPMAddPackage(
     NAME taskflow
     GIT_REPOSITORY https://github.com/taskflow/taskflow.git
-    GIT_TAG 1ac5852c5a1679face4a4755eaab5dbcc558128e # basically v4.0.0 with a minor fix for -DTF_ENABLE_ATOMIC_NOTIFIER
+    GIT_TAG ${TASKFLOW_GIT_TAG}
     DOWNLOAD_ONLY)
 
 include_directories(

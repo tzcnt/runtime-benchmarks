@@ -12,10 +12,13 @@ import yaml
 import sys
 import ast
 import platform
+import shutil
 
 runtimes = {
     "cpp": ["libfork", "TooManyCooks", "tbb", "taskflow", "cppcoro", "coros", "concurrencpp", "HPX", "libcoro", "cobalt"]
 }
+
+LIBRARY_REF_ENV_VAR = "RUNTIME_BENCHMARKS_LIBRARY_REF"
 
 runtime_links = {
     "libfork": "https://github.com/ConorWilliams/libfork",
@@ -69,6 +72,80 @@ benchmark_configs = {
     },
 }
 
+def print_usage():
+    runtime_list = ", ".join(runtime for runtime_names in runtimes.values() for runtime in runtime_names)
+    print("Usage:")
+    print("  ./build_and_bench_all.py")
+    print("  ./build_and_bench_all.py full")
+    print("  ./build_and_bench_all.py compare <runtime> <new-git-ref> [baseline-git-ref]")
+    print("  ./build_and_bench_all.py <runtime> [git-ref]")
+    print(f"\nRuntimes: {runtime_list}")
+
+def parse_args():
+    args = sys.argv[1:]
+    all_runtimes = [runtime for runtime_names in runtimes.values() for runtime in runtime_names]
+
+    if not args:
+        return {
+            "full_sweep": False,
+            "compare_runtime": None,
+            "compare_new_ref": None,
+            "compare_baseline_ref": None,
+            "single_runtime": None,
+            "single_ref": None,
+        }
+
+    if args == ["full"]:
+        return {
+            "full_sweep": True,
+            "compare_runtime": None,
+            "compare_new_ref": None,
+            "compare_baseline_ref": None,
+            "single_runtime": None,
+            "single_ref": None,
+        }
+
+    if args[0] == "compare":
+        args = args[1:]
+
+        if len(args) not in (2, 3):
+            print_usage()
+            sys.exit(1)
+
+        runtime = args[0]
+        if runtime not in all_runtimes:
+            print(f"Unknown runtime: {runtime}\n")
+            print_usage()
+            sys.exit(1)
+
+        return {
+            "full_sweep": True,
+            "compare_runtime": runtime,
+            "compare_new_ref": args[1],
+            "compare_baseline_ref": args[2] if len(args) == 3 else None,
+            "single_runtime": None,
+            "single_ref": None,
+        }
+
+    if len(args) not in (1, 2):
+        print_usage()
+        sys.exit(1)
+
+    runtime = args[0]
+    if runtime not in all_runtimes:
+        print(f"Unknown runtime: {runtime}\n")
+        print_usage()
+        sys.exit(1)
+
+    return {
+        "full_sweep": True,
+        "compare_runtime": None,
+        "compare_new_ref": None,
+        "compare_baseline_ref": None,
+        "single_runtime": runtime,
+        "single_ref": args[1] if len(args) == 2 else None,
+    }
+
 collect_results = {
     "fib": [{"params": "39"}],
     "skynet": [{"params": ""}],
@@ -85,9 +162,9 @@ def get_nproc_fallback():
     except:
         return 8
 
-def get_threads_sweep_fallback():
+def get_threads_sweep_fallback(full_sweep):
     proc = get_nproc_fallback()
-    if len(sys.argv) == 1:
+    if not full_sweep:
         return [proc] # Only test at max cores if user didn't pass "full" arg
     result = []
     for t in [1,2,4,8,16,32,64]:
@@ -100,15 +177,15 @@ def get_threads_sweep_fallback():
 
 # This executable produces a sweep from 1 to NCORES, but inserts breakpoints at any relevant breakpoints,
 # e.g. at the number of P-cores. It uses TooManyCooks's hardware detection capabilities but isn't part of the benchmark suite.
-def get_threads_sweep():
+def get_threads_sweep(full_sweep):
     try:
         s = subprocess.run(args=f"./cpp/TooManyCooks/build/threads_sweep", shell=True, capture_output=True, text=True).stdout
         sweep = ast.literal_eval(s)
-        if len(sys.argv) == 1:
+        if not full_sweep:
             return [sweep[-1]] # Only test at max cores if user didn't pass "full" arg
         return sweep
     except:
-        return get_threads_sweep_fallback()
+        return get_threads_sweep_fallback(full_sweep)
 
 def get_dur_in_us(dur_string):
     dur, unit = dur_string.split(" ")
@@ -140,107 +217,171 @@ root_dir = os.path.abspath(os.path.dirname(__file__))
 md = {"start_time": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
 full_results = {}
 
-# Build all runtimes, all benchmarks
-for language, runtime_names in runtimes.items():
-    for runtime in runtime_names:
+def get_language_for_runtime(runtime):
+    for language, runtime_names in runtimes.items():
+        if runtime in runtime_names:
+            return language
+    return None
+
+def build_runtime(language, runtime, library_ref=None, clean_build=False):
+    runtime_root_dir = os.path.join(root_dir, language, runtime)
+    display_ref = f" ({library_ref})" if library_ref else ""
+    print(f"Building {runtime}{display_ref}")
+
+    if clean_build:
+        build_dir = os.path.join(runtime_root_dir, "build")
+        if os.path.exists(build_dir):
+            shutil.rmtree(build_dir)
+
+    build_script = os.path.join(runtime_root_dir, "build_all.sh")
+    if platform.system() == "Darwin":
+        build_script += " clang-macos-release"
+    elif platform.system() == "Windows":
+        build_script += " clang-win-release"
+    #else Linux is the default
+
+    env = os.environ.copy()
+    if library_ref is None:
+        env.pop(LIBRARY_REF_ENV_VAR, None)
+    else:
+        env[LIBRARY_REF_ENV_VAR] = library_ref
+
+    result = subprocess.run(args=build_script, shell=True, cwd=runtime_root_dir, capture_output=True, text=True, env=env)
+    if result.returncode != 0:
+        print(f"Build failed for {runtime}{display_ref}:")
+        print(result.stdout)
+        print(result.stderr)
+        return False
+    return True
+
+def run_runtime_benchmarks(language, runtime, result_runtime_name, threads):
+    for bench_name in benchmarks_order:
+        # lowest_dur = sys.maxsize
+        bench_args = benchmarks[bench_name]
         runtime_root_dir = os.path.join(root_dir, language, runtime)
-        print(f"Building {runtime}")
-        build_script = os.path.join(runtime_root_dir, "build_all.sh")
-        if platform.system() == "Darwin":
-            build_script += " clang-macos-release"
-        elif platform.system() == "Windows":
-            build_script += " clang-win-release"
-        #else Linux is the default
-        result = subprocess.run(args=build_script, shell=True, cwd=runtime_root_dir, capture_output=True, text=True)
-        if result.returncode != 0:
-            print(f"Build failed for {runtime}:")
-            print(result.stdout)
-            print(result.stderr)
+        bench_exe = os.path.join(runtime_root_dir, "build", bench_name)
 
-# Run sweep runtime -> benchmark -> threads
-threads = get_threads_sweep()
-print(f"Threads sweep: {threads}")
-for language, runtime_names in runtimes.items():
-    for runtime in runtime_names:
-        for bench_name in benchmarks_order:
-            # lowest_dur = sys.maxsize
-            bench_args = benchmarks[bench_name]
-            runtime_root_dir = os.path.join(root_dir, language, runtime)
-            bench_exe = os.path.join(runtime_root_dir, "build", bench_name)
+        # Get configs for this runtime+benchmark combo, or use a single empty config
+        configs = benchmark_configs.get(runtime, {}).get(bench_name, [""])
 
-            # Get configs for this runtime+benchmark combo, or use a single empty config
-            configs = benchmark_configs.get(runtime, {}).get(bench_name, [""])
+        # Skip if benchmark executable doesn't exist
+        if not os.path.exists(bench_exe):
+            continue
 
-            # Skip if benchmark executable doesn't exist
-            if not os.path.exists(bench_exe):
-                continue
+        for config in configs:
+             for params in bench_args.setdefault("params",[""]):
+                 for thread_count in threads:
+                     one_run = {
+                         "params": params,
+                         "threads": thread_count,
+                         "config": config,
+                     }
+                     # Build command: exe params threads [config]
+                     cmd = f"{bench_exe} {params} {thread_count}"
+                     if config:
+                         cmd += f" {config}"
 
-            for config in configs:
-                 for params in bench_args.setdefault("params",[""]):
-                     for thread_count in threads:
-                         one_run = {
-                             "params": params,
-                             "threads": thread_count,
-                             "config": config,
+                     print(f"Running {cmd}")
+                     output_array = subprocess.run(args=cmd, shell=True, capture_output=True, text=True)
+                     try:
+                         print(output_array.stdout)
+                         raw = yaml.safe_load(output_array.stdout)
+                         run_data = raw["runs"][0]
+
+                         result = {
+                             "duration": run_data["duration"]
                          }
-                         # Build command: exe params threads [config]
-                         cmd = f"{bench_exe} {params} {thread_count}"
-                         if config:
-                             cmd += f" {config}"
+                         # Extract max_rss
+                         if "max_rss" in run_data:
+                             result["max_rss"] = format_mem(run_data["max_rss"])
 
-                         print(f"Running {cmd}")
-                         output_array = subprocess.run(args=cmd, shell=True, capture_output=True, text=True)
-                         try:
-                             print(output_array.stdout)
-                             raw = yaml.safe_load(output_array.stdout)
-                             run_data = raw["runs"][0]
+                         # Extract throughput (any field ending in /sec)
+                         for key, value in run_data.items():
+                             if key.endswith("/sec"):
+                                 result["throughput"] = value
+                                 break
+                         one_run["result"] = result
+                         # Use config-suffixed runtime name if config is specified
+                         result_runtime = result_runtime_name if not config else f"{result_runtime_name}_{config}"
+                         full_results.setdefault(result_runtime, {}).setdefault(bench_name, []).append(one_run)
+                     except (yaml.YAMLError, Exception) as exc:
+                         print(f"Skipping result: {exc}")
+                         continue
 
-                             result = {
-                                 "duration": run_data["duration"]
-                             }
-                             # Extract max_rss
-                             if "max_rss" in run_data:
-                                 result["max_rss"] = format_mem(run_data["max_rss"])
+args = parse_args()
+compare_mode = args["compare_runtime"] is not None
+single_runtime_mode = args["single_runtime"] is not None
+active_runtimes = runtimes
+if compare_mode:
+    active_runtimes = {get_language_for_runtime(args["compare_runtime"]): [args["compare_runtime"]]}
+elif single_runtime_mode:
+    active_runtimes = {get_language_for_runtime(args["single_runtime"]): [args["single_runtime"]]}
 
-                             # Extract throughput (any field ending in /sec)
-                             for key, value in run_data.items():
-                                 if key.endswith("/sec"):
-                                     result["throughput"] = value
-                                     break
-                             one_run["result"] = result
-                             # Use config-suffixed runtime name if config is specified
-                             result_runtime = runtime if not config else f"{runtime}_{config}"
-                             full_results.setdefault(result_runtime, {}).setdefault(bench_name, []).append(one_run)
-                         except (yaml.YAMLError, Exception) as exc:
-                             print(f"Skipping result: {exc}")
-                             continue
+# Build all runtimes, all benchmarks
+if compare_mode:
+    compare_runtime = args["compare_runtime"]
+    language = get_language_for_runtime(compare_runtime)
+    threads = get_threads_sweep(args["full_sweep"])
+    print(f"Threads sweep: {threads}")
+
+    compare_runs = [
+        (f"{compare_runtime}_{args['compare_new_ref']}", args["compare_new_ref"]),
+    ]
+    if args["compare_baseline_ref"] is None:
+        compare_runs.append((f"{compare_runtime}_baseline", None))
+    else:
+        compare_runs.append((f"{compare_runtime}_{args['compare_baseline_ref']}", args["compare_baseline_ref"]))
+
+    for result_runtime_name, library_ref in compare_runs:
+        if build_runtime(language, compare_runtime, library_ref=library_ref, clean_build=True):
+            run_runtime_benchmarks(language, compare_runtime, result_runtime_name, threads)
+elif single_runtime_mode:
+    single_runtime = args["single_runtime"]
+    single_ref = args["single_ref"]
+    language = get_language_for_runtime(single_runtime)
+    threads = get_threads_sweep(args["full_sweep"])
+    print(f"Threads sweep: {threads}")
+
+    if build_runtime(language, single_runtime, library_ref=single_ref, clean_build=single_ref is not None):
+        run_runtime_benchmarks(language, single_runtime, single_runtime, threads)
+else:
+    for language, runtime_names in active_runtimes.items():
+        for runtime in runtime_names:
+            build_runtime(language, runtime, library_ref=os.environ.get(LIBRARY_REF_ENV_VAR))
+
+    # Run sweep runtime -> benchmark -> threads
+    threads = get_threads_sweep(args["full_sweep"])
+    print(f"Threads sweep: {threads}")
+    for language, runtime_names in active_runtimes.items():
+        for runtime in runtime_names:
+            run_runtime_benchmarks(language, runtime, runtime, threads)
 
 
 for bench_name in benchmarks_order:
     lowest_dur = sys.maxsize
-    for language, runtime_names in runtimes.items():
-        for runtime in runtime_names:
-            if runtime not in full_results or bench_name not in full_results[runtime]:
-                continue
-            for run in full_results[runtime][bench_name]:
-                dur = get_dur_in_us(run["result"]["duration"])
-                if (dur < lowest_dur):
-                    lowest_dur = dur
-    for language, runtime_names in runtimes.items():
-        for runtime in runtime_names:
-            if runtime not in full_results or bench_name not in full_results[runtime]:
-                continue
-            firstDur = None
-            for i, run in enumerate(full_results[runtime][bench_name]):
-                dur = get_dur_in_us(run["result"]["duration"])
-                scaled = float(dur) / float(lowest_dur)
-                scaled = round(scaled, 2)
-                run["result"]["scaled"] = scaled
-                if i == 0:
-                    firstDur = dur
-                speedup = float(firstDur) / float(dur)
-                speedup = round(speedup, 2)
-                run["result"]["speedup"] = speedup
+    for runtime, runtime_results in full_results.items():
+        if bench_name not in runtime_results:
+            continue
+        for run in runtime_results[bench_name]:
+            dur = get_dur_in_us(run["result"]["duration"])
+            if (dur < lowest_dur):
+                lowest_dur = dur
+    if lowest_dur == sys.maxsize:
+        continue
+    for runtime, runtime_results in full_results.items():
+        if bench_name not in runtime_results:
+            continue
+        firstDur = None
+        for i, run in enumerate(runtime_results[bench_name]):
+            dur = get_dur_in_us(run["result"]["duration"])
+            scaled = float(dur) / float(lowest_dur)
+            scaled = round(scaled, 2)
+            run["result"]["scaled"] = scaled
+            if i == 0:
+                firstDur = dur
+            speedup = float(firstDur) / float(dur)
+            speedup = round(speedup, 2)
+            run["result"]["speedup"] = speedup
 
 # full_results is used to produce the .json for charting
 # collated_results is used to produce the .md summary for the README
@@ -266,7 +407,7 @@ for runtime, runtime_results in full_results.items():
                 bench_names.append(friendly_name)
 
 # Get system information and attach it as metadata to the JSON file only
-if len(sys.argv) != 1:
+if args["full_sweep"] or compare_mode or single_runtime_mode:
     print("Generating RESULTS.json...")
     try:
         # Linux
@@ -297,7 +438,7 @@ if len(sys.argv) != 1:
     except:
         md["kernel"] = "unknown"
     try:
-        for language, runtime_names in runtimes.items():
+        for language, runtime_names in active_runtimes.items():
             for runtime in runtime_names:
                 # find the compiler exe from compile_commands.json and call it to get the version
                 if "compiler" in md:

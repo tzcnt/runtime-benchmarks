@@ -48,10 +48,15 @@ add_definitions(
 
 include(../1CMake/CPM.cmake)
 
+set(HPX_GIT_TAG v1.11.0)
+if(DEFINED ENV{RUNTIME_BENCHMARKS_LIBRARY_REF})
+    set(HPX_GIT_TAG "$ENV{RUNTIME_BENCHMARKS_LIBRARY_REF}")
+endif()
+
 CPMAddPackage(
     NAME hpx
     GIT_REPOSITORY https://github.com/STEllAR-GROUP/hpx.git
-    GIT_TAG v1.11.0)
+    GIT_TAG ${HPX_GIT_TAG})
 include_directories(
     ${hpx_SOURCE_DIR}/include
     "../2common"

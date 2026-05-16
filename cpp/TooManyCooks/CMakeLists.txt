@@ -35,10 +35,15 @@ if(TMC_AS_SUBMODULE)
         ${runtime_benchmarks_TooManyCooks_SOURCE_DIR}/submodule/include
     )
 else()
+    set(TMC_GIT_TAG v1.5)
+    if(DEFINED ENV{RUNTIME_BENCHMARKS_LIBRARY_REF})
+        set(TMC_GIT_TAG "$ENV{RUNTIME_BENCHMARKS_LIBRARY_REF}")
+    endif()
+
     CPMAddPackage(
         NAME TooManyCooks
         GIT_REPOSITORY https://github.com/tzcnt/TooManyCooks.git
-        GIT_TAG v1.5
+        GIT_TAG ${TMC_GIT_TAG}
         DOWNLOAD_ONLY)
 
     include_directories(

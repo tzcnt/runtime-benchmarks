@@ -16,10 +16,15 @@ add_definitions(
 
 include(../1CMake/CPM.cmake)
 
+set(LIBFORK_GIT_TAG v3.8.0)
+if(DEFINED ENV{RUNTIME_BENCHMARKS_LIBRARY_REF})
+    set(LIBFORK_GIT_TAG "$ENV{RUNTIME_BENCHMARKS_LIBRARY_REF}")
+endif()
+
 CPMAddPackage(
     NAME libfork
     GIT_REPOSITORY https://github.com/ConorWilliams/libfork.git
-    GIT_TAG v3.8.0
+    GIT_TAG ${LIBFORK_GIT_TAG}
     DOWNLOAD_ONLY)
 include_directories(
     ${libfork_SOURCE_DIR}/include
