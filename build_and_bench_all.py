@@ -75,10 +75,12 @@ benchmark_configs = {
 def print_usage():
     runtime_list = ", ".join(runtime for runtime_names in runtimes.values() for runtime in runtime_names)
     print("Usage:")
+    print("Benchmark all runtimes:")
     print("  ./build_and_bench_all.py")
     print("  ./build_and_bench_all.py full")
-    print("  ./build_and_bench_all.py compare <runtime> <new-git-ref> [baseline-git-ref]")
+    print("Benchmark a specific runtime (git-ref can be a SHA, tag, or branch):")
     print("  ./build_and_bench_all.py <runtime> [git-ref]")
+    print("  ./build_and_bench_all.py compare <runtime> <new-git-ref> [baseline-git-ref]")
     print(f"\nRuntimes: {runtime_list}")
 
 def parse_args():

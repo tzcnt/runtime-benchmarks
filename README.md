@@ -93,6 +93,15 @@ Results will appear in `RESULTS.md` and `RESULTS.csv` files.
 
 Results will also appear in `RESULTS.json` file; this file can be parsed by the interactive benchmarks site. A locally viewable version of this HTML chart will be generated as well.
 
+#### Benchmark a Single Runtime (sweeps threads from 1 to #CPUs):
+
+git-ref can be a SHA, tag, or branch:
+
+```
+  ./build_and_bench_all.py <runtime> [git-ref]
+  ./build_and_bench_all.py compare <runtime> <new-git-ref> [baseline-git-ref]
+```
+
 ### Future Plans
 
 Frameworks to come:
