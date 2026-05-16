@@ -31,8 +31,8 @@
 #define TMC_IMPL
 
 #include "tmc/ex_cpu.hpp"
-#include "tmc/spawn_group.hpp"
 #include "tmc/spawn_many.hpp"
+#include "tmc/spawn_tuple.hpp"
 #include "tmc/task.hpp"
 
 #include <chrono>
@@ -55,45 +55,23 @@ tmc::task<size_t> skynet_branch(size_t BaseNum, size_t Depth) {
   for (size_t i = 0; i < DepthMax - Depth - 1; ++i) {
     depthOffset *= 10;
   }
-  auto sg = tmc::spawn_group<10, tmc::task<size_t>>();
-  co_await sg.add_clang(
-    skynet_leaf<DepthMax>(BaseNum + depthOffset * 0, Depth + 1)
-  );
-  co_await sg.add_clang(
-    skynet_leaf<DepthMax>(BaseNum + depthOffset * 1, Depth + 1)
-  );
-  co_await sg.add_clang(
-    skynet_leaf<DepthMax>(BaseNum + depthOffset * 2, Depth + 1)
-  );
-  co_await sg.add_clang(
-    skynet_leaf<DepthMax>(BaseNum + depthOffset * 3, Depth + 1)
-  );
-  co_await sg.add_clang(
-    skynet_leaf<DepthMax>(BaseNum + depthOffset * 4, Depth + 1)
-  );
-  co_await sg.add_clang(
-    skynet_leaf<DepthMax>(BaseNum + depthOffset * 5, Depth + 1)
-  );
-  co_await sg.add_clang(
-    skynet_leaf<DepthMax>(BaseNum + depthOffset * 6, Depth + 1)
-  );
-  co_await sg.add_clang(
-    skynet_leaf<DepthMax>(BaseNum + depthOffset * 7, Depth + 1)
-  );
-  co_await sg.add_clang(
-    skynet_leaf<DepthMax>(BaseNum + depthOffset * 8, Depth + 1)
-  );
-  co_await sg.add_clang(
+  auto results = co_await tmc::spawn_tuple(
+    skynet_leaf<DepthMax>(BaseNum + depthOffset * 0, Depth + 1),
+    skynet_leaf<DepthMax>(BaseNum + depthOffset * 1, Depth + 1),
+    skynet_leaf<DepthMax>(BaseNum + depthOffset * 2, Depth + 1),
+    skynet_leaf<DepthMax>(BaseNum + depthOffset * 3, Depth + 1),
+    skynet_leaf<DepthMax>(BaseNum + depthOffset * 4, Depth + 1),
+    skynet_leaf<DepthMax>(BaseNum + depthOffset * 5, Depth + 1),
+    skynet_leaf<DepthMax>(BaseNum + depthOffset * 6, Depth + 1),
+    skynet_leaf<DepthMax>(BaseNum + depthOffset * 7, Depth + 1),
+    skynet_leaf<DepthMax>(BaseNum + depthOffset * 8, Depth + 1),
     skynet_leaf<DepthMax>(BaseNum + depthOffset * 9, Depth + 1)
   );
 
-  std::array<size_t, 10> results = co_await std::move(sg);
-
-  size_t count = 0;
-  for (size_t idx = 0; idx < 10; ++idx) {
-    count += results[idx];
-  }
-  co_return count;
+  co_return std::get<0>(results) + std::get<1>(results) + std::get<2>(results) +
+    std::get<3>(results) + std::get<4>(results) + std::get<5>(results) +
+    std::get<6>(results) + std::get<7>(results) + std::get<8>(results) +
+    std::get<9>(results);
 }
 
 template <size_t DepthMax>
