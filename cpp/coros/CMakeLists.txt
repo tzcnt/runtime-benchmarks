@@ -14,10 +14,15 @@ add_definitions(
 
 include(../1CMake/CPM.cmake)
 
+set(COROS_GIT_TAG v0.8.0)
+if(DEFINED ENV{RUNTIME_BENCHMARKS_LIBRARY_REF})
+    set(COROS_GIT_TAG "$ENV{RUNTIME_BENCHMARKS_LIBRARY_REF}")
+endif()
+
 CPMAddPackage(
     NAME coros
     GIT_REPOSITORY https://github.com/mtmucha/coros.git
-    GIT_TAG v0.8.0
+    GIT_TAG ${COROS_GIT_TAG}
     DOWNLOAD_ONLY)
 include_directories(
     ${coros_SOURCE_DIR}/include

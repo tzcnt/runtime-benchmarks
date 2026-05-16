@@ -16,10 +16,15 @@ add_definitions(
 
 include(../1CMake/CPM.cmake)
 
+set(CONCURRENCPP_GIT_TAG v.0.1.7)
+if(DEFINED ENV{RUNTIME_BENCHMARKS_LIBRARY_REF})
+    set(CONCURRENCPP_GIT_TAG "$ENV{RUNTIME_BENCHMARKS_LIBRARY_REF}")
+endif()
+
 CPMAddPackage(
     NAME concurrencpp
     GIT_REPOSITORY https://github.com/David-Haim/concurrencpp.git
-    GIT_TAG v.0.1.7
+    GIT_TAG ${CONCURRENCPP_GIT_TAG}
     DOWNLOAD_ONLY)
 include_directories(
     ${concurrencpp_SOURCE_DIR}/include

@@ -19,10 +19,15 @@ include_directories("../2common")
 SET(BUILD_TESTING OFF CACHE BOOL "Build cppcoro tests" FORCE)
 
 # using the maintained fork of cppcoro with CMake support
+set(CPPCORO_GIT_TAG f05170fbc71aaae06dc31e32812f1caba9525377)
+if(DEFINED ENV{RUNTIME_BENCHMARKS_LIBRARY_REF})
+    set(CPPCORO_GIT_TAG "$ENV{RUNTIME_BENCHMARKS_LIBRARY_REF}")
+endif()
+
 CPMAddPackage(
     NAME cppcoro
     GIT_REPOSITORY https://github.com/andreasbuhr/cppcoro.git
-    GIT_TAG f05170fbc71aaae06dc31e32812f1caba9525377
+    GIT_TAG ${CPPCORO_GIT_TAG}
     DOWNLOAD_ONLY)
 
 include_directories(${cppcoro_SOURCE_DIR}/include)

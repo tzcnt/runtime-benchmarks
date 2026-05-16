@@ -14,6 +14,10 @@ add_definitions(
 
 include(../1CMake/CPM.cmake)
 
+if(DEFINED ENV{RUNTIME_BENCHMARKS_LIBRARY_REF})
+    message(FATAL_ERROR "RUNTIME_BENCHMARKS_LIBRARY_REF cannot be used for tbb because this project uses find_package(TBB), not CPMAddPackage")
+endif()
+
 # this requires a system-installed version of Intel OneAPI / TBB
 # On Debian the package is "intel-oneapi-tbb-devel"
 # include("/opt/intel/oneapi/tbb/latest/lib/cmake/tbb/TBBConfig.cmake")
