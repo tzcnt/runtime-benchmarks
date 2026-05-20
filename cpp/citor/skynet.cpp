@@ -50,7 +50,14 @@ int main(int argc, char* argv[]) {
     thread_count = static_cast<size_t>(atoi(argv[1]));
   }
   std::printf("threads: %zu\n", thread_count);
-  citor::ThreadPool pool(thread_count);
+  // citor's default PerCpu affinity caps workers at the physical-core
+  // count. When the sweep requests every logical CPU, opt into
+  // SMT-sibling placement so all hardware threads are used.
+  const citor::Affinity affinity =
+      (thread_count == std::thread::hardware_concurrency())
+          ? citor::Affinity::PerCpuSmtPair
+          : citor::Affinity::PerCpu;
+  citor::ThreadPool pool(thread_count, affinity);
 
   skynet<8>(pool); // warmup
 

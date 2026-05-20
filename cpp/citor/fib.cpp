@@ -37,7 +37,14 @@ int main(int argc, char* argv[]) {
   size_t n = static_cast<size_t>(atoi(argv[1]));
 
   std::printf("threads: %zu\n", thread_count);
-  citor::ThreadPool pool(thread_count);
+  // citor's default PerCpu affinity caps workers at the physical-core
+  // count. When the sweep requests every logical CPU, opt into
+  // SMT-sibling placement so all hardware threads are used.
+  const citor::Affinity affinity =
+      (thread_count == std::thread::hardware_concurrency())
+          ? citor::Affinity::PerCpuSmtPair
+          : citor::Affinity::PerCpu;
+  citor::ThreadPool pool(thread_count, affinity);
 
   size_t result = fibonacci(pool, 30); // warmup
   (void)result;

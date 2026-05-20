@@ -55,6 +55,9 @@ endif()
 
 link_libraries(${MALLOC_LIB} citor::citor)
 
+# Larger worker stack for deep recursive fork-join (fib, nqueens).
+add_compile_definitions(CITOR_WORKER_STACK_KIB=65536)
+
 add_executable(fib fib.cpp)
 add_executable(skynet skynet.cpp)
 add_executable(nqueens nqueens.cpp)
