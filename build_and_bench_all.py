@@ -15,12 +15,13 @@ import platform
 import shutil
 
 runtimes = {
-    "cpp": ["libfork", "TooManyCooks", "tbb", "taskflow", "cppcoro", "coros", "concurrencpp", "HPX", "libcoro", "cobalt"]
+    "cpp": ["citor", "libfork", "TooManyCooks", "tbb", "taskflow", "cppcoro", "coros", "concurrencpp", "HPX", "libcoro", "cobalt"]
 }
 
 LIBRARY_REF_ENV_VAR = "RUNTIME_BENCHMARKS_LIBRARY_REF"
 
 runtime_links = {
+    "citor": "https://github.com/Lallapallooza/citor",
     "libfork": "https://github.com/ConorWilliams/libfork",
     "TooManyCooks": "https://github.com/tzcnt/TooManyCooks",
     "tbb": "https://www.intel.com/content/www/us/en/developer/tools/oneapi/onetbb.html",
