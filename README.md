@@ -7,34 +7,34 @@ An interactive view of the full results dataset is available at: https://fleetco
 
 ### Results summary table (64 cores / 64 threads):
 
-| Runtime | [libfork](https://github.com/ConorWilliams/libfork) | [TooManyCooks](https://github.com/tzcnt/TooManyCooks) | [tbb](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onetbb.html) | [taskflow](https://github.com/taskflow/taskflow) | [cppcoro](https://github.com/andreasbuhr/cppcoro) | [coros](https://github.com/mtmucha/coros) | [HPX](https://github.com/STEllAR-GROUP/hpx) | [concurrencpp](https://github.com/David-Haim/concurrencpp) | [libcoro](https://github.com/jbaldwin/libcoro) |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Mean Ratio to Best<br>(lower is better) | 1.00x | 1.11x | 2.82x | 2.98x | 3.53x | 4.45x | 160.93x | 170.80x | 2238.69x |
-| skynet | 39639 us | 42512 us | 146884 us | 200196 us | 156739 us | 110734 us | 14654199 us | 12085877 us | 153184034 us |
-| nqueens | 78579 us | 83539 us | 161880 us | 183805 us | 186797 us | 883579 us | 4498900 us | 8252158 us | 43830994 us |
-| fib(39) | 67668 us | 84565 us | 272178 us | 203514 us | 438185 us | 171781 us | 14550913 us | 18381070 us | 305949459 us |
-| matmul(2048) | 41733 us | 43626 us | 62264 us | 62783 us | 54275 us | 50580 us | 72222 us | 68116 us | 465260 us |
+| Runtime | [citor](https://github.com/Lallapallooza/citor) | [libfork](https://github.com/ConorWilliams/libfork) | [TooManyCooks](https://github.com/tzcnt/TooManyCooks) | [tbb](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onetbb.html) | [taskflow](https://github.com/taskflow/taskflow) | [cppcoro](https://github.com/andreasbuhr/cppcoro) | [coros](https://github.com/mtmucha/coros) | [HPX](https://github.com/STEllAR-GROUP/hpx) | [concurrencpp](https://github.com/David-Haim/concurrencpp) | [libcoro](https://github.com/jbaldwin/libcoro) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Mean Ratio to Best<br>(lower is better) | 1.06x | 1.18x | 1.32x | 3.25x | 3.34x | 3.67x | 4.83x | 186.81x | 258.19x | 2513.96x |
+| skynet | 24932 us | 36519 us | 37949 us | 142887 us | 185019 us | 144907 us | 94532 us | 11965484 us | 12514888 us | 119686148 us |
+| nqueens | 80765 us | 69010 us | 70248 us | 125730 us | 114721 us | 162773 us | 741141 us | 3452638 us | 8000700 us | 33347402 us |
+| fib(39) | 49966 us | 62367 us | 86731 us | 215592 us | 156590 us | 269384 us | 187136 us | 10789290 us | 20663744 us | 238019884 us |
+| matmul(2048) | 48069 us | 44140 us | 44822 us | 50127 us | 50173 us | 49684 us | 46780 us | 59066 us | 57383 us | 374412 us |
 
-| Runtime | [TooManyCooks_st_asio](https://github.com/tzcnt/TooManyCooks) | [TooManyCooks_mt](https://github.com/tzcnt/TooManyCooks) | [libcoro_mt](https://github.com/jbaldwin/libcoro) | [cobalt_st_asio](https://github.com/boostorg/cobalt) |
+| Runtime | [TooManyCooks](https://github.com/tzcnt/TooManyCooks) | [cobalt](https://github.com/boostorg/cobalt) | [libcoro](https://github.com/jbaldwin/libcoro) | [cppcoro](https://github.com/andreasbuhr/cppcoro) |
 | --- | --- | --- | --- | --- |
-| Mean Ratio to Best<br>(lower is better) | 1.00x | 1.02x | 1.55x | 3.77x |
-| channel | 365842 us | 374115 us | 565826 us | 1379967 us |
+| Mean Ratio to Best<br>(lower is better) | 1.00x | 1.16x | 1.42x | 1.55x |
+| io_socket_st | 339340 us | 393036 us | 483074 us | 524717 us |
 
-| Runtime | [TooManyCooks](https://github.com/tzcnt/TooManyCooks) | [cobalt](https://github.com/boostorg/cobalt) | [cppcoro](https://github.com/andreasbuhr/cppcoro) | [libcoro](https://github.com/jbaldwin/libcoro) |
+| Runtime | [TooManyCooks_mt](https://github.com/tzcnt/TooManyCooks) | [TooManyCooks_st_asio](https://github.com/tzcnt/TooManyCooks) | [libcoro_mt](https://github.com/jbaldwin/libcoro) | [cobalt_st_asio](https://github.com/boostorg/cobalt) |
 | --- | --- | --- | --- | --- |
-| Mean Ratio to Best<br>(lower is better) | 1.00x | 1.12x | 1.45x | 1.48x |
-| io_socket_st | 393705 us | 441244 us | 569703 us | 582490 us |
+| Mean Ratio to Best<br>(lower is better) | 1.00x | 1.00x | 1.05x | 2.33x |
+| channel | 390771 us | 391661 us | 409967 us | 910778 us |
 
 ### Peak Memory Usage (Max RSS) (64 cores / 64 threads):
 
-| Runtime | libfork | TooManyCooks | tbb | taskflow | cppcoro | coros | concurrencpp | HPX | libcoro | cobalt |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| skynet | 10.14 MB | 11.4 MB | 12.66 MB | 7.62 MB | 134.03 MB | 9.43 MB | 11.03 MB | 24.81 GB | 16.19 GB | N/A |
-| nqueens | 13.15 MB | 14.11 MB | 11.08 MB | 8.44 MB | 134.07 MB | 9.31 MB | 11.02 MB | 11.18 GB | 4.98 GB | N/A |
-| fib(39) | 10.02 MB | 11.49 MB | 11.13 MB | 11.93 MB | 134.07 MB | 11.02 MB | 11.32 MB | 16.27 GB | 16.47 GB| N/A |
-| matmul(2048) | 60.88 MB | 63.63 MB | 58.52 MB | 59.4 MB | 186.33 MB | 58.47 MB | 61.1 MB | 109.14 MB | 56.14 MB | N/A |
-| io_socket_st | N/A | 13.14 MB | N/A | N/A | 9.3 MB | N/A | N/A | N/A | 7.8 MB | 9.06 MB |
-| channel | N/A | 33.0 MB | N/A | N/A | N/A | N/A | N/A | N/A | 11.01 MB | 10.92 MB |
+| Runtime | citor | libfork | TooManyCooks | TooManyCooks_st_asio | TooManyCooks_mt | tbb | taskflow | cppcoro | coros | concurrencpp | HPX | libcoro | libcoro_mt | cobalt_st_asio | cobalt |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| skynet | 20.74 MB | 11.36 MB | 13.99 MB | N/A | N/A | 14.29 MB | 10.91 MB | 134.09 MB | 10.94 MB | 11.38 MB | 24.87 GB | 14.66 GB | N/A | N/A | N/A |
+| nqueens | 51.01 MB | 10.51 MB | 14.12 MB | N/A | N/A | 12.66 MB | 10.88 MB | 134.09 MB | 9.18 MB | 13.04 MB | 11.23 GB | 5.03 GB | N/A | N/A | N/A |
+| fib(39) | 44.5 MB | 11.52 MB | 12.62 MB | N/A | N/A | 11.69 MB | 9.1 MB | 134.13 MB | 9.44 MB | 11.29 MB | 15.59 GB | 15.81 GB | N/A | N/A | N/A |
+| matmul(2048) | 68.8 MB | 60.43 MB | 60.07 MB | N/A | N/A | 59.35 MB | 56.17 MB | 186.36 MB | 58.55 MB | 61.16 MB | 103.89 MB | 56.37 MB | N/A | N/A | N/A |
+| io_socket_st | N/A | N/A | 10.62 MB | N/A | N/A | N/A | N/A | 9.36 MB | N/A | N/A | N/A | 10.91 MB | N/A | N/A | 10.95 MB |
+| channel | N/A | N/A | N/A | 25.76 MB | 32.99 MB | N/A | N/A | N/A | N/A | N/A | N/A | N/A | 9.95 MB | 7.68 MB | N/A |
 
 <details>
 <summary>Click to view the machine configuration used in the summary tables</summary>
