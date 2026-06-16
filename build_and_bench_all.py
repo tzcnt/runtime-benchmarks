@@ -15,7 +15,9 @@ import platform
 import shutil
 
 runtimes = {
-    "cpp": ["citor", "libfork", "TooManyCooks", "tbb", "taskflow", "cppcoro", "coros", "concurrencpp", "HPX", "libcoro", "cobalt"]
+    "cpp": ["citor", "libfork", "TooManyCooks", "tbb", "taskflow", "cppcoro", "coros", "cobalt",
+            # these 3 are quite slow - you can remove them to speed up total runtime
+            "concurrencpp", "HPX", "libcoro"]
 }
 
 LIBRARY_REF_ENV_VAR = "RUNTIME_BENCHMARKS_LIBRARY_REF"
