@@ -16,8 +16,8 @@ import shutil
 
 runtimes = {
     "cpp": ["citor", "libfork", "TooManyCooks", "tbb", "taskflow", "cppcoro", "coros", "cobalt",
-            # these 3 are quite slow - you can remove them to speed up total runtime
-            "concurrencpp", "HPX", "libcoro"]
+            # these 4 are quite slow - you can remove them to speed up total runtime
+            "folly", "concurrencpp", "HPX", "libcoro"]
 }
 
 LIBRARY_REF_ENV_VAR = "RUNTIME_BENCHMARKS_LIBRARY_REF"
@@ -30,10 +30,11 @@ runtime_links = {
     "taskflow": "https://github.com/taskflow/taskflow",
     "cppcoro": "https://github.com/andreasbuhr/cppcoro",
     "coros": "https://github.com/mtmucha/coros",
+    "cobalt": "https://github.com/boostorg/cobalt",
+    "folly": "https://github.com/facebook/folly",
     "concurrencpp": "https://github.com/David-Haim/concurrencpp",
     "HPX": "https://github.com/STEllAR-GROUP/hpx",
-    "libcoro": "https://github.com/jbaldwin/libcoro",
-    "cobalt": "https://github.com/boostorg/cobalt"
+    "libcoro": "https://github.com/jbaldwin/libcoro"
 }
 
 benchmarks_order = ["skynet", "nqueens", "fib", "matmul", "channel", "io_socket_st"]
