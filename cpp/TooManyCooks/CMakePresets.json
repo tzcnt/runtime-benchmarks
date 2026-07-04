@@ -39,6 +39,25 @@
       }
     },
     {
+      "name": "clangdev-linux-release",
+      "displayName": "ClangDev-Linux Release",
+      "generator": "Ninja",
+      "description": "Using compilers: C = clang, CXX = clang++",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_C_COMPILER": "/home/tzcnt/github/llvm-project/build/bin/clang",
+        "CMAKE_CXX_COMPILER": "/home/tzcnt/github/llvm-project/build/bin/clang++",
+        "CMAKE_CXX_FLAGS": "-DTMC_TRIVIAL_TASK",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
       "name": "clang-linux-relwithdebinfo",
       "displayName": "Clang-Linux Release with Debug Info",
       "generator": "Ninja",

@@ -45,7 +45,7 @@ static tmc::task<size_t> fib(size_t n) {
   if (n < 2)
     co_return n;
 
-  auto x_hot = spawn(fib(n - 1)).fork();
+  auto x_hot = co_await tmc::fork_clang(fib(n - 1));
   auto y = co_await fib(n - 2);
   auto x = co_await std::move(x_hot);
   co_return x + y;

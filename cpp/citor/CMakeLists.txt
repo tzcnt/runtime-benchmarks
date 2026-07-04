@@ -63,3 +63,21 @@ add_executable(skynet skynet.cpp)
 add_executable(nqueens nqueens.cpp)
 target_compile_options(nqueens PRIVATE "-falign-loops=64")
 add_executable(matmul matmul.cpp)
+
+# The Unbalanced Tree Search benchmark needs the UTS tree-generation code,
+# which is plain C (uts.c) plus the SHA1-based RNG (brg_sha1.c). These live in
+# 2common (already on the include path) and are shared across runtimes.
+add_executable(uts
+    uts.cpp
+    ../2common/uts/external/uts.c
+    ../2common/uts/external/rng/brg_sha1.c)
+
+add_executable(uts_opt1
+    uts_opt1.cpp
+    ../2common/uts/external/uts.c
+    ../2common/uts/external/rng/brg_sha1.c)
+
+add_executable(uts_opt2
+    uts_opt2.cpp
+    ../2common/uts/external/uts.c
+    ../2common/uts/external/rng/brg_sha1.c)
