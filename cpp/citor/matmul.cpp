@@ -1,9 +1,9 @@
 // Port of cpp/libfork/matmul.cpp using citor::forkJoin.
 
 #include "matmul.hpp"
-#include "memusage.hpp"
-#include "citor/thread_pool.h"
 #include "citor/hints.h"
+#include "citor/thread_pool.h"
+#include "memusage.hpp"
 
 #include <atomic>
 #include <chrono>
@@ -14,8 +14,8 @@
 
 static size_t thread_count = std::thread::hardware_concurrency() / 2;
 
-static void matmul(citor::ThreadPool& pool, int* a, int* b, int* c, int n,
-                   int N) {
+static void
+matmul(citor::ThreadPool& pool, int* a, int* b, int* c, int n, int N) {
   if (n <= 32) {
     matmul_small(a, b, c, n, N);
     return;
@@ -23,16 +23,16 @@ static void matmul(citor::ThreadPool& pool, int* a, int* b, int* c, int n,
   int k = n / 2;
 
   pool.forkJoin<citor::HintsDefaults>(
-    [&] { matmul(pool, a,         b,         c,             k, N); },
-    [&] { matmul(pool, a,         b + k,     c + k,         k, N); },
-    [&] { matmul(pool, a + k * N, b,         c + k * N,     k, N); },
-    [&] { matmul(pool, a + k * N, b + k,     c + k * N + k, k, N); }
+    [&] { matmul(pool, a, b, c, k, N); },
+    [&] { matmul(pool, a, b + k, c + k, k, N); },
+    [&] { matmul(pool, a + k * N, b, c + k * N, k, N); },
+    [&] { matmul(pool, a + k * N, b + k, c + k * N + k, k, N); }
   );
 
   pool.forkJoin<citor::HintsDefaults>(
-    [&] { matmul(pool, a + k,         b + k * N,     c,             k, N); },
-    [&] { matmul(pool, a + k,         b + k * N + k, c + k,         k, N); },
-    [&] { matmul(pool, a + k * N + k, b + k * N,     c + k * N,     k, N); },
+    [&] { matmul(pool, a + k, b + k * N, c, k, N); },
+    [&] { matmul(pool, a + k, b + k * N + k, c + k, k, N); },
+    [&] { matmul(pool, a + k * N + k, b + k * N, c + k * N, k, N); },
     [&] { matmul(pool, a + k * N + k, b + k * N + k, c + k * N + k, k, N); }
   );
 }
@@ -45,13 +45,6 @@ static std::vector<int> run_matmul(citor::ThreadPool& pool, int N) {
   int* a = A.data();
   int* b = B.data();
   int* c = C.data();
-  for (int i = 0; i < N; ++i) {
-    for (int j = 0; j < N; ++j) {
-      a[i * N + j] = 1;
-      b[i * N + j] = 1;
-      c[i * N + j] = 0;
-    }
-  }
   matmul(pool, a, b, c, N, N);
   return C;
 }
@@ -81,8 +74,9 @@ static void run_one(citor::ThreadPool& pool, int N) {
   auto totalTimeUs =
     std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime);
   std::printf("  - matrix_size: %d\n", N);
-  std::printf("    duration: %zu us\n",
-              static_cast<size_t>(totalTimeUs.count()));
+  std::printf(
+    "    duration: %zu us\n", static_cast<size_t>(totalTimeUs.count())
+  );
   std::printf("    max_rss: %ld KiB\n", peak_memory_usage());
 }
 
@@ -100,9 +94,9 @@ int main(int argc, char* argv[]) {
   // count. When the sweep requests every logical CPU, opt into
   // SMT-sibling placement so all hardware threads are used.
   const citor::Affinity affinity =
-      (thread_count == std::thread::hardware_concurrency())
-          ? citor::Affinity::PerCpuSmtPair
-          : citor::Affinity::PerCpu;
+    (thread_count == std::thread::hardware_concurrency())
+      ? citor::Affinity::PerCpuSmtPair
+      : citor::Affinity::PerCpu;
   citor::ThreadPool pool(thread_count, affinity);
 
   run_matmul(pool, n); // warmup

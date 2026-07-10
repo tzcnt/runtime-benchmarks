@@ -7,8 +7,8 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include "memusage.hpp"
 #include "matmul.hpp"
+#include "memusage.hpp"
 #include "start_tasks.h"
 #include "thread_pool.h"
 #include "wait_tasks.h"
@@ -54,15 +54,6 @@ std::vector<int> run_matmul(coros::ThreadPool& executor, int N) {
   int* a = A.data();
   int* b = B.data();
   int* c = C.data();
-
-  for (int i = 0; i < N; i++) {
-    for (int j = 0; j < N; j++) {
-      a[i * N + j] = 1;
-      b[i * N + j] = 1;
-      c[i * N + j] = 0;
-    }
-  }
-
   coros::Task<void> t = matmul(a, b, c, N, N);
   coros::start_sync(executor, t);
   return C;

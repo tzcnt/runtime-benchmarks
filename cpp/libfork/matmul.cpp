@@ -56,13 +56,6 @@ std::vector<int> run_matmul(lf::lazy_pool& executor, int N) {
   int* b = B.data();
   int* c = C.data();
 
-  for (int i = 0; i < N; i++) {
-    for (int j = 0; j < N; j++) {
-      a[i * N + j] = 1;
-      b[i * N + j] = 1;
-      c[i * N + j] = 0;
-    }
-  }
   lf::sync_wait(executor, matmul, a, b, c, N, N);
   return C;
 }

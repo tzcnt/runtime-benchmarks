@@ -7,8 +7,8 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include "memusage.hpp"
 #include "matmul.hpp"
+#include "memusage.hpp"
 #include <tbb/tbb.h>
 
 #include <chrono>
@@ -39,8 +39,9 @@ void matmul(int* a, int* b, int* c, int n, int N) {
     tg.run([&]() { matmul(a + k, b + k * N, c, k, N); });
     tg.run([&]() { matmul(a + k, b + k * N + k, c + k, k, N); });
     tg.run([&]() { matmul(a + k * N + k, b + k * N, c + k * N, k, N); });
-    tg.run([&]() { matmul(a + k * N + k, b + k * N + k, c + k * N + k, k, N); }
-    );
+    tg.run([&]() {
+      matmul(a + k * N + k, b + k * N + k, c + k * N + k, k, N);
+    });
     tg.wait();
   }
 }
@@ -53,14 +54,6 @@ std::vector<int> run_matmul(tbb::task_arena& executor, int N) {
   int* a = A.data();
   int* b = B.data();
   int* c = C.data();
-
-  for (int i = 0; i < N; i++) {
-    for (int j = 0; j < N; j++) {
-      a[i * N + j] = 1;
-      b[i * N + j] = 1;
-      c[i * N + j] = 0;
-    }
-  }
 
   executor.execute([&] { matmul(a, b, c, N, N); });
   return C;
