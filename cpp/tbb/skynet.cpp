@@ -51,13 +51,15 @@ template <size_t DepthMax> size_t skynet_one(size_t BaseNum, size_t Depth) {
   std::array<size_t, 10> results;
 
   tbb::task_group tg;
-  for (size_t i = 0; i < 10; ++i) {
+  for (size_t i = 0; i < 9; ++i) {
     tg.run([=, &results, idx = i]() {
       results[idx] =
         skynet_one<DepthMax>(BaseNum + depthOffset * idx, Depth + 1);
     });
   }
-  tg.wait();
+  tg.run_and_wait([=, &results]() {
+    results[9] = skynet_one<DepthMax>(BaseNum + depthOffset * 9, Depth + 1);
+  });
 
   size_t count = 0;
   for (size_t idx = 0; idx < 10; ++idx) {

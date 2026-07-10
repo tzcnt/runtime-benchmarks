@@ -42,33 +42,44 @@ template <size_t N> void nqueens(int xMax, std::array<char, N> buf, int& out) {
     return;
   }
 
+  // Materialize the legal child positions up front so the last one can be run
+  // inline via run_and_wait rather than spawned.
+  std::array<char, N> ys;
   size_t taskCount = 0;
-  std::array<int, nqueens_work> results;
-  auto tasks =
-    std::ranges::views::iota(0UL, N) |
-    std::ranges::views::filter([xMax, &buf, &taskCount](int y) {
-      char q = y;
-      for (int x = 0; x < xMax; x++) {
-        char p = buf[x];
-        if (q == p || q == p - (xMax - x) || q == p + (xMax - x)) {
-          return false;
-        }
+  for (int y = 0; y < static_cast<int>(N); ++y) {
+    char q = static_cast<char>(y);
+    bool legal = true;
+    for (int x = 0; x < xMax; ++x) {
+      char p = buf[x];
+      if (q == p || q == p - (xMax - x) || q == p + (xMax - x)) {
+        legal = false;
+        break;
       }
-      return true;
-    }) |
-    std::ranges::views::transform([xMax, &buf, &taskCount, &results](int y) {
-      buf[xMax] = y;
-      size_t idx = taskCount;
-      ++taskCount;
-      return
-        [xMax, buf, idx, &results]() { nqueens(xMax + 1, buf, results[idx]); };
-    });
-
-  tbb::task_group tg;
-  for (auto&& t : tasks) {
-    tg.run(t);
+    }
+    if (legal) {
+      ys[taskCount++] = static_cast<char>(y);
+    }
   }
-  tg.wait();
+
+  if (taskCount == 0) {
+    out = 0;
+    return;
+  }
+
+  std::array<int, N> results;
+  tbb::task_group tg;
+  // Spawn all children except the last; run the last inline via run_and_wait.
+  for (size_t i = 0; i + 1 < taskCount; ++i) {
+    buf[xMax] = ys[i];
+    tg.run([xMax, buf, i, &results]() { nqueens(xMax + 1, buf, results[i]); });
+  }
+  {
+    size_t last = taskCount - 1;
+    buf[xMax] = ys[last];
+    tg.run_and_wait([xMax, buf, last, &results]() {
+      nqueens(xMax + 1, buf, results[last]);
+    });
+  }
 
   int ret = 0;
   for (size_t i = 0; i < taskCount; ++i) {

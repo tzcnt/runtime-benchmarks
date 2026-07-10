@@ -33,16 +33,14 @@ void matmul(int* a, int* b, int* c, int n, int N) {
     tg.run([&]() { matmul(a, b, c, k, N); });
     tg.run([&]() { matmul(a, b + k, c + k, k, N); });
     tg.run([&]() { matmul(a + k * N, b, c + k * N, k, N); });
-    tg.run([&]() { matmul(a + k * N, b + k, c + k * N + k, k, N); });
+    tg.run_and_wait([&]() { matmul(a + k * N, b + k, c + k * N + k, k, N); });
 
-    tg.wait();
     tg.run([&]() { matmul(a + k, b + k * N, c, k, N); });
     tg.run([&]() { matmul(a + k, b + k * N + k, c + k, k, N); });
     tg.run([&]() { matmul(a + k * N + k, b + k * N, c + k * N, k, N); });
-    tg.run([&]() {
+    tg.run_and_wait([&]() {
       matmul(a + k * N + k, b + k * N + k, c + k * N + k, k, N);
     });
-    tg.wait();
   }
 }
 
