@@ -5,43 +5,43 @@ Benchmarks to compare the performance of async runtimes / executors.
 
 An interactive view of the full results dataset is available at: https://fleetcode.com/runtime-benchmarks/
 
-### Results summary table (64 cores / 64 threads):
+| Runtime | [citor](https://github.com/Lallapallooza/citor) | [libfork](https://github.com/ConorWilliams/libfork) | [TooManyCooks](https://github.com/tzcnt/TooManyCooks) | [tbb](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onetbb.html) | [taskflow](https://github.com/taskflow/taskflow) | [cppcoro](https://github.com/andreasbuhr/cppcoro) | [zap](https://github.com/kprotty/zap) | [forkjoin](https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/concurrent/ForkJoinPool.html) | [weave](https://github.com/mratsim/weave) | [coros](https://github.com/mtmucha/coros) | [kotlin_fjp](https://github.com/Kotlin/kotlinx.coroutines) | [dotnet](https://learn.microsoft.com/en-us/dotnet/api/) | [zigbeam](https://github.com/eakova/zigbeam) | [folly](https://github.com/facebook/folly) | [concurrencpp](https://github.com/David-Haim/concurrencpp) | [go](https://pkg.go.dev/std) | [tokio](https://github.com/tokio-rs/tokio) | [kotlin_default](https://github.com/Kotlin/kotlinx.coroutines) | [HPX](https://github.com/STEllAR-GROUP/hpx) | [java](https://openjdk.org/jeps/444) | [libcoro](https://github.com/jbaldwin/libcoro) | [userver](https://github.com/userver-framework/userver) | [PhotonLibOS](https://github.com/alibaba/PhotonLibOS) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Mean Ratio to Best<br>(lower is better) | 1.09x | 1.19x | 1.32x | 3.04x | 3.49x | 3.78x | 3.82x | 4.14x | 4.70x | 4.94x | 19.98x | 94.91x | 105.29x | 185.78x | 261.47x | 331.57x | 375.49x | 399.22x | 804.62x | 1116.35x | 1871.90x | 11295.89x | 11296.03x |
+| skynet | 24872 us | 37218 us | 38321 us | 119827 us | 190897 us | 146978 us | 246760 us | 181696 us | 108923 us | 90579 us | 785785 us | 5269237 us | 6840971 us | 5852604 us | 12631272 us | 22018058 us | 25104353 us | 35299698 us | 43172214 us | 18313064 us | 114395779 us | DNF (10m) | DNF (10m) |
+| nqueens | 84723 us | 68663 us | 68653 us | 129107 us | 133394 us | 156126 us | 84922 us | 155829 us | 91562 us | 761551 us | 430441 us | 1888680 us | 778667 us | 7490258 us | 7972459 us | 6539815 us | 5459275 us | 1896422 us | 16816915 us | 6398470 us | 32426118 us | DNF (10m) | DNF (10m) |
+| fib(39) | 48704 us | 62273 us | 83271 us | 210523 us | 159770 us | 279652 us | 93912 us | 108490 us | 102028 us | 192224 us | 1841593 us | 6225001 us | 6416846 us | 17415170 us | 20480773 us | 16376473 us | 20027825 us | 7077968 us | 60217787 us | 176841906 us | 117258333 us | DNF (10m) | DNF (10m) |
+| matmul(2048) | 49425 us | 43160 us | 43605 us | 48811 us | 46352 us | 51466 us | 94238 us | 204728 us | 475114 us | 46147 us | 182643 us | 537368 us | 129717 us | 1775395 us | 59036 us | 411689 us | 81847 us | 201714 us | 57943 us | 214341 us | 359766 us | 48077 us | 72836 us |
 
-| Runtime | [citor](https://github.com/Lallapallooza/citor) | [libfork](https://github.com/ConorWilliams/libfork) | [TooManyCooks](https://github.com/tzcnt/TooManyCooks) | [tbb](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onetbb.html) | [taskflow](https://github.com/taskflow/taskflow) | [cppcoro](https://github.com/andreasbuhr/cppcoro) | [coros](https://github.com/mtmucha/coros) | [HPX](https://github.com/STEllAR-GROUP/hpx) | [concurrencpp](https://github.com/David-Haim/concurrencpp) | [libcoro](https://github.com/jbaldwin/libcoro) |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Mean Ratio to Best<br>(lower is better) | 1.06x | 1.18x | 1.32x | 3.25x | 3.34x | 3.67x | 4.83x | 186.81x | 258.19x | 2513.96x |
-| skynet | 24932 us | 36519 us | 37949 us | 142887 us | 185019 us | 144907 us | 94532 us | 11965484 us | 12514888 us | 119686148 us |
-| nqueens | 80765 us | 69010 us | 70248 us | 125730 us | 114721 us | 162773 us | 741141 us | 3452638 us | 8000700 us | 33347402 us |
-| fib(39) | 49966 us | 62367 us | 86731 us | 215592 us | 156590 us | 269384 us | 187136 us | 10789290 us | 20663744 us | 238019884 us |
-| matmul(2048) | 48069 us | 44140 us | 44822 us | 50127 us | 50173 us | 49684 us | 46780 us | 59066 us | 57383 us | 374412 us |
-
-| Runtime | [TooManyCooks](https://github.com/tzcnt/TooManyCooks) | [cobalt](https://github.com/boostorg/cobalt) | [libcoro](https://github.com/jbaldwin/libcoro) | [cppcoro](https://github.com/andreasbuhr/cppcoro) |
-| --- | --- | --- | --- | --- |
-| Mean Ratio to Best<br>(lower is better) | 1.00x | 1.16x | 1.42x | 1.55x |
-| io_socket_st | 339340 us | 393036 us | 483074 us | 524717 us |
-
-| Runtime | [TooManyCooks_mt](https://github.com/tzcnt/TooManyCooks) | [TooManyCooks_st_asio](https://github.com/tzcnt/TooManyCooks) | [libcoro_mt](https://github.com/jbaldwin/libcoro) | [cobalt_st_asio](https://github.com/boostorg/cobalt) |
-| --- | --- | --- | --- | --- |
-| Mean Ratio to Best<br>(lower is better) | 1.00x | 1.00x | 1.05x | 2.33x |
-| channel | 390771 us | 391661 us | 409967 us | 910778 us |
-
-### Peak Memory Usage (Max RSS) (64 cores / 64 threads):
-
-| Runtime | citor | libfork | TooManyCooks | TooManyCooks_st_asio | TooManyCooks_mt | tbb | taskflow | cppcoro | coros | concurrencpp | HPX | libcoro | libcoro_mt | cobalt_st_asio | cobalt |
+| Runtime | [tokio](https://github.com/tokio-rs/tokio) | [TooManyCooks](https://github.com/tzcnt/TooManyCooks) | [cobalt](https://github.com/boostorg/cobalt) | [PhotonLibOS](https://github.com/alibaba/PhotonLibOS) | [libcoro](https://github.com/jbaldwin/libcoro) | [go](https://pkg.go.dev/std) | [neco](https://github.com/tidwall/neco) | [cppcoro](https://github.com/andreasbuhr/cppcoro) | [dotnet](https://learn.microsoft.com/en-us/dotnet/api/) | [userver](https://github.com/userver-framework/userver) | [weave](https://github.com/mratsim/weave) | [folly](https://github.com/facebook/folly) | [kotlin_fjp](https://github.com/Kotlin/kotlinx.coroutines) | [kotlin_default](https://github.com/Kotlin/kotlinx.coroutines) | [java](https://openjdk.org/jeps/444) |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| skynet | 20.74 MB | 11.36 MB | 13.99 MB | N/A | N/A | 14.29 MB | 10.91 MB | 134.09 MB | 10.94 MB | 11.38 MB | 24.87 GB | 14.66 GB | N/A | N/A | N/A |
-| nqueens | 51.01 MB | 10.51 MB | 14.12 MB | N/A | N/A | 12.66 MB | 10.88 MB | 134.09 MB | 9.18 MB | 13.04 MB | 11.23 GB | 5.03 GB | N/A | N/A | N/A |
-| fib(39) | 44.5 MB | 11.52 MB | 12.62 MB | N/A | N/A | 11.69 MB | 9.1 MB | 134.13 MB | 9.44 MB | 11.29 MB | 15.59 GB | 15.81 GB | N/A | N/A | N/A |
-| matmul(2048) | 68.8 MB | 60.43 MB | 60.07 MB | N/A | N/A | 59.35 MB | 56.17 MB | 186.36 MB | 58.55 MB | 61.16 MB | 103.89 MB | 56.37 MB | N/A | N/A | N/A |
-| io_socket_st | N/A | N/A | 10.62 MB | N/A | N/A | N/A | N/A | 9.36 MB | N/A | N/A | N/A | 10.91 MB | N/A | N/A | 10.95 MB |
-| channel | N/A | N/A | N/A | 25.76 MB | 32.99 MB | N/A | N/A | N/A | N/A | N/A | N/A | N/A | 9.95 MB | 7.68 MB | N/A |
+| Mean Ratio to Best<br>(lower is better) | 1.00x | 1.09x | 1.20x | 1.21x | 1.30x | 1.38x | 1.44x | 1.67x | 1.76x | 2.13x | 2.16x | 2.69x | 3.99x | 4.01x | 4.40x |
+| io_socket_st | 292726 us | 318976 us | 351168 us | 352910 us | 379725 us | 402958 us | 420366 us | 489036 us | 515406 us | 622233 us | 632172 us | 788126 us | 1169191 us | 1173373 us | 1287701 us |
+
+| Runtime | [TooManyCooks_mt](https://github.com/tzcnt/TooManyCooks) | [TooManyCooks_st_asio](https://github.com/tzcnt/TooManyCooks) | [libcoro_mt](https://github.com/jbaldwin/libcoro) | [neco](https://github.com/tidwall/neco) | [cobalt_st_asio](https://github.com/boostorg/cobalt) | [go](https://pkg.go.dev/std) | [java](https://openjdk.org/jeps/444) | [folly](https://github.com/facebook/folly) | [zigbeam](https://github.com/eakova/zigbeam) | [tokio_flume](https://github.com/tokio-rs/tokio) | [PhotonLibOS](https://github.com/alibaba/PhotonLibOS) | [kotlin_default](https://github.com/Kotlin/kotlinx.coroutines) | [dotnet](https://learn.microsoft.com/en-us/dotnet/api/) | [userver](https://github.com/userver-framework/userver) | [weave_threading](https://github.com/mratsim/weave) | [kotlin_fjp](https://github.com/Kotlin/kotlinx.coroutines) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Mean Ratio to Best<br>(lower is better) | 1.00x | 1.02x | 1.21x | 2.11x | 2.33x | 2.79x | 3.50x | 4.03x | 6.48x | 12.39x | 12.99x | 15.30x | 15.47x | 17.05x | 17.10x | 19.52x |
+| channel | 376499 us | 384408 us | 455188 us | 794814 us | 875631 us | 1049222 us | 1316790 us | 1516630 us | 2438126 us | 4663599 us | 4891633 us | 5759240 us | 5824840 us | 6419394 us | 6439726 us | 7349066 us |
+
+
+
+### Peak Memory Usage (Max RSS)
+
+| Runtime | citor | libfork | TooManyCooks | TooManyCooks_st_asio | TooManyCooks_mt | tbb | taskflow | cppcoro | coros | cobalt_st_asio | cobalt | PhotonLibOS | folly | concurrencpp | HPX | libcoro | libcoro_mt | userver | tokio | tokio_flume | go | dotnet | java | forkjoin | kotlin_fjp | kotlin_default | weave | weave_threading | neco | zap | zigbeam |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| skynet | 21.98 MB | 9.66 MB | 11.0 MB | N/A | N/A | 12.65 MB | 7.93 MB | 134.04 MB | 11.94 MB | N/A | N/A | N/A | 14.89 MB | 11.45 MB | 28.84 GB | 15.4 GB | N/A | N/A | 9.05 GB | N/A | 12.09 GB | 54.02 MB | 25.99 GB | 4.38 GB | 6.11 GB | 25.53 GB | 6.1 MB | N/A | N/A | 212.86 MB | 37.88 MB |
+| nqueens | 61.38 MB | 10.15 MB | 11.26 MB | N/A | N/A | 11.07 MB | 10.94 MB | 134.13 MB | 11.96 MB | N/A | N/A | N/A | 11.73 MB | 10.76 MB | 12.84 GB | 5.21 GB | N/A | N/A | 1.41 GB | N/A | 2.17 GB | 55.47 MB | 25.87 GB | 1.72 GB | 5.32 GB | 12.32 GB | 6.1 MB | N/A | N/A | 55.0 MB | 31.86 MB |
+| fib(39) | 31.37 MB | 13.01 MB | 11.19 MB | N/A | N/A | 12.62 MB | 9.12 MB | 134.03 MB | 9.21 MB | N/A | N/A | N/A | 11.77 MB | 10.6 MB | 18.16 GB | 9.96 GB | N/A | N/A | 2.2 GB | N/A | 4.73 GB | 50.81 MB | 26.32 GB | 1.9 GB | 6.93 GB | 15.57 GB | 67.05 MB | N/A | N/A | 123.05 MB | 31.47 MB |
+| matmul(2048) | 70.96 MB | 58.89 MB | 59.87 MB | N/A | N/A | 58.69 MB | 55.83 MB | 186.38 MB | 58.44 MB | N/A | N/A | 75.82 MB | 60.1 MB | 59.52 MB | 126.34 MB | 59.16 MB | N/A | 68.86 MB | 49.12 MB | N/A | 174.72 MB | 130.5 MB | 577.36 MB | 262.84 MB | 592.06 MB | 591.66 MB | 67.07 MB | N/A | N/A | 66.54 MB | 84.32 MB |
+| io_socket_st | N/A | N/A | 13.02 MB | N/A | N/A | N/A | N/A | 9.35 MB | N/A | N/A | 9.16 MB | 14.6 MB | 15.89 MB | N/A | N/A | 7.72 MB | N/A | 18.18 MB | 6.11 MB | N/A | 9.64 MB | 49.97 MB | 113.96 MB | N/A | 170.32 MB | 172.05 MB | 6.11 MB | N/A | 9.54 MB | N/A | N/A |
+| channel | N/A | N/A | N/A | 19.67 MB | 26.7 MB | N/A | N/A | N/A | N/A | 9.0 MB | N/A | 14.97 MB | 145.24 MB | N/A | N/A | N/A | 9.31 MB | 19.19 MB | N/A | 27.26 MB | 39.91 MB | 235.26 MB | 627.52 MB | N/A | 851.84 MB | 852.43 MB | N/A | 6.1 MB | 9.52 MB | N/A | 41.02 MB |
 
 <details>
 <summary>Click to view the machine configuration used in the summary tables</summary>
 
-- Processor: EPYC 7742 64-core processor
+- Processor: EPYC 7V73X 64-core processor
 - Worker Thread Count: 64 (no SMT)
-- OS: Debian 13 Server
+- OS: Debian 14 Server
 - Compiler: Clang 21.1.7 Release (-O3 -march=native)
 - CPU boost enabled / schedutil governor
 - Linked against libtcmalloc_minimal.so.4
@@ -49,7 +49,7 @@ An interactive view of the full results dataset is available at: https://fleetco
 </details>
 
 ### What's covered?
-Currently only includes C++ frameworks, and several recursive fork-join benchmarks:
+Recursive fork-join benchmarks:
 - recursive fibonacci (forks x2)
 - skynet ([original link](https://github.com/atemerev/skynet)) but increased to 100M tasks (forks x10)
 - nqueens (forks up to x14)
@@ -101,15 +101,3 @@ git-ref can be a SHA, tag, or branch:
   ./build_and_bench_all.py <runtime> [git-ref]
   ./build_and_bench_all.py compare <runtime> <new-git-ref> [baseline-git-ref]
 ```
-
-### Future Plans
-
-Frameworks to come:
-- (C#) .Net thread pool
-- (Rust) [tokio](https://github.com/tokio-rs/tokio)
-- (Golang) goroutines
-- Facebook Folly
-- PhotonLibOS https://github.com/alibaba/PhotonLibOS
-
-Benchmarks to come:
-- Some inspiration [here](https://github.com/ConorWilliams/libfork/tree/main/bench/source)
