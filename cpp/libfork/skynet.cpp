@@ -51,11 +51,17 @@ inline constexpr auto skynet_one =
   }
 
   std::array<size_t, 10> results;
-  for (size_t idx = 0; idx < 10; ++idx) {
+  for (size_t idx = 0; idx < 9; ++idx) {
     co_await lf::fork[&results[idx], skynet_one](
       BaseNum + depthOffset * idx, Depth + 1
     );
   }
+  // Issue the final child with lf::call instead of lf::fork so
+  // it runs inline on the current worker (the parent is not made stealable),
+  // saving one deque push/pop per node while the other 9 remain steal-able.
+  co_await lf::call[&results[9], skynet_one](
+    BaseNum + depthOffset * 9, Depth + 1
+  );
 
   co_await lf::join;
 
