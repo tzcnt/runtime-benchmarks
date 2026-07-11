@@ -45,11 +45,12 @@ void check_answer(int result) {
 template <size_t N>
 cppcoro::task<int>
 nqueens(cppcoro::static_thread_pool& tp, int xMax, std::array<char, N> buf) {
-  co_await tp.schedule();
-
+  // Only reschedule onto the pool for internal nodes that actually fan out.
   if (N == xMax) {
     co_return 1;
   }
+
+  co_await tp.schedule();
 
   auto tasks = std::ranges::views::iota(0UL, N) |
                std::ranges::views::filter([xMax, &buf](int y) {
