@@ -79,17 +79,29 @@ server_handler(coro::net::tcp::client client, coro::queue<result>& Results) {
       }
     }
   SEND:
-    // Make sure the client socket can be written to.
-    co_await client.poll(coro::poll_op::write);
+    // Optimistically send without polling for writability first. On loopback
+    // with a small response the socket is essentially always writable, so a
+    // poll(write) before every send is a wasted epoll round-trip. Only poll
+    // when send() actually reports EAGAIN/EWOULDBLOCK or a partial write.
     auto sspan = std::span<const char>{static_response};
-    coro::net::send_status sstatus;
-    do {
-      std::tie(sstatus, sspan) = client.send(sspan);
-      if (sstatus != coro::net::send_status::ok) {
+    while (true) {
+      auto [sstatus, remaining] = client.send(sspan);
+      if (sstatus == coro::net::send_status::ok) {
+        sspan = remaining;
+        if (sspan.empty()) {
+          break;
+        }
+        // Partial write: kernel send buffer is full, wait for writability.
+        co_await client.poll(coro::poll_op::write);
+      } else if (sstatus == coro::net::send_status::try_again ||
+                 sstatus == coro::net::send_status::would_block) {
+        // Nothing sent (send buffer full); wait for writability then retry.
+        co_await client.poll(coro::poll_op::write);
+      } else {
         co_await Results.emplace(sstatus, coro::net::recv_status::ok, i);
         co_return;
       }
-    } while (!sspan.empty());
+    }
   }
 }
 
@@ -169,23 +181,30 @@ static coro::task<void> client_handler(
     std::terminate();
   }
 
-  co_await client.poll(coro::poll_op::write);
-
   std::string request_data(static_request);
   std::string response_buf(4096, '\0');
   size_t i = 0;
   for (; i < Count; ++i) {
-    // Send request
-    co_await client.poll(coro::poll_op::write);
+    // Send request. Optimistically send without polling for writability first;
+    // on loopback the socket is essentially always writable, so poll(write)
+    // only when send() reports EAGAIN/EWOULDBLOCK or a partial write.
     auto sspan = std::span<const char>{request_data};
-    coro::net::send_status sstatus;
-    do {
-      std::tie(sstatus, sspan) = client.send(sspan);
-      if (sstatus != coro::net::send_status::ok) {
+    while (true) {
+      auto [sstatus, remaining] = client.send(sspan);
+      if (sstatus == coro::net::send_status::ok) {
+        sspan = remaining;
+        if (sspan.empty()) {
+          break;
+        }
+        co_await client.poll(coro::poll_op::write);
+      } else if (sstatus == coro::net::send_status::try_again ||
+                 sstatus == coro::net::send_status::would_block) {
+        co_await client.poll(coro::poll_op::write);
+      } else {
         client.socket().close();
         co_return;
       }
-    } while (!sspan.empty());
+    }
 
     // Receive response
     while (true) {

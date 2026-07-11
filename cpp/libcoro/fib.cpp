@@ -38,10 +38,15 @@ static size_t thread_count = std::thread::hardware_concurrency() / 2;
 static const size_t iter_count = 1;
 
 static coro::task<size_t> fib(coro::thread_pool& tp, size_t n) {
-  co_await tp.schedule();
-
+  // Return leaf values inline instead of bouncing every base case through the
+  // pool. Only forking (recursive) nodes reschedule onto the pool, so the ~half
+  // of fib() invocations that are leaves avoid a schedule round-trip entirely.
+  // Internal nodes still co_await tp.schedule() before forking, so both
+  // children remain stealable and parallelism is unchanged.
   if (n < 2)
     co_return n;
+
+  co_await tp.schedule();
 
   auto [x, y] = co_await coro::when_all(fib(tp, n - 1), fib(tp, n - 2));
   co_return x.return_value() + y.return_value();

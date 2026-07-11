@@ -10,8 +10,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-#include "memusage.hpp"
 #include "coro/coro.hpp" // IWYU pragma: keep
+#include "memusage.hpp"
 
 #include <array>
 #include <cinttypes>
@@ -39,11 +39,12 @@ void check_answer(int result) {
 template <size_t N>
 coro::task<int>
 nqueens(coro::thread_pool& tp, int xMax, std::array<char, N> buf) {
-  co_await tp.schedule();
-
+  // Only reschedule onto the pool for internal nodes that actually fan out.
   if (N == xMax) {
     co_return 1;
   }
+
+  co_await tp.schedule();
 
   auto tasks = std::ranges::views::iota(0UL, N) |
                std::ranges::views::filter([xMax, &buf](int y) {
