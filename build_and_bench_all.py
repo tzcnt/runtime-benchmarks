@@ -289,7 +289,7 @@ def get_language_for_runtime(runtime):
 def build_runtime(language, runtime, library_ref=None, clean_build=False):
     runtime_root_dir = runtime_dir(language, runtime)
     display_ref = f" ({library_ref})" if library_ref else ""
-    print(f"Building {runtime}{display_ref}")
+    print(f"Building {runtime}{display_ref}", end="", flush=True)
 
     if clean_build:
         build_dir = os.path.join(runtime_root_dir, "build")
@@ -311,10 +311,23 @@ def build_runtime(language, runtime, library_ref=None, clean_build=False):
 
     result = subprocess.run(args=build_script, shell=True, cwd=runtime_root_dir, capture_output=True, text=True, env=env)
     if result.returncode != 0:
-        print(f"Build failed for {runtime}{display_ref}:")
-        print(result.stdout)
-        print(result.stderr)
+        # Capture the failing build's output to a log in the repo root. The ref is
+        # folded into the filename (sanitized) so compare mode's two builds of the
+        # same runtime don't clobber each other's logs.
+        safe_ref = "".join(c if c.isalnum() else "-" for c in library_ref) if library_ref else ""
+        log_name = f"build-failed-{runtime}{'-' + safe_ref if safe_ref else ''}.log"
+        log_path = os.path.join(root_dir, log_name)
+        with open(log_path, "w") as log_file:
+            log_file.write(f"Build failed for {runtime}{display_ref} (exit code {result.returncode})\n")
+            log_file.write(f"Command: {build_script}\n")
+            log_file.write(f"Working directory: {runtime_root_dir}\n\n")
+            log_file.write("=== stdout ===\n")
+            log_file.write(result.stdout)
+            log_file.write("\n=== stderr ===\n")
+            log_file.write(result.stderr)
+        print(f" - failed (see {log_name})")
         return False
+    print(" - success")
     return True
 
 # Per-benchmark wall-clock ceiling (10 min). A run that exceeds it is killed and
