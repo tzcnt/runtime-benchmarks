@@ -40,7 +40,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <thread>
-#include <vector>
 
 static size_t thread_count = std::thread::hardware_concurrency() / 2;
 static const size_t iter_count = 1;
@@ -55,20 +54,24 @@ folly::coro::Task<size_t> skynet_one(size_t BaseNum, size_t Depth) {
     depthOffset *= 10;
   }
 
-  std::vector<folly::coro::Task<size_t>> children;
-  children.reserve(10);
-  for (size_t idx = 0; idx < 10; ++idx) {
-    children.push_back(
-      skynet_one<DepthMax>(BaseNum + depthOffset * idx, Depth + 1)
+  // Fixed 10-way fan-out: use the variadic collectAll overload, which returns
+  // a std::tuple<size_t, ...>. This avoids the std::vector<Task> (one heap
+  // allocation per internal node) that collectAllRange requires.
+  auto [r0, r1, r2, r3, r4, r5, r6, r7, r8, r9] =
+    co_await folly::coro::collectAll(
+      skynet_one<DepthMax>(BaseNum + depthOffset * 0, Depth + 1),
+      skynet_one<DepthMax>(BaseNum + depthOffset * 1, Depth + 1),
+      skynet_one<DepthMax>(BaseNum + depthOffset * 2, Depth + 1),
+      skynet_one<DepthMax>(BaseNum + depthOffset * 3, Depth + 1),
+      skynet_one<DepthMax>(BaseNum + depthOffset * 4, Depth + 1),
+      skynet_one<DepthMax>(BaseNum + depthOffset * 5, Depth + 1),
+      skynet_one<DepthMax>(BaseNum + depthOffset * 6, Depth + 1),
+      skynet_one<DepthMax>(BaseNum + depthOffset * 7, Depth + 1),
+      skynet_one<DepthMax>(BaseNum + depthOffset * 8, Depth + 1),
+      skynet_one<DepthMax>(BaseNum + depthOffset * 9, Depth + 1)
     );
-  }
 
-  auto results = co_await folly::coro::collectAllRange(std::move(children));
-
-  size_t count = 0;
-  for (size_t idx = 0; idx < 10; ++idx) {
-    count += results[idx];
-  }
+  size_t count = r0 + r1 + r2 + r3 + r4 + r5 + r6 + r7 + r8 + r9;
   co_return count;
 }
 template <size_t DepthMax> folly::coro::Task<void> skynet() {
@@ -98,8 +101,7 @@ int main(int argc, char* argv[]) {
   }
   std::printf("threads: %" PRIu64 "\n", thread_count);
   folly::CPUThreadPoolExecutor executor(thread_count);
-  folly::coro::blockingWait(
-    co_withExecutor(&executor, skynet<8>())); // warmup
+  folly::coro::blockingWait(co_withExecutor(&executor, skynet<8>())); // warmup
   folly::coro::blockingWait(co_withExecutor(&executor, loop_skynet<8>()));
   return 0;
 }
