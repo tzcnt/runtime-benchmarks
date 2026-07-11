@@ -2,8 +2,11 @@
 // photon event loop on its own OS thread (2 OS threads total, matching the
 // canonical implementation's pair of single-threaded executors). Photon
 // parks the calling photon thread in socket calls and polls fds on the
-// vcpu's event engine (io_uring or epoll, whichever INIT_EVENT_DEFAULT
-// finds).
+// vcpu's event engine. INIT_EVENT_DEFAULT tries epoll BEFORE io_uring on
+// Linux (recommended_order in photon.cpp), so this runs on classic epoll
+// with EPOLLONESHOT re-arm per wait — measured fastest among Photon's
+// options for this workload (forcing INIT_EVENT_IOURING or using
+// new_et_tcp_socket_* is ~2x slower; see README.md).
 //
 // Canonical (TooManyCooks) implementation: ../TooManyCooks/io_socket_st.cpp
 //

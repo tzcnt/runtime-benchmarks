@@ -124,3 +124,75 @@ live task count bounded and never approaches either limit. userver
 ([../userver](../userver)) is likewise stackful with FIFO queues and hits the
 same breadth-first wall (in its case the `vm.max_map_count` ceiling, at ~970k
 mappings / 2.8 GB for `fib(39)`).
+
+## `io_socket_st`: no kernel bypass, and why it trails the asio runtimes
+
+Photon is often associated with kernel bypass (F-Stack/DPDK) and might be
+expected to dominate this benchmark. Neither of its headline networking
+accelerators is actually in play here:
+
+- **No F-Stack/DPDK.** Kernel bypass is an opt-in build flag
+  (`PHOTON_ENABLE_FSTACK_DPDK`, **OFF** in this build) that pulls in DPDK and
+  requires a NIC bound to vfio/uio plus hugepages. Even when built, it is a
+  separate socket factory (`new_fstack_dpdk_socket_*`) and io engine
+  (`INIT_IO_FSTACK_DPDK`); the benchmark's `new_tcp_socket_*` are plain kernel
+  sockets on every build. It also could not apply to this benchmark in
+  principle: F-Stack's userspace TCP/IP stack drives a physical NIC, and
+  `io_socket_st` ping-pongs over `127.0.0.1` inside a single process.
+
+- **Not io_uring either.** Photon v0.9.4's Linux try-order for
+  `INIT_EVENT_DEFAULT` is **epoll first**, then io_uring (`recommended_order`
+  in Photon's `photon.cpp`), so the master engine is classic epoll whenever
+  epoll initializes — which is always. strace confirms the running benchmark
+  makes only `epoll_*` and socket syscalls, no `io_uring_*`.
+
+So Photon runs the same class of machinery as the asio-based runtimes:
+nonblocking kernel sockets on a per-vcpu epoll reactor.
+
+### The actual gap: one-shot re-arm on every wait
+
+Photon's epoll engine registers fd interest with `EPOLLONESHOT`: every time a
+photon thread parks in `recv`/`write`, `wait_for_fd` issues an
+`epoll_ctl(EPOLL_CTL_MOD)` to re-arm the fd (`io/epoll.cpp`). Asio registers
+each fd **once** (persistent, edge-triggered) and never touches `epoll_ctl`
+again. Measured with `strace -c` (20k requests, 8 connections):
+
+| syscall | Photon | TooManyCooks (asio) |
+| --- | --- | --- |
+| `recvfrom` | 80,014 (40,006 `EAGAIN`) | 78,210 (38,202 `EAGAIN`) |
+| `sendto` | 40,000 | 40,000 |
+| `epoll_ctl` | **40,035** | **39** |
+| `epoll_wait` | 10,657 | 12,498 |
+
+Both runtimes use the identical speculative-read-then-park pattern (same
+`recvfrom`/`EAGAIN` profile); the *entire* difference is the 2 extra
+`epoll_ctl` per request — ~23% more syscalls, which matches the measured
+steady-state gap (~350–380 ms vs ~325–355 ms at 64 connections / 100k
+requests, ~10%).
+
+Two footnotes on the recorded numbers: Photon's 64-connection score is a
+statistical tie with cobalt (asio); the real losses are only to tokio (~20%)
+and TooManyCooks (~10%). And Photon shows high run-to-run variance unpinned
+(350–620 ms across identical runs on the 64-core EPYC) — the recorded outlier
+at 32 connections is that variance, not a scaling cliff.
+
+### Faster alternatives? Both measured slower
+
+Two configurations that sound like they should close the gap were built and
+measured, and both are ~2× **slower**:
+
+- **Forcing the io_uring engine** (`INIT_EVENT_IOURING`): ~680 ms vs ~370 ms.
+  Each wait becomes a poll-add submission plus an `io_uring_enter`, which
+  costs more than one-shot epoll for tiny loopback messages.
+
+- **Photon's edge-triggered sockets** (`new_et_tcp_socket_*`), which register
+  each fd once like asio: ~600 ms. Their events funnel through a second
+  per-vcpu poller (`ETPoller`: a nested epoll fd drained by a separate
+  event-loop photon thread), adding a full extra wakeup hop per message. They
+  also segfault at teardown unless `net::et_poller_init()` /
+  `net::et_poller_fini()` bracket each vcpu's use — the API is easy to hold
+  wrong.
+
+So the benchmark already uses Photon's fastest available configuration
+(default kernel sockets + one-shot epoll), and the ~10% deficit to the
+leaders is inherent to the one-shot re-arm design under this workload.
