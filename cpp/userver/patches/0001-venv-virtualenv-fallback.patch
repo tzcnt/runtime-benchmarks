@@ -1,0 +1,24 @@
+diff --git a/cmake/UserverVenv.cmake b/cmake/UserverVenv.cmake
+index ad36999..5a8eff6 100644
+--- a/cmake/UserverVenv.cmake
++++ b/cmake/UserverVenv.cmake
+@@ -131,6 +131,19 @@ function(userver_venv_setup)
+         execute_process(
+             COMMAND "${USERVER_PYTHON_PATH}" -m venv "${venv_dir}" ${venv_additional_args} RESULT_VARIABLE status
+         )
++        if(status)
++            # 'python3 -m venv' requires ensurepip, which Debian ships separately
++            # in python3-venv. Fall back to the standalone virtualenv tool, which
++            # seeds pip from its own bundled wheels instead.
++            find_program(USERVER_VIRTUALENV_PATH virtualenv)
++            if(USERVER_VIRTUALENV_PATH)
++                file(REMOVE_RECURSE "${venv_dir}")
++                execute_process(
++                    COMMAND "${USERVER_VIRTUALENV_PATH}" -p "${USERVER_PYTHON_PATH}" ${venv_additional_args}
++                            "${venv_dir}" RESULT_VARIABLE status
++                )
++            endif()
++        endif()
+         if(status)
+             file(REMOVE_RECURSE "${venv_dir}")
+             message(

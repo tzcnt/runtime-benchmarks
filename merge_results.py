@@ -7,6 +7,8 @@ import json
 import sys
 
 def get_dur_in_us(dur_string):
+    if dur_string == "DNF":
+        return None
     dur, unit = dur_string.split(" ")
     dur = int(dur)
     # convert all units to microseconds for comparison
@@ -32,31 +34,49 @@ def merge_results(dest_file, source_file):
     for key, value in source.get('results', {}).items():
         dest['results'][key] = value
     
-    # Recalculate scaled and speedup values
-    for bench_name in dest['results'].get(list(dest['results'].keys())[0], {}).keys():
+    # Recalculate scaled and speedup values across every benchmark present in
+    # any runtime (not just the first). Merged files often have different
+    # benchmark sets per runtime, so keying off the first runtime alone would
+    # leave the others' benchmarks with stale, pre-merge scaling.
+    all_bench_names = []
+    for runtime_results in dest['results'].values():
+        for bench_name in runtime_results:
+            # "metadata" is the runtime's per-section compiler/timestamp block,
+            # preserved as-is (copied above), not a benchmark to renormalize.
+            if bench_name == "metadata":
+                continue
+            if bench_name not in all_bench_names:
+                all_bench_names.append(bench_name)
+    for bench_name in all_bench_names:
         lowest_dur = sys.maxsize
         
         # Find the lowest duration for this benchmark across all runtimes
+        # (DNF runs have no duration and are skipped).
         for runtime, runtime_results in dest['results'].items():
             if bench_name in runtime_results:
                 for run in runtime_results[bench_name]:
+                    if run['result'].get('dnf'):
+                        continue
                     dur = get_dur_in_us(run['result']['duration'])
                     if dur < lowest_dur:
                         lowest_dur = dur
-        
+        if lowest_dur == sys.maxsize:
+            continue
+
         # Update scaled and speedup for all runs of this benchmark
         for runtime, runtime_results in dest['results'].items():
             if bench_name in runtime_results:
                 first_dur = None
-                for i, run in enumerate(runtime_results[bench_name]):
+                for run in runtime_results[bench_name]:
+                    if run['result'].get('dnf'):
+                        run['result']['scaled'] = None
+                        run['result']['speedup'] = None
+                        continue
                     dur = get_dur_in_us(run['result']['duration'])
-                    scaled = round(float(dur) / float(lowest_dur), 2)
-                    run['result']['scaled'] = scaled
-                    
-                    if i == 0:
+                    run['result']['scaled'] = round(float(dur) / float(lowest_dur), 2)
+                    if first_dur is None:
                         first_dur = dur
-                    speedup = round(float(first_dur) / float(dur), 2)
-                    run['result']['speedup'] = speedup
+                    run['result']['speedup'] = round(float(first_dur) / float(dur), 2)
     
     with open(dest_file, 'w') as f:
         json.dump(dest, f, indent=2)

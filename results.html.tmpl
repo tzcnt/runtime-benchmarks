@@ -83,20 +83,34 @@
       myChart.update();
     }
 
+    // DNF runs are recorded with a sentinel duration (the 10-min timeout ceiling)
+    // so they plot at that Y value; a truthy `dnf_reason` on the point marks it.
+    // Show "DNF: <reason>" in the tooltip instead of the numeric value. fmt is a
+    // thunk so item.raw is only formatted for non-DNF points (a DNF point may have
+    // no value at all in some transforms, e.g. throughput on a fork-join benchmark).
+    function tooltipLabel(item, fmt) {
+      const reasons = item.dataset.dnf_reason;
+      const reason = reasons ? reasons[item.dataIndex] : null;
+      if (reason) {
+        return " " + item.dataset.label + " — DNF: " + reason;
+      }
+      return " " + item.dataset.label + ": " + fmt(item.raw);
+    }
+
     function updateYAxisLabel() {
       if (currentTransform === 'throughput') {
         if (currentBench === 'io_socket_st') {
           myChart.options.scales.y.title.text = 'Requests per second';
           myChart.options.plugins.tooltip.callbacks.label = (item) =>
-            " " + item.dataset.label + ": " + item.raw.toLocaleString() + " requests/sec";
+            tooltipLabel(item, (v) => v.toLocaleString() + " requests/sec");
         } else if (currentBench === 'channel') {
           myChart.options.scales.y.title.text = 'Elements per second';
           myChart.options.plugins.tooltip.callbacks.label = (item) =>
-            " " + item.dataset.label + ": " + item.raw.toLocaleString() + " elements/sec";
+            tooltipLabel(item, (v) => v.toLocaleString() + " elements/sec");
         } else {
           myChart.options.scales.y.title.text = 'This transform is not valid for this benchmark';
           myChart.options.plugins.tooltip.callbacks.label = (item) =>
-            " " + item.dataset.label + ": " + item.raw.toLocaleString() + "/sec";
+            tooltipLabel(item, (v) => v.toLocaleString() + "/sec");
         }
       }
     }
@@ -125,17 +139,17 @@
         case 'duration':
           myChart.options.scales.y.title.text = 'duration (ms)';
           myChart.options.plugins.tooltip.callbacks.label = (item) =>
-            " " + item.dataset.label + ": " + item.raw.toFixed(2) + " ms";
+            tooltipLabel(item, (v) => v.toFixed(2) + " ms");
           break;
         case 'speedup':
           myChart.options.scales.y.title.text = 'speedup (relative to self w/ 1 thread)';
           myChart.options.plugins.tooltip.callbacks.label = (item) =>
-            " " + item.dataset.label + ": " + item.raw.toFixed(2) + "x";
+            tooltipLabel(item, (v) => v.toFixed(2) + "x");
           break;
         case 'scaled':
           myChart.options.scales.y.title.text = 'normalized (relative to fastest runtime w/ max threads)';
           myChart.options.plugins.tooltip.callbacks.label = (item) =>
-            " " + item.dataset.label + ": " + item.raw.toFixed(2) + "x";
+            tooltipLabel(item, (v) => v.toFixed(2) + "x");
           break;
         case 'throughput':
           updateYAxisLabel();
@@ -260,6 +274,8 @@
       let benchmarks = {};
       for (const [rname, rdata] of Object.entries(obj.results)) {
         for (const [bname, bdata] of Object.entries(rdata)) {
+          // Per-runtime metadata (compiler/timestamp) is not a benchmark series.
+          if (bname === "metadata") continue;
           if (!benchmarks.hasOwnProperty(bname)) {
             benchmarks[bname] = {};
           }
@@ -272,6 +288,7 @@
             run.scaled = bdata[i].result.scaled;
             run.speedup = bdata[i].result.speedup;
             run.throughput = bdata[i].result.throughput;
+            run.dnf_reason = bdata[i].result.dnf_reason;
 
             const subValues = bdata[i].result.duration.split(' ');
             var numeric = subValues[0].replace(/[^0-9.]/g, '');
@@ -303,6 +320,9 @@
           dataset.scaled = rdata.map(row => row.scaled);
           dataset.speedup = rdata.map(row => row.speedup);
           dataset.throughput = rdata.map(row => row.throughput);
+          // Parallel array, indexed like the point arrays above: a truthy entry
+          // marks that point as a DNF (recorded at the sentinel 10-min duration).
+          dataset.dnf_reason = rdata.map(row => row.dnf_reason);
 
           // Display the duration by default
           dataset.data = dataset[currentTransform];
@@ -329,8 +349,7 @@
           plugins: {
             tooltip: {
               callbacks: {
-                label: (item) =>
-                  " " + item.dataset.label + ": " + item.raw.toFixed(2) + " ms",
+                label: (item) => tooltipLabel(item, (v) => v.toFixed(2) + " ms"),
               },
             },
           },

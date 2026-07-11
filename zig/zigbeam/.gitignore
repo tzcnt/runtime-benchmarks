@@ -1,0 +1,4 @@
+build/
+vendor/
+zig-out/
+.zig-cache/

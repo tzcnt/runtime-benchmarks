@@ -1,0 +1,28 @@
+[package]
+name = "tokio-bench"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+tokio = { version = "1", features = [
+    "rt",
+    "rt-multi-thread",
+    "net",
+    "io-util",
+    "sync",
+    "macros",
+    "time",
+] }
+libc = "0.2"
+# Used by io_socket_st to set SO_REUSEADDR (asio sets this by default, so the
+# C++ runtimes get it for free) and avoid EADDRINUSE across back-to-back runs.
+socket2 = "0.6"
+# tokio ships only an MPSC channel, so the `channel` benchmark uses flume, the
+# runtime-agnostic async MPMC channel most tokio users reach for.
+flume = "0.11"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
