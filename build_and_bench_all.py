@@ -264,6 +264,17 @@ def get_dur_in_us(dur_string):
         exit(1)
 
 
+def format_dnf_label(dur_us):
+    # Render a DNF's recorded ceiling duration as a short label for the
+    # RESULTS.md table, e.g. 600000000 us -> "DNF (10m)". Derived from the
+    # recorded duration (not BENCHMARK_TIMEOUT_SECONDS) so results produced
+    # under a RUNTIME_BENCHMARKS_TIMEOUT_SECONDS override label correctly.
+    secs = round(dur_us / 1_000_000)
+    if secs >= 60 and secs % 60 == 0:
+        return f"DNF ({secs // 60}m)"
+    return f"DNF ({secs}s)"
+
+
 def format_mem(kib_string):
     # kib_string looks like "1234 KiB"
     ki = int(kib_string.split(" ")[0])
@@ -343,12 +354,61 @@ BENCHMARK_TIMEOUT_SECONDS = int(os.environ.get("RUNTIME_BENCHMARKS_TIMEOUT_SECON
 
 # Duration recorded for any DNF, equal to the timeout ceiling (in microseconds).
 # Recording the ceiling rather than excluding the run makes timeout- and
-# OOM-induced failures a single, comparable worst-case number: a consistently
-# DNFing runtime shows a flat 10-minute result instead of dropping out. This does
-# mean a genuine crash is indistinguishable from a slow-but-finishing run in the
-# rendered output; consistent DNFs read as a performance problem (the intent),
-# and a real intermittent crash surfaces as a mid-sweep outlier during dev.
+# OOM/crash-induced failures a single, comparable worst-case number: the
+# RESULTS.md table renders the run as an explicit "DNF (10m)" label while its
+# ratio-to-best is still computed from this ceiling, so a consistently DNFing
+# runtime ranks as a worst-case performer instead of dropping out of the
+# comparison. The charts (scaled/speedup in RESULTS.json) instead show a gap
+# for DNF points; see compute_scaled_speedup.
 DNF_DURATION = f"{BENCHMARK_TIMEOUT_SECONDS * 1_000_000} us"
+
+# --- OOM containment -------------------------------------------------------
+# A benchmark that exhausts system memory must not take this script down with
+# it. Without containment it does exactly that: the kernel OOM killer fires
+# inside the terminal session's cgroup, and systemd then tears down the whole
+# scope - this script, the shell, and the tmux pane included (journal:
+# "tmux-spawn-*.scope: Failed with result 'oom-kill'"). Each benchmark is
+# therefore launched in its own transient systemd scope, capped just below
+# currently-available memory, so the OOM kill lands inside the benchmark's
+# scope only. The benchmark dies by SIGKILL, which run_benchmark_process
+# already records as a DNF, and the sweep moves on to the next benchmark.
+_scope_isolation_works = None
+
+def _scope_isolation_props():
+    # MemoryMax: 90% of MemAvailable (re-read per run), so the benchmark hits
+    # its cgroup limit while the system still has headroom and the global OOM
+    # killer never gets involved. MemorySwapMax=0 keeps a runaway benchmark
+    # from thrashing swap for minutes before dying. OOMPolicy=kill makes
+    # systemd SIGKILL the whole scope as soon as any process in it is
+    # OOM-killed, so no orphaned children keep eating memory.
+    props = "-p MemorySwapMax=0 -p OOMPolicy=kill"
+    try:
+        with open("/proc/meminfo") as f:
+            for line in f:
+                if line.startswith("MemAvailable:"):
+                    avail_bytes = int(line.split()[1]) * 1024
+                    props += f" -p MemoryMax={max(avail_bytes * 9 // 10, 1 << 30)}"
+                    break
+    except OSError:
+        pass
+    return props
+
+def isolate_cmd(cmd):
+    # Wrap a benchmark command in its own transient scope. Probed once with
+    # the same property set as a real run, so an unsupported property or a
+    # missing user manager falls back to running unwrapped instead of turning
+    # every benchmark into a spurious DNF.
+    global _scope_isolation_works
+    if _scope_isolation_works is None:
+        probe = f"systemd-run --user --scope --quiet --collect {_scope_isolation_props()} -- true"
+        _scope_isolation_works = subprocess.run(
+            args=probe, shell=True, capture_output=True).returncode == 0
+        if not _scope_isolation_works:
+            print("Warning: systemd-run scope isolation unavailable; "
+                  "an OOM'd benchmark may take this script down with it")
+    if not _scope_isolation_works:
+        return cmd
+    return f"systemd-run --user --scope --quiet --collect {_scope_isolation_props()} -- {cmd}"
 
 def _kill_process_group(proc):
     # Kill the whole process group, not just the shell we spawned. A crashing
@@ -370,7 +430,7 @@ def run_benchmark_process(cmd, timeout=BENCHMARK_TIMEOUT_SECONDS):
     # start_new_session puts the benchmark and any children in their own process
     # group so a timeout can reap the whole tree via _kill_process_group.
     proc = subprocess.Popen(
-        cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        isolate_cmd(cmd), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         text=True, start_new_session=True,
     )
     timed_out = False
@@ -436,7 +496,7 @@ def run_runtime_benchmarks(language, runtime, result_runtime_name, threads):
                          # performance result instead of being excluded from the sweep.
                          # dnf_reason is kept as inert provenance (no consumer reads it).
                          print(f"DNF: {cmd} ({dnf_reason})")
-                         one_run["result"] = {"duration": DNF_DURATION, "dnf_reason": dnf_reason}
+                         one_run["result"] = {"duration": DNF_DURATION, "dnf": True, "dnf_reason": dnf_reason}
                          full_results.setdefault(result_runtime, {}).setdefault(bench_name, []).append(one_run)
                          continue
 
@@ -470,7 +530,7 @@ def run_runtime_benchmarks(language, runtime, result_runtime_name, threads):
                          # so it never reaches here.
                          reason = f"no parseable result ({exc})"
                          print(f"DNF: {cmd} ({reason})")
-                         one_run["result"] = {"duration": DNF_DURATION, "dnf_reason": reason}
+                         one_run["result"] = {"duration": DNF_DURATION, "dnf": True, "dnf_reason": reason}
                          full_results.setdefault(result_runtime, {}).setdefault(bench_name, []).append(one_run)
                          continue
 
@@ -697,11 +757,15 @@ for runtime, runtime_results in full_results.items():
             friendly_name = bench_name
             if params:
                 friendly_name += f"({params})"
+            dur_string = last_result["result"]["duration"]
+            dur_in_us = get_dur_in_us(dur_string)
             if last_result["result"].get("dnf"):
-                collated_results.setdefault(runtime, {})[friendly_name] = {"raw": "DNF", "us": None, "dnf": True}
+                # A DNF carries the timeout-ceiling duration. Show it as an
+                # explicit "DNF (10m)" label, but keep the ceiling in `us` so
+                # the ratio math ranks the run as a worst-case result instead
+                # of dropping it from the mean.
+                collated_results.setdefault(runtime, {})[friendly_name] = {"raw": format_dnf_label(dur_in_us), "us": dur_in_us, "dnf": True}
             else:
-                dur_string = last_result["result"]["duration"]
-                dur_in_us = get_dur_in_us(dur_string)
                 collated_results.setdefault(runtime, {})[friendly_name] = {"raw": dur_string, "us": dur_in_us}
             if not friendly_name in bench_names:
                 bench_names.append(friendly_name)
@@ -744,20 +808,25 @@ outMD = ""
 for runtime_set, group_bench_names in runtime_set_to_benchmarks.items():
     group_runtimes = list(runtime_set)
 
-    # Calculate lowest results for this group's benchmarks (DNFs have no time)
+    # Calculate lowest results for this group's benchmarks. A DNF's ceiling
+    # duration never defines the best time (only real finishes can), but DNFs
+    # do get a ratio against that best in the loop below. If every runtime
+    # DNFs a benchmark there is no best; that benchmark is then excluded from
+    # the means and only the "DNF (10m)" labels appear.
     lowest_results = {}
     for runtime in group_runtimes:
         runtime_results = collated_results[runtime]
         for bench_name in group_bench_names:
             if bench_name in runtime_results:
                 us = runtime_results[bench_name]["us"]
-                if us is None:
+                if us is None or runtime_results[bench_name].get("dnf"):
                     continue
                 curr_lowest = lowest_results.get(bench_name, sys.maxsize)
                 if us < curr_lowest:
                     lowest_results[bench_name] = us
 
-    # Calculate ratios for this group (skip DNFs and benches nobody finished)
+    # Calculate ratios for this group. DNFs get a ratio from their recorded
+    # ceiling duration; benches nobody finished have no best and are skipped.
     for runtime in group_runtimes:
         runtime_results = collated_results[runtime]
         for bench_name in group_bench_names:
@@ -768,8 +837,10 @@ for runtime_set, group_bench_names in runtime_set_to_benchmarks.items():
                 ratio = float(us) / float(lowest_results[bench_name])
                 runtime_results[bench_name]["ratio"] = ratio
 
-    # Sort runtimes by mean ratio within this group. DNF benches are excluded
-    # from the mean; a runtime that finished nothing here has mean None and sorts last.
+    # Sort runtimes by mean ratio within this group. A DNF contributes its
+    # ceiling-duration ratio to the mean (a worst-case penalty, not a gap);
+    # benches nobody finished have no best and thus no ratio. A runtime with
+    # no ratios at all has mean None and sorts last.
     sorted_runtimes = []
     for runtime in group_runtimes:
         runtime_results = collated_results[runtime]
