@@ -658,6 +658,12 @@ def tag_runtime_metadata(result_keys, language):
 args = parse_args()
 compare_mode = args["compare_runtime"] is not None
 single_runtime_mode = args["single_runtime"] is not None
+
+# When benchmarking a single runtime, suffix the output files with its name
+# (e.g. RESULTS-<runtime>.{json,html,md}) so a targeted run doesn't clobber
+# the full-sweep RESULTS.* files.
+results_basename = f"RESULTS-{args['single_runtime']}" if single_runtime_mode else "RESULTS"
+
 active_runtimes = runtimes
 if compare_mode:
     active_runtimes = {get_language_for_runtime(args["compare_runtime"]): [args["compare_runtime"]]}
@@ -772,18 +778,20 @@ for runtime, runtime_results in full_results.items():
 
 # Get system information and attach it as metadata to the JSON file only
 if args["full_sweep"] or compare_mode or single_runtime_mode:
-    print("Generating RESULTS.json...")
+    json_path = f"{results_basename}.json"
+    html_path = f"{results_basename}.html"
+    print(f"Generating {json_path}...")
     populate_system_metadata(md)
-    outJson = write_results_json("RESULTS.json", md, full_results)
+    outJson = write_results_json(json_path, md, full_results)
 
-    # Generate RESULTS.html from the template for local viewing
-    print("Generating RESULTS.html...")
+    # Generate the HTML chart from the template for local viewing
+    print(f"Generating {html_path}...")
     with open("results.html.tmpl", "r") as tmpl_file:
         html_content = tmpl_file.read()
     html_content = html_content.replace("{{ Script Will Substitute Latest Run Data Here }}", outJson)
-    with open("RESULTS.html", "w") as html_file:
+    with open(html_path, "w") as html_file:
         html_file.write(html_content)
-    print("View benchmark charts in your browser at: file:///"+os.path.abspath("RESULTS.html").replace("\\", "/"))
+    print("View benchmark charts in your browser at: file:///"+os.path.abspath(html_path).replace("\\", "/"))
 
 
 # Group benchmarks by which runtimes have results for them
@@ -801,7 +809,8 @@ runtime_set_to_benchmarks = {}
 for bench_name, runtime_set in bench_to_runtimes.items():
     runtime_set_to_benchmarks.setdefault(runtime_set, []).append(bench_name)
 
-print("Generating RESULTS.md...", end=" ")
+md_path = f"{results_basename}.md"
+print(f"Generating {md_path}...", end=" ")
 outMD = ""
 
 # Process each group separately
@@ -910,7 +919,7 @@ for y in range(len(mem_table[0])):
             outMD += "| --- "
         outMD += "|\n"
 
-with open("RESULTS.md", "w") as resultsMD:
+with open(md_path, "w") as resultsMD:
     resultsMD.write(outMD.strip() + "\n")
 
 print("done.")
