@@ -125,7 +125,12 @@ int main(int argc, char* argv[]) {
   // Force HPX to use the most efficient (?) queue mode
   hpx::local::init_params init_args;
   init_args.cfg = {
-    "hpx.os_threads=" + std::to_string(thread_count)
+    "hpx.os_threads=" + std::to_string(thread_count),
+    // Shrink coroutine stacks to 16KiB, 4x below HPX's 64KiB "small" default.
+    // This reduces memory usage. Unlike the other stackful coroutine libs
+    // (userver / PhotonLibOS), HPX has a LIFO local queue, so this is a
+    // meaningful optimization.
+    "hpx.stacks.small_size=0x4000", "hpx.stacks.use_guard_pages=0"
     // ,
     // "--hpx:queuing=abp-priority-lifo"
   };
