@@ -24,8 +24,7 @@ endif()
 CPMAddPackage(
     NAME concurrencpp
     GIT_REPOSITORY https://github.com/David-Haim/concurrencpp.git
-    GIT_TAG ${CONCURRENCPP_GIT_TAG}
-    DOWNLOAD_ONLY)
+    GIT_TAG ${CONCURRENCPP_GIT_TAG})
 include_directories(
     ${concurrencpp_SOURCE_DIR}/include
     "../2common"
