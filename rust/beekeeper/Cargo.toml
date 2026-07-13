@@ -1,0 +1,19 @@
+[package]
+name = "beekeeper-bench"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+# The "crossbeam" feature switches the outcome channel from std::sync::mpsc to
+# crossbeam-channel, whose Receiver is cloneable (MPMC). Every benchmark here
+# relies on that: outcomes are drained by one or more dedicated consumer
+# threads (see src/lib.rs). The default "local-batch" feature stays enabled so
+# workers refill their local queues in batches from the global queue.
+beekeeper = { version = "0.3.1", features = ["crossbeam"] }
+libc = "0.2"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1

@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # Merge results from one dataset JSON into another.
 # Typically I prefer to run all benchmarks for a machine at once, but for some very slow
 # benchmarks, I don't want to wait hours for them all to run. So I may run one by itself and update it

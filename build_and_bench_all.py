@@ -22,14 +22,14 @@ runtimes = {
             "PhotonLibOS",
             # these 5 are quite slow - you can remove them to speed up total runtime
             "folly", "concurrencpp", "HPX", "libcoro", "userver"],
-    "rust": ["tokio"],
+    "rust": ["tokio", "smol", "rayon", "chili", "forte", "bevy_tasks", "micropool", "beekeeper"],
     "go": ["go"],
     "cs": ["dotnet"],
     "java": ["java", "forkjoin"],
     "kotlin": ["kotlin_fjp", "kotlin_default"],
     "nim": ["weave"],
     "c": ["neco"],
-    "zig": ["zap", "zigbeam"]
+    "zig": ["zap", "zigbeam", "spice"]
 }
 
 # The result/display key for a runtime may differ from its subfolder name so that
@@ -63,6 +63,39 @@ runtime_links = {
     "userver": "https://github.com/userver-framework/userver",
     "PhotonLibOS": "https://github.com/alibaba/PhotonLibOS",
     "tokio": "https://github.com/tokio-rs/tokio",
+    # smol: a facade over the smol-rs runtime crates (async-executor, async-io,
+    # async-net, async-channel). Runs all 6 benchmarks: nested fork-join on a
+    # fixed pool of Executor worker threads, channel via its native MPMC
+    # smol::channel, and io_socket_st via smol::net on per-thread LocalExecutors.
+    "smol": "https://github.com/smol-rs/smol",
+    "rayon": "https://github.com/rayon-rs/rayon",
+    # chili: the Rust port of Spice (heartbeat-scheduled fork-join). Like rayon,
+    # synchronous-only, so just the four fork-join benchmarks.
+    "chili": "https://github.com/dragostis/chili",
+    # forte: heartbeat-scheduled fork-join scheduler with a rayon-style join/scope
+    # (a sibling of chili/spice). Fork-join-only, so just the four fork-join
+    # benchmarks. Pinned to 1.0.0-alpha.4 (the newest release that builds on Rust
+    # 1.90; alpha.5 needs 1.96); see rust/forte/Cargo.toml.
+    "forte": "https://github.com/NthTensor/Forte",
+    # bevy_tasks: Bevy's async task pool (built on async-executor). Tasks can
+    # spawn and await further tasks on the same pool, so it runs the four
+    # fork-join benchmarks (no async socket or MPMC channel API). Keyed as
+    # "bevy" because the README generator resolves links via the runtime name's
+    # prefix before the first underscore (bevy_tasks -> bevy).
+    "bevy": "https://github.com/bevyengine/bevy/tree/main/crates/bevy_tasks",
+    # micropool: a fixed-size, low-latency work-stealing pool (rayon-style, aimed
+    # at games) with a free `join` and external-thread participation. All workers
+    # are created at pool build time and reused - nothing is spawned while a
+    # benchmark runs - so it runs the four fork-join benchmarks (no async socket
+    # or MPMC channel API).
+    "micropool": "https://github.com/DouglasDwyer/micropool",
+    # beekeeper: a worker-pool ("hive") library. Workers can fork subtasks from
+    # inside a task (Context::submit) but cannot join them, so the fork-join
+    # benchmarks propagate results through the hive's outcome channel (and
+    # matmul's group barrier via continuation nodes); see rust/beekeeper. Its
+    # task->outcome pipeline is an MPMC queue, so channel runs too (no async
+    # socket API, so no io_socket_st).
+    "beekeeper": "https://github.com/jdidion/beekeeper",
     "go": "https://pkg.go.dev/std",
     "dotnet": "https://learn.microsoft.com/en-us/dotnet/api/",
     "java": "https://openjdk.org/jeps/444",
@@ -76,7 +109,10 @@ runtime_links = {
     # zig/zap: a vendored port of the "blog" branch's thread pool (upstream
     # targets a pre-0.10 Zig); see zig/zap/src/thread_pool.zig.
     "zap": "https://github.com/kprotty/zap",
-    "zigbeam": "https://github.com/eakova/zigbeam"
+    "zigbeam": "https://github.com/eakova/zigbeam",
+    # spice: heartbeat-scheduled fork-join library. Fork-join-only, so just the
+    # four fork-join benchmarks (no channel / io).
+    "spice": "https://github.com/judofyr/spice"
 }
 
 benchmarks_order = ["skynet", "nqueens", "fib", "matmul", "channel", "io_socket_st"]

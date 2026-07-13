@@ -1,0 +1,137 @@
+From 6bd2a7cc6e9de2aeb757ed71669684a8593949dc Mon Sep 17 00:00:00 2001
+From: tzcnt <trailingzerocount@gmail.com>
+Date: Sun, 12 Jul 2026 12:00:13 -0700
+Subject: [PATCH] Fix job queue corruption from stale Task.job_tail
+
+Task.job_tail is a cached pointer to the tail of the worker's job queue,
+threaded by value through every frame. Two paths let a frame keep using a
+copy that points at a job which is no longer in the queue; a subsequent
+fork through that task then pushes onto the removed job, overwriting its
+next_or_state (the execute-state pointer for a job in the executing
+state) and splitting the queue. The eventual symptom is a crash in
+getExecuteState (null or garbage execute state) on a workload that forks
+again after joining, e.g. divide-and-conquer matrix multiplication; the
+corruption is silent in ReleaseFast until then.
+
+The two paths:
+
+1. Task.call never propagated the callee's final job_tail back to the
+   caller (callWithContext's doc comment already promised this, but the
+   code dropped it). While the callee's forks are queued behind the job
+   the caller's job_tail points at, that job is not the true tail, so a
+   heartbeat is free to shift it out of the queue. The pops that unwind
+   the callee track that removal via the jobs' prev pointers (which
+   shift keeps accurate), but the caller's stale copy survived the
+   return. callWithContext now returns the final job_tail and Task.call
+   writes it back.
+
+2. Future.joinExecuting left task.job_tail pointing at the joined job,
+   which by definition of the executing state was already shifted out of
+   the queue. Jobs are shifted oldest-first and joined newest-first, so
+   at that point the worker's queue is provably empty; reset job_tail to
+   the queue head.
+
+Also add two debug asserts (push: the tail has no successor; pop: prev
+still links back to self) that catch this class of corruption at the
+first bad queue operation instead of at a much later join.
+
+Reproduced by a 128-thread recursive matmul benchmark (n=2048, 32x32
+base case, two sequential groups of 4 forks per level - the second group
+forks after the first group's joins, hitting both paths). With this fix
+it passes repeatedly in Debug and ReleaseFast; fib/nqueens/skynet-style
+fork-once-then-join workloads are unaffected because they never fork
+again after a join in the same frame.
+---
+ src/root.zig | 34 +++++++++++++++++++++++++++++++---
+ 1 file changed, 31 insertions(+), 3 deletions(-)
+
+diff --git a/src/root.zig b/src/root.zig
+index b48b1c9..f5bb980 100644
+--- a/src/root.zig
++++ b/src/root.zig
+@@ -316,13 +316,14 @@ pub const Task = struct {
+     }
+ 
+     pub inline fn call(self: *Task, comptime T: type, func: anytype, arg: anytype) T {
+-        return callWithContext(
++        const result, self.job_tail = callWithContext(
+             self.worker,
+             self.job_tail,
+             T,
+             func,
+             arg,
+         );
++        return result;
+     }
+ };
+ 
+@@ -337,16 +338,26 @@ fn callWithContext(
+     comptime T: type,
+     func: anytype,
+     arg: anytype,
+-) T {
++) struct { T, *Job } {
+     var t = Task{
+         .worker = worker,
+         .job_tail = job_tail,
+     };
+     t.tick();
+-    return @call(.always_inline, func, .{
++    const result = @call(.always_inline, func, .{
+         &t,
+         arg,
+     });
++    // Hand the final job_tail back to the caller: the job which the caller's
++    // job_tail points at may have been shifted out of the queue by a heartbeat
++    // during this call. (While this call's forks are queued behind that job it
++    // is not the true tail, so `shift` is free to remove it.) The pops that
++    // unwound this call tracked those removals through the jobs' prev pointers,
++    // which `shift` keeps accurate, so `t.job_tail` is the true tail now; the
++    // caller's stale copy must not survive, or its next fork will push onto a
++    // job that is no longer in the queue and corrupt both the queue and the
++    // removed job's execute-state pointer.
++    return .{ result, t.job_tail };
+ }
+ 
+ pub const JobState = enum {
+@@ -411,6 +422,9 @@ const Job = struct {
+     fn push(self: *Job, tail: **Job, handler: *const fn (task: *Task, job: *Job) void) void {
+         std.debug.assert(self.state() == .pending);
+         defer std.debug.assert(self.state() == .queued);
++        // The tail must actually be the end of the queue. If this fires, the
++        // task's job_tail points at a job that is no longer in the queue.
++        std.debug.assert(tail.*.next_or_state == null);
+ 
+         self.handler = handler;
+         tail.*.next_or_state = self; // tail.next = self
+@@ -423,6 +437,8 @@ const Job = struct {
+         std.debug.assert(self.state() == .queued);
+         std.debug.assert(tail.* == self);
+         const prev: *Job = @ptrCast(@alignCast(self.prev_or_null));
++        // Doubly-linked-list consistency: our prev must still link back to us.
++        std.debug.assert(prev.next_or_state == @as(?*anyopaque, self));
+         prev.next_or_state = null; // prev.next = null
+         tail.* = @ptrCast(@alignCast(self.prev_or_null)); // tail = self.prev
+         self.* = undefined;
+@@ -537,6 +553,18 @@ pub fn Future(comptime Input: type, Output: type) type {
+             const pool = w.pool;
+             const exec_state = self.job.getExecuteState();
+ 
++            // This job is in the executing state, which means a heartbeat
++            // shifted it out of the queue. Jobs are shifted oldest-first and
++            // joined newest-first, so every job this worker had queued is gone
++            // as well: the ones pushed before this job were shifted out before
++            // it, and the ones pushed after it have already been joined
++            // (popped, or shifted and waited for). The queue is empty, so the
++            // tail must be reset to the head. Leaving it pointing at this job
++            // (which is no longer in the queue, and whose stack slot dies with
++            // the frame that owns the future) would corrupt the queue on the
++            // next `fork` through this task.
++            task.job_tail = &w.job_head;
++
+             if (pool.waitForJob(w, &self.job)) {
+                 const result = exec_state.resultPtr(Output).*;
+                 pool.destroyExecuteState(exec_state);
+-- 
+2.53.0
+

@@ -1,0 +1,20 @@
+[package]
+name = "smol-bench"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+# smol is a thin facade over the smol-rs runtime crates: async-executor
+# (Executor/LocalExecutor/Task), async-io (reactor + block_on), async-net
+# (sockets), async-channel (MPMC channel), and futures-lite.
+smol = "2"
+libc = "0.2"
+# Used by io_socket_st to set SO_REUSEADDR (asio sets this by default, so the
+# C++ runtimes get it for free) and avoid EADDRINUSE across back-to-back runs.
+socket2 = "0.6"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
