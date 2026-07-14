@@ -1,0 +1,20 @@
+[package]
+name = "forte-bench"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+# forte is a heartbeat-scheduled fork-join scheduler (like chili/spice) with a
+# rayon-style join/scope. The latest release (1.0.0-alpha.5) raises its MSRV to
+# Rust 1.96, but this repo's toolchain is 1.90; 1.0.0-alpha.4 exposes an
+# identical join/scope/with_worker API and builds on 1.90, so it is pinned
+# exactly here. When the toolchain is bumped to >=1.96, relax this to a caret
+# requirement (`forte = "1"`) to pick up newer releases.
+forte = "=1.0.0-alpha.4"
+libc = "0.2"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1

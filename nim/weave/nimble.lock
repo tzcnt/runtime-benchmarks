@@ -1,0 +1,53 @@
+{
+  "version": 2,
+  "packages": {
+    "nim": {
+      "version": "2.2.10",
+      "vcsRevision": "9fe2137fa2f3f66cf5a44f357d461829ac9e20c4",
+      "url": "https://github.com/nim-lang/Nim.git",
+      "downloadMethod": "git",
+      "dependencies": [],
+      "checksums": {
+        "sha1": "17ec440fdb89f8903db29a17898af590087d2b64"
+      }
+    },
+    "synthesis": {
+      "version": "0.2.0",
+      "vcsRevision": "09bef6df051b13baeb3a83d03f08b8886354839f",
+      "url": "https://github.com/mratsim/Synthesis",
+      "downloadMethod": "git",
+      "dependencies": [
+        "nim"
+      ],
+      "checksums": {
+        "sha1": "2745e973d0850864e013aec5ef7d1a2dcb5599a4"
+      }
+    },
+    "weave": {
+      "version": "0.4.10",
+      "vcsRevision": "b6255afa5816ee431dbf2f59cc6bc605d8d657b8",
+      "url": "https://github.com/mratsim/weave",
+      "downloadMethod": "git",
+      "dependencies": [
+        "nim",
+        "synthesis"
+      ],
+      "checksums": {
+        "sha1": "c25aaeeaa22ef5646cf6b01fbedf4ee9a315b57b"
+      }
+    },
+    "threading": {
+      "version": "0.2.1",
+      "vcsRevision": "ee77a27eca7042a2b68061d0bcee691e5b56aa10",
+      "url": "https://github.com/nim-lang/threading",
+      "downloadMethod": "git",
+      "dependencies": [
+        "nim"
+      ],
+      "checksums": {
+        "sha1": "594ec27a467847166ef78767ff60e1c87d0f743f"
+      }
+    }
+  },
+  "tasks": {}
+}

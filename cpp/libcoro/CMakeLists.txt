@@ -30,8 +30,7 @@ endif()
 CPMAddPackage(
     NAME libcoro
     GIT_REPOSITORY https://github.com/jbaldwin/libcoro.git
-    GIT_TAG ${LIBCORO_GIT_TAG}
-    DOWNLOAD_ONLY)
+    GIT_TAG ${LIBCORO_GIT_TAG})
 
 include_directories(${libcoro_SOURCE_DIR}/include)
 link_libraries(libcoro)

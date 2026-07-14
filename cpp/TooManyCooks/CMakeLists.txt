@@ -9,30 +9,42 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS "1")
 set(CMAKE_CXX_STANDARD 20)
 
 add_definitions(
-
-    # Performance tuning options
     "-march=native"
-    "-DTMC_PRIORITY_COUNT=1" # unsigned integer between 1 and 63
-
-    # "-DTMC_TRIVIAL_TASK" # enabled in this repo for Release builds via CMakePresets.json
-
-    # Other
-    # "-DTMC_WORK_ITEM=CORO" # one of: CORO, FUNC, FUNCORO, FUNCORO32
 )
 
 include(../1CMake/CPM.cmake)
 
 include_directories("../2common")
 
-# By default, download the TMC repos as CPM packages.
-# If this option is enabled, CMake will expect them to be in git submodules.
+# TMC (v1.5.0+) ships a header-only `TooManyCooks::TooManyCooks` INTERFACE target. Docs: https://www.fleetcode.com/oss/tmc/docs/dev/build_flags.html
+
+# Fixed single priority level
+set(TMC_PRIORITY_COUNT 1 CACHE STRING "" FORCE)
+
+# Topology-aware thread placement. The target finds and links hwloc itself and
+# hard-errors if it is missing; pass -DTMC_USE_HWLOC=OFF to build without it.
+set(TMC_USE_HWLOC ON CACHE BOOL "" FORCE)
+
+# Trivial-task optimization
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    set(TMC_TRIVIAL_TASK ON CACHE BOOL "" FORCE)
+endif()
+
+# Standalone asio by default; -DTMC_USE_BOOST_ASIO=ON switches both TMC (this
+# option feeds the interface target) and the benchmark's asio headers (below) to
+# boost::asio.
+option(TMC_USE_BOOST_ASIO "Use boost::asio instead of standalone asio" OFF)
+
+# By default, download the TMC repo as a CPM package.
+# If TMC_AS_SUBMODULE is enabled, CMake will expect it in a git submodule instead.
 # You must run `submodule update --init --recursive` before turning this on.
 # This option exists to simplify my development across repositories.
-option(TMC_AS_SUBMODULE "Download TMC repos as Git submodules" OFF)
+option(TMC_AS_SUBMODULE "Use TMC from a Git submodule instead of CPM" OFF)
 
 if(TMC_AS_SUBMODULE)
-    include_directories(
-        ${runtime_benchmarks_TooManyCooks_SOURCE_DIR}/submodule/include
+    add_subdirectory(
+        ${runtime_benchmarks_TooManyCooks_SOURCE_DIR}/submodule
+        ${CMAKE_BINARY_DIR}/tmc-submodule
     )
 else()
     set(TMC_GIT_TAG main)
@@ -44,19 +56,15 @@ else()
     CPMAddPackage(
         NAME TooManyCooks
         GIT_REPOSITORY https://github.com/tzcnt/TooManyCooks.git
-        GIT_TAG ${TMC_GIT_TAG}
-        DOWNLOAD_ONLY)
-
-    include_directories(
-        ${TooManyCooks_SOURCE_DIR}/include
-    )
+        GIT_TAG ${TMC_GIT_TAG})
 endif()
 
-option(TMC_USE_BOOST_ASIO "Use boost::asio instead of standalone asio" OFF)
+# The INTERFACE target carries TMC's include dirs, compile definitions (from the
+# options above), hwloc, and pthreads.
+link_libraries(TooManyCooks::TooManyCooks)
 
+# TMC consumes Asio but does not provide it
 if(TMC_USE_BOOST_ASIO)
-    add_compile_definitions(TMC_USE_BOOST_ASIO)
-
     # Tell cmake to use the target Boost cmake file instead of the built-in
     cmake_policy(SET CMP0167 NEW)
     set(Boost_USE_STATIC_LIBS ON)
@@ -64,7 +72,7 @@ if(TMC_USE_BOOST_ASIO)
 
     # set(ENV{BOOST_CMAKE_ROOT} "/home/tzcnt/pkg-src/boost-1.88-src/boost_1_88_0/stage/lib/cmake/")
 
-    # By default this will will look for your system boost.
+    # By default this will look for your system boost.
     # Or you can set BOOST_CMAKE_ROOT to tell it where to look.
     if(DEFINED ENV{BOOST_CMAKE_ROOT})
         find_package(
@@ -80,31 +88,12 @@ else()
         GIT_REPOSITORY https://github.com/chriskohlhoff/asio.git
         VERSION 1.36.1
         GIT_TAG asio-1-36-0
-        DOWNLOAD_ONLY)
+        DOWNLOAD_ONLY YES)
 
     # mark Asio headers as SYSTEM to ignore warnings
     include_directories(SYSTEM
         ${asio_SOURCE_DIR}/asio/include
     )
-endif()
-
-# HWLOC support
-option(TMC_USE_HWLOC "libhwloc" ON)
-
-if(TMC_USE_HWLOC)
-    message(STATUS "TMC_USE_HWLOC: running find_package(libhwloc)...")
-    find_package(libhwloc)
-
-    if(NOT LIBHWLOC_FOUND)
-        message(WARNING "TMC_USE_HWLOC: WARNING - libhwloc was not found. Building without it... this may affect performance.")
-        set(TMC_USE_HWLOC OFF CACHE BOOL "libhwloc" FORCE)
-    else()
-        message(STATUS "TMC_USE_HWLOC: found library ${LIBHWLOC_LIBRARY}")
-        message(STATUS "TMC_USE_HWLOC: found include ${LIBHWLOC_INCLUDE_DIR}/hwloc.h")
-        link_libraries(${LIBHWLOC_LIBRARY})
-        include_directories(${LIBHWLOC_INCLUDE_DIR})
-        add_compile_definitions(TMC_USE_HWLOC)
-    endif()
 endif()
 
 # Since each new coroutine requires an allocation,

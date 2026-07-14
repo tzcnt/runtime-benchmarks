@@ -1,0 +1,36 @@
+diff --git a/src/libs/backoff/backoff.zig b/src/libs/backoff/backoff.zig
+index 533a34e..9645587 100644
+--- a/src/libs/backoff/backoff.zig
++++ b/src/libs/backoff/backoff.zig
+@@ -91,7 +91,12 @@ pub const Backoff = struct {
+             std.Thread.yield() catch {};
+         } else {
+             // Phase 4: Power-saving sleep for sustained idleness
+-            std.Thread.sleep(self.config.sleep_ns);
++            // (std.Thread.sleep was removed in Zig 0.16; call nanosleep directly)
++            const ts: std.os.linux.timespec = .{
++                .sec = @intCast(self.config.sleep_ns / std.time.ns_per_s),
++                .nsec = @intCast(self.config.sleep_ns % std.time.ns_per_s),
++            };
++            _ = std.os.linux.nanosleep(&ts, null);
+         }
+         self.count +|= 1; // Saturating add to prevent overflow
+     }
+diff --git a/src/libs/deque/deque_channel.zig b/src/libs/deque/deque_channel.zig
+index 947518d..2ae7398 100644
+--- a/src/libs/deque/deque_channel.zig
++++ b/src/libs/deque/deque_channel.zig
+@@ -215,7 +215,12 @@ pub fn DequeChannel(
+ 
+             // Issue 47 fix: Use entropy-mixed seeds to decorrelate victim selection
+             // Combining worker ID, pointer address, and timestamp prevents synchronized steals
+-            const base_entropy = @as(u64, @truncate(@as(u128, @bitCast(std.time.nanoTimestamp()))));
++            // (std.time.nanoTimestamp was removed in Zig 0.16; read the monotonic clock directly)
++            const base_entropy = blk: {
++                var ts: std.os.linux.timespec = undefined;
++                _ = std.os.linux.clock_gettime(.MONOTONIC, &ts);
++                break :blk @as(u64, @bitCast(@as(i64, ts.sec) *% std.time.ns_per_s +% ts.nsec));
++            };
+ 
+             var i: usize = 0;
+             while (i < num_workers) : (i += 1) {

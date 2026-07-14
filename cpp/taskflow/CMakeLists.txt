@@ -24,7 +24,7 @@ CPMAddPackage(
     NAME taskflow
     GIT_REPOSITORY https://github.com/taskflow/taskflow.git
     GIT_TAG ${TASKFLOW_GIT_TAG}
-    DOWNLOAD_ONLY)
+    DOWNLOAD_ONLY YES)
 
 include_directories(
     ${taskflow_SOURCE_DIR}

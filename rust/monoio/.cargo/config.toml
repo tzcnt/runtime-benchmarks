@@ -1,0 +1,5 @@
+# Match the C++ runtimes' release flags (-O3 -march=native) as closely as
+# possible so the comparison is fair. target-cpu=native is the Rust analogue of
+# -march=native.
+[build]
+rustflags = ["-C", "target-cpu=native"]

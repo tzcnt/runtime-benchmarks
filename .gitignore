@@ -42,3 +42,7 @@ Makefile
 scratch/
 AGENTS.md
 __pycache__
+
+# Build failure logs from build_and_bench_all.py
+build-failed-*.log
+results/

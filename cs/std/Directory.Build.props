@@ -1,0 +1,28 @@
+<Project>
+  <!--
+    Shared build settings for every C# stdlib benchmark. The intent is to match
+    the release configuration of the other suites (C++ -O3 -march=native, Rust
+    target-cpu=native): the .NET JIT already targets the host CPU (hardware
+    intrinsics + tiered PGO), so the main knobs here are optimization, Server GC
+    (the throughput-oriented collector, the analogue of the high-perf allocators
+    the C++ suites link against), and a single warmup iteration per benchmark to
+    let hot methods reach tier-1 codegen.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <Optimize>true</Optimize>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <InvariantGlobalization>true</InvariantGlobalization>
+
+    <!-- Server GC: per-core heaps + concurrent background collection, the right
+         choice for the allocation-heavy parallel fork-join workloads (mirrors
+         Go's concurrent GC and the C++ suites' scalable allocators). -->
+    <ServerGarbageCollection>true</ServerGarbageCollection>
+    <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
+    <TieredCompilation>true</TieredCompilation>
+    <TieredPGO>true</TieredPGO>
+  </PropertyGroup>
+</Project>

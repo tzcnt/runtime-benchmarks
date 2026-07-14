@@ -1,0 +1,28 @@
+[package]
+name = "monoio-bench"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+# monoio is a thread-per-core, io_uring-first async runtime (ByteDance). It runs
+# one single-threaded Runtime per OS thread and its tasks are !Send, so there is
+# no cross-core work-stealing: the fork-join benchmarks (skynet/nqueens/fib/
+# matmul), which need one logical task tree spread over every core, do not apply.
+# monoio also ships no MPMC channel (no channels module at all), so the channel
+# benchmark does not apply either. That leaves io_socket_st, which is a natural
+# fit for the model: a single-threaded server and a single-threaded client, each
+# driving its own Runtime on its own OS thread.
+monoio = "0.2"
+libc = "0.2"
+# Used to bind the listening socket synchronously (with SO_REUSEADDR) before the
+# client thread starts, so the port is open up front and back-to-back runs in
+# the harness's thread sweep don't hit EADDRINUSE. Mirrors the smol/tokio
+# benches (monoio's own TcpListener::bind also sets SO_REUSEADDR, but binding in
+# main() also removes the accept race without the C++ version's startup sleep).
+socket2 = "0.6"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1

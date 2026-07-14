@@ -1,0 +1,17 @@
+[package]
+name = "bevy-tasks-bench"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+# bevy_tasks is Bevy's async task pool (built on async-executor). The
+# multi-threaded executor is behind the non-default "multi_threaded" feature;
+# without it every task runs on a single thread.
+bevy_tasks = { version = "0.19", features = ["multi_threaded"] }
+libc = "0.2"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1

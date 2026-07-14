@@ -27,8 +27,7 @@ endif()
 CPMAddPackage(
     NAME cppcoro
     GIT_REPOSITORY https://github.com/andreasbuhr/cppcoro.git
-    GIT_TAG ${CPPCORO_GIT_TAG}
-    DOWNLOAD_ONLY)
+    GIT_TAG ${CPPCORO_GIT_TAG})
 
 include_directories(${cppcoro_SOURCE_DIR}/include)
 link_libraries(cppcoro)
