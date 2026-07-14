@@ -19,10 +19,11 @@ import merge_results  # local module: reused to combine per-runtime result files
 
 runtimes = {
     "cpp": ["citor", "libfork", "TooManyCooks", "tbb", "taskflow", "cppcoro", "coros", "cobalt",
-            "PhotonLibOS",
+            "PhotonLibOS", "corosio",
             # these 5 are quite slow - you can remove them to speed up total runtime
             "folly", "concurrencpp", "HPX", "libcoro", "userver"],
-    "rust": ["tokio", "smol", "rayon", "chili", "forte", "bevy_tasks", "micropool", "beekeeper"],
+    "rust": ["tokio", "smol", "rayon", "chili", "forte", "bevy_tasks", "micropool", "beekeeper",
+             "monoio", "glommio"],
     "go": ["go"],
     "cs": ["dotnet"],
     "java": ["java", "forkjoin"],
@@ -62,6 +63,14 @@ runtime_links = {
     "libcoro": "https://github.com/jbaldwin/libcoro",
     "userver": "https://github.com/userver-framework/userver",
     "PhotonLibOS": "https://github.com/alibaba/PhotonLibOS",
+    # corosio: a coroutine-only async networking library (Boost candidate) that
+    # requires capy, its coroutine-foundation dependency. Capy supplies the
+    # task type, the thread_pool executor, and the when_all fork-join combinator
+    # used by the four fork-join benchmarks; corosio supplies the io_context and
+    # tcp_socket/tcp_acceptor used by io_socket_st (single-threaded epoll server
+    # and client, each on its own thread). Neither provides an MPMC channel, so
+    # there is no channel benchmark. See cpp/corosio.
+    "corosio": "https://github.com/cppalliance/corosio",
     "tokio": "https://github.com/tokio-rs/tokio",
     # smol: a facade over the smol-rs runtime crates (async-executor, async-io,
     # async-net, async-channel). Runs all 6 benchmarks: nested fork-join on a
@@ -96,6 +105,19 @@ runtime_links = {
     # task->outcome pipeline is an MPMC queue, so channel runs too (no async
     # socket API, so no io_socket_st).
     "beekeeper": "https://github.com/jdidion/beekeeper",
+    # monoio: a thread-per-core, io_uring-first async runtime (ByteDance). One
+    # single-threaded Runtime per OS thread, !Send tasks, no cross-core work-
+    # stealing (so no fork-join benchmarks) and no MPMC channel (so no channel
+    # benchmark). It runs only io_socket_st, whose single-threaded server and
+    # client each drive their own Runtime on a separate OS thread; see
+    # rust/monoio.
+    "monoio": "https://github.com/bytedance/monoio",
+    # glommio: a thread-per-core, io_uring-only async runtime (Linux). Like
+    # monoio it is single-threaded-per-executor with !Send tasks (no fork-join),
+    # and its channels module is deliberately SPSC-only, not MPMC (no channel
+    # benchmark). It runs only io_socket_st, with the server and client each on
+    # their own LocalExecutor / OS thread; see rust/glommio.
+    "glommio": "https://github.com/DataDog/glommio",
     "go": "https://pkg.go.dev/std",
     "dotnet": "https://learn.microsoft.com/en-us/dotnet/api/",
     "java": "https://openjdk.org/jeps/444",

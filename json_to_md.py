@@ -38,6 +38,10 @@ runtime_links = {
     "bevy": "https://github.com/bevyengine/bevy/tree/main/crates/bevy_tasks",
     "micropool": "https://github.com/DouglasDwyer/micropool",
     "beekeeper": "https://github.com/jdidion/beekeeper",
+    # monoio / glommio: thread-per-core, io_uring async runtimes. io_socket_st only.
+    "monoio": "https://github.com/bytedance/monoio",
+    "glommio": "https://github.com/DataDog/glommio",
+    "corosio": "https://github.com/cppalliance/corosio",
     "go": "https://pkg.go.dev/std",
     "dotnet": "https://learn.microsoft.com/en-us/dotnet/api/",
     "java": "https://openjdk.org/jeps/444",

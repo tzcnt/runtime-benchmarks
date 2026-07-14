@@ -1,0 +1,34 @@
+[package]
+name = "glommio-bench"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+# glommio is a thread-per-core, io_uring-only async runtime (Linux). It runs one
+# single-threaded LocalExecutor per OS thread and its tasks are !Send, so there
+# is no cross-core work-stealing: the fork-join benchmarks (skynet/nqueens/fib/
+# matmul), which need one logical task tree spread over every core, do not apply.
+# glommio's channels module is deliberately *not* MPMC either - it ships only
+# SPSC primitives (spsc_queue, the single-producer/single-consumer shared_channel,
+# and a single-executor local_channel whose endpoints are not Clone); its docs
+# note MPMC "need locks for synchronization" and thread-per-core avoids them. So
+# the channel benchmark does not apply. That leaves io_socket_st, a natural fit:
+# a single-threaded server and a single-threaded client, each on its own
+# LocalExecutor / OS thread.
+glommio = "0.9"
+libc = "0.2"
+# glommio's TcpStream implements the standard futures AsyncRead/AsyncWrite; these
+# ext traits (matching glommio's own futures-lite 1.12) give read/write_all.
+futures-lite = "1.12"
+# Used to bind the listening socket synchronously (with SO_REUSEADDR) before the
+# client thread starts, so the port is open up front and back-to-back runs in the
+# harness's thread sweep don't hit EADDRINUSE. glommio's own TcpListener::bind
+# only sets SO_REUSEPORT and must run inside an executor, so we bind here and
+# adopt the fd via FromRawFd. Mirrors the smol/tokio benches.
+socket2 = "0.6"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
